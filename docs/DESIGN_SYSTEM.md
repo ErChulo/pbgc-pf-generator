@@ -41,9 +41,9 @@ source of truth). Fetched 2026-11-11.
 
 ## Header
 
-- Slim blue header, compact title. No logo in v0.2.2 (see
-  OPEN_ITEMS.md). The DEL generator embeds the white PBGC logo; PF
-  will reuse that approach when the logo is added.
+- Slim blue header, compact title. White PBGC logo (v0.4.0), same
+  file as DEL (Book of Job "images" folder; local copy in
+  `assets/logos/`), 52px desktop / 44px under 640px.
 - Nav: links, not buttons. Three links: PF generator, Welcome, Help.
   Hash routing (`#pf`, `#welcome`, `#help`). Skip link first.
   Disclosure menu with Escape + focus return at the 640px breakpoint.
@@ -51,4 +51,3 @@ source of truth). Fetched 2026-11-11.
 ## What v0.2.2 does not use
 
 - No Match ranking view (PF has no ranking step; DEL has one).
-- No logo image yet. Text header only.

@@ -1,5 +1,5 @@
 "use strict";
-/* PF Generator v0.3.0 — test runner.
+/* PF Generator v0.4.0 — test runner.
    Loads the single <script> block of pf-generator.html into a Node vm
    (no DOM, no localStorage — the pure logic only) and checks schema
    validation, flexible import, partial merge, formula builders, and
@@ -210,7 +210,7 @@ function unzipMembers(b) {
 const members = unzipMembers(bytes);
 const xlsxText = Object.values(members).map((mm) => mm.text).join("\n");
 check("xlsx members are DEFLATE-compressed (method 8)", Object.values(members).every((mm) => mm.method === 8), JSON.stringify(Object.entries(members).map(([k, v]) => k + ":" + v.method)));
-check("xlsx has docProps with the generator version", members["docProps/core.xml"] && members["docProps/core.xml"].text.indexOf("PF Generator v0.3.0") >= 0);
+check("xlsx has docProps with the generator version", members["docProps/core.xml"] && members["docProps/core.xml"].text.indexOf("PF Generator v0.4.0") >= 0);
 check("xlsx members decompress (no corrupt member)", Object.keys(members).length >= 9, String(Object.keys(members).length));
 const buf = Buffer.from(bytes);
 function has(str) { return xlsxText.indexOf(str) >= 0; }
@@ -496,6 +496,74 @@ check("formula preview shows the exact linear formula",
   PF.pfFormulaPreview(demo.factorSets[0]) === "=ROUND(1-(A11/180),4)");
 check("formula preview is null for a set with no rule", PF.pfFormulaPreview(demo.factorSets[4]) === null);
 
+/* --- 8g. v0.4.0: interest method (intMethod), certain-only forms, per-type prompts, preview, grid tables --- */
+check("known interest methods: N, O, L, LPQ, LPY3, NPY, OCY",
+  PF.pfKnownIntMethod("N") && PF.pfKnownIntMethod("O") && PF.pfKnownIntMethod("L") && PF.pfKnownIntMethod("LPQ") && PF.pfKnownIntMethod("LPY3") && PF.pfKnownIntMethod("NPY") && PF.pfKnownIntMethod("OCY"));
+check("interest method rejects Y (a deferral value, not a method), LPBGC (not in BFCFAEQ), LPQ6, NP",
+  !PF.pfKnownIntMethod("Y") && !PF.pfKnownIntMethod("LPBGC") && !PF.pfKnownIntMethod("LPQ6") && !PF.pfKnownIntMethod("NP") && !PF.pfKnownIntMethod(""));
+const noInt = clone(demo); delete noInt.factorSets[2].intMethod;
+check("validator refuses a BFCF set with no intMethod",
+  PF.validatePfJson(noInt).errors.some((e) => e.indexOf("intMethod") >= 0), PF.validatePfJson(noInt).errors.join("; "));
+const yInt = clone(demo); yInt.factorSets[2].intMethod = "Y";
+check("validator refuses intMethod Y on a BFCF set (Y is deferral mortality, not an interest method)",
+  PF.validatePfJson(yInt).errors.some((e) => e.indexOf("intMethod") >= 0), PF.validatePfJson(yInt).errors.join("; "));
+const lPbgc = clone(demo); lPbgc.factorSets[2].intMethod = "LPBGC";
+check("validator refuses intMethod LPBGC on a BFCF set (NPVF2 only)",
+  PF.validatePfJson(lPbgc).errors.some((e) => e.indexOf("LPBGC") >= 0), PF.validatePfJson(lPbgc).errors.join("; "));
+const dmBfcf = clone(demo); dmBfcf.factorSets[2].deferralMortality = "N";
+check("validator refuses a non-null deferralMortality on a BFCF set (BFCFAEQ has no deferral parameter)",
+  PF.validatePfJson(dmBfcf).errors.some((e) => e.indexOf("deferralMortality") >= 0), PF.validatePfJson(dmBfcf).errors.join("; "));
+const lpqSet = clone(demo); lpqSet.factorSets[2].intMethod = "LPQ";
+check("validator accepts intMethod LPQ on a BFCF set",
+  PF.validatePfJson(lpqSet).errors.length === 0, PF.validatePfJson(lpqSet).errors.join("; "));
+const npyLs = clone(demo); npyLs.factorSets[2].intMethod = "NPY"; npyLs.factorSets[2].mortality1 = "LS06SU2018"; npyLs.factorSets[2].mortality2 = "LS06SU2018";
+check("validator accepts O/N with a stability period when mortality is LS06SUYYYY",
+  PF.validatePfJson(npyLs).errors.length === 0, PF.validatePfJson(npyLs).errors.join("; "));
+const npyUp = clone(demo); npyUp.factorSets[2].intMethod = "NPY";
+check("validator refuses O/N with a stability period unless mortality is LS06SUYYYY or LS12SUYYYY",
+  PF.validatePfJson(npyUp).errors.some((e) => e.indexOf("intMethod") >= 0 && e.indexOf("LS06SU") >= 0), PF.validatePfJson(npyUp).errors.join("; "));
+const erfInt = clone(demo); erfInt.factorSets[1].intMethod = "N";
+check("validator refuses a non-null intMethod on an ERF set (fixed-rate plans only)",
+  PF.validatePfJson(erfInt).errors.some((e) => e.indexOf("intMethod") >= 0), PF.validatePfJson(erfInt).errors.join("; "));
+check("BFCF formula writes the interest method, not deferral mortality",
+  PF.pfBfcfFormula(lpqSet.factorSets[2], "C10", "B11").formula.indexOf(',"MP","LPQ"),4)') >= 0,
+  PF.pfBfcfFormula(lpqSet.factorSets[2], "C10", "B11").formula);
+check("demo BFCF sets carry intMethod N and no deferralMortality",
+  demo.factorSets[2].intMethod === "N" && demo.factorSets[2].deferralMortality === null && demo.factorSets[3].intMethod === "N" && demo.additionalConversions[0].intMethod === "N");
+check("form map: 3CO is CTN with 36 months certain (certain-only stops after the term)",
+  JSON.stringify(PF.pfPlanFormToBcv("3CO", null)) === JSON.stringify({ code: "CTN", spc: 0, mths: 36 }));
+check("form map: 5CO is CTN with 60 months certain", PF.pfPlanFormToBcv("5CO", null).code === "CTN" && PF.pfPlanFormToBcv("5CO", null).mths === 60);
+const coSet = clone(demo.factorSets[1]); coSet.normalForm = "3CO"; coSet.monthsCertain = null;
+check("months certain derives 36 from a 3CO normal form", PF.pfMonthsCertainForSet(coSet) === 36);
+const coConflict = clone(demo); coConflict.factorSets[1].normalForm = "3CO"; coConflict.factorSets[1].monthsCertain = 0;
+check("validator rejects monthsCertain 0 on a 3CO normal form (36 expected)",
+  PF.validatePfJson(coConflict).errors.some((e) => e.indexOf("monthsCertain") >= 0 && e.indexOf("3CO") >= 0), PF.validatePfJson(coConflict).errors.join("; "));
+const coBfcf = clone(demo.factorSets[2]); coBfcf.fromForm = "3CO"; coBfcf.normalForm = "3CO";
+check("BFCF formula for a 3CO from-form writes CTN with 36 months certain",
+  PF.pfBfcfFormula(coBfcf, "C10", "B11").formula.indexOf('BFCFAEQ("CTN",0,36,0,"JSC"') >= 0,
+  PF.pfBfcfFormula(coBfcf, "C10", "B11").formula);
+const gridParsed = PF.pfParseGridTable("65, 61, 0.8123\n66, 61, 0.8001\n");
+check("grid table parser reads partAge, benAge, factor lines",
+  gridParsed && gridParsed.kind === "grid" && gridParsed.rows.length === 2 && gridParsed.rows[0].factor === 0.8123);
+check("grid table parser returns null for a blank table", PF.pfParseGridTable("  \n") === null);
+let gridBad = null;
+try { PF.pfParseGridTable("65, 61\n"); } catch (e) { gridBad = e.message; }
+check("grid table parser refuses a line without three values", gridBad && gridBad.indexOf("line 1") >= 0, gridBad);
+let gridDup = null;
+try { PF.pfParseGridTable("65, 61, 0.8123\n65, 61, 0.8000\n"); } catch (e) { gridDup = e.message; }
+check("grid table parser refuses the same age pair twice", gridDup && gridDup.indexOf("twice") >= 0, gridDup);
+const gridText = PF.pfGridTableText(gridParsed);
+check("grid table text round-trips the parsed rows", gridText.indexOf("65, 61, 0.8123") >= 0 && gridText.indexOf("66, 61, 0.8001") >= 0, gridText);
+const erfPrompt = PF.pfTypePrompt("ERF");
+check("per-type prompt scopes to ERF and still carries the full prompt",
+  erfPrompt.indexOf("Find ONLY the early retirement factor (ERF) sets") === 0 && erfPrompt.indexOf("Ignore LRF, BFCF, and OTHER sets") >= 0 && erfPrompt.indexOf("You read plan documents") >= 0);
+check("per-type prompt for an unknown type returns the full prompt", PF.pfTypePrompt("NOPE") === PF.PF_SCRAPER_PROMPT);
+const preview = PF.pfPreviewHtml(approved);
+check("print preview names the tabs and shows a table value and a formula",
+  preview.indexOf("Tab: ERF-2020") >= 0 && preview.indexOf("0.9944") >= 0 && preview.indexOf("ROUND(1-(A12/180),4)") >= 0 && preview.indexOf("BFCFAEQ") >= 0, preview.slice(0, 200));
+const previewNone = PF.pfPreviewHtml({ planMetadata: demo.planMetadata, factorSets: [], additionalConversions: [] });
+check("print preview says so when nothing is approved", previewNone.indexOf("Nothing to preview") >= 0);
+
 /* --- 9. UI import/generate path (minimal DOM stub) --- */
 {
   const docStub = {
@@ -557,7 +625,7 @@ check("formula preview is null for a set with no rule", PF.pfFormulaPreview(demo
   check("audit log records the normal married form", st().audit.some((a) => a.action === "normal married form" && a.detail === "JS50"));
   check("generated bytes contain no JS75 tab", gtext.indexOf("JS75") < 0);
   const report = P2.pfAuditReport();
-  check("audit report names the generator and schema versions", report.indexOf("PF Generator audit report — v0.3.0 (schema v0.3.0)") >= 0);
+  check("audit report names the generator and schema versions", report.indexOf("PF Generator audit report — v0.4.0 (schema v0.4.0)") >= 0);
   check("audit report records the input JSON hash", report.indexOf("Input JSON: hash") >= 0);
   check("audit report traces each set (source, dates, rule, formula)", report.indexOf("ERF-2020") >= 0 && report.indexOf("effective 2020-01-01") >= 0 && report.indexOf("formula: =ROUND(1-(A11/180),4)") >= 0);
 }

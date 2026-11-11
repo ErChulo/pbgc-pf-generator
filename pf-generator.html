@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PF Generator v0.3.0 — Plan Factors</title>
+<title>PF Generator v0.4.0 — Plan Factors</title>
 <style>
-/* PBGC Design System v1.1.0 DRAFT (tokens/tokens.json, commit 84a7149d, 2026-11-08). NOT approved. Dark theme: toggle in header; page background #000 (user override of provisional night-0 #0B1B36); provisional, COLA approval pending. No logo in v0.2.2 (see OPEN_ITEMS.md). */
+/* PBGC Design System v1.1.0 DRAFT (tokens/tokens.json, commit 84a7149d, 2026-11-08). NOT approved. Dark theme: toggle in header; page background #000 (user override of provisional night-0 #0B1B36); provisional, COLA approval pending. White PBGC logo in the header, from the Book of Job images folder (same file as DEL). */
 :root{
   --blue:#002D72; --red:#E4002B; --med-blue:#004B8D;
   --ink:#1A1A1A; --gray-1:#58585B; --gray-2:#D2D2D2; --gray-3:#E0E0E0; --gray-4:#F2F2F2;
@@ -52,6 +52,7 @@ p{margin:.5rem 0;max-width:60ch}
 .topbar .tag{color:var(--white);margin:0;font-size:.875rem}
 .topbar-row{display:flex;align-items:center;gap:1rem}
 .topbar-title{flex:1;min-width:0}
+.brand-logo{height:52px;width:auto;display:block;flex:none;padding:.5rem}
 .theme-toggle{flex:none;background:transparent;color:var(--white);border:2px solid var(--white)}
 .theme-toggle:hover{background:rgba(255,255,255,.15)}
 /* Nav: links, not buttons. Bar sits under the blue header. */
@@ -66,6 +67,7 @@ p{margin:.5rem 0;max-width:60ch}
 @media (max-width:640px){
   .topbar .tag{display:none}
   .topbar-row{gap:.5rem}
+  .brand-logo{height:44px}
   .theme-toggle-label{display:none}
   .menu-toggle{display:inline-flex;align-items:center;min-height:44px;background:transparent;border:0;color:var(--blue);font-weight:700;padding:.5rem .75rem .5rem 0;cursor:pointer}
   .views-row{flex-wrap:wrap}
@@ -121,7 +123,7 @@ footer{margin:2rem 0 1rem;border-top:1px solid var(--gray-2);padding-top:1rem}
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to main content</a>
-<header class="topbar"><div class="wrap topbar-row"><div class="topbar-title"><h1>PF Generator</h1><p class="tag">Plan Factors · v0.3.0</p></div><button type="button" id="theme-toggle" class="theme-toggle" data-action="theme" aria-label="Switch to dark theme" aria-pressed="false"><span class="theme-toggle-icon" aria-hidden="true">☾</span> <span class="theme-toggle-label">Dark</span></button></div></header>
+<header class="topbar"><div class="wrap topbar-row"><img class="brand-logo" src="data:image/png;base64,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" alt="Pension Benefit Guaranty Corporation"><div class="topbar-title"><h1>PF Generator</h1><p class="tag">Plan Factors · v0.4.0</p></div><button type="button" id="theme-toggle" class="theme-toggle" data-action="theme" aria-label="Switch to dark theme" aria-pressed="false"><span class="theme-toggle-icon" aria-hidden="true">☾</span> <span class="theme-toggle-label">Dark</span></button></div></header>
 <nav id="views-nav" class="views" aria-label="Views">
   <div class="wrap views-row">
     <button type="button" id="menu-toggle" class="menu-toggle" aria-expanded="false" aria-controls="views-list">Menu</button>
@@ -170,16 +172,16 @@ footer{margin:2rem 0 1rem;border-top:1px solid var(--gray-2);padding-top:1rem}
   </section>
 </div>
 </main>
-<footer class="wrap"><p class="small">PF Generator v0.3.0. Single file. No server. No data leaves this page. PBGC Design System v1.1.0 DRAFT.</p></footer>
+<footer class="wrap"><p class="small">PF Generator v0.4.0. Single file. No server. No data leaves this page. PBGC Design System v1.1.0 DRAFT.</p></footer>
 <script>
 "use strict";
-/* PF Generator v0.3.0 — plan factors workbook.
+/* PF Generator v0.4.0 — plan factors workbook.
    Single HTML file. No server, no fetch, no CDN.
    Loop: LLM proposes JSON. App checks. You decide. App writes .xlsx. */
-var PF_VERSION="0.3.0";
-var PF_SCHEMA_VERSION="0.3.0";
+var PF_VERSION="0.4.0";
+var PF_SCHEMA_VERSION="0.4.0";
 /* PROMPT-START */
-var PF_SCRAPER_PROMPT = "# PF scraper prompt \u2014 plan factors\n\nYou read plan documents. You return **only** valid JSON. No other text.\n\n## What to find\n\nEvery distinct set of factors the plan uses to work out benefits. One set per\nera, per type, per form pair. A plan with 5 eras has 5 ERF sets, not 1.\n\nTypes to look for:\n\n- **ERF** \u2014 early retirement factors. Each era. Disability ERF too, if any.\n- **LRF** \u2014 late retirement factors. Each era.\n- **BFCF** \u2014 benefit form conversion factors. Each era, each form pair\n  (for example SLA to JS50, 3CC to JS50).\n- **OTHER** \u2014 any other factor the plan uses for benefits: pre-retirement\n  death, optional forms past JS50, cash balance, anything else. Name it.\n\n## Work document by document, then combine\n\nA plan has many documents: the plan document, restatements,\namendments. Read each one on its own first, and note which sets\neach one gives. Then combine: one set per era, per type, per form\npair. An amendment that changes a rule starts a new era \u2014 it does\nnot overwrite the old era. If two documents give the same set with\ndifferent values, keep both as `ambiguous` and say why. Never merge\ntwo eras into one set, and never drop a set because another document\nlooks the same.\n\n## Effective dates\n\nFor each set, record when its rule applies: `effectiveFrom` (first\ndate, ISO `YYYY-MM-DD`) and `effectiveTo` (last date, or null when\nit is still in effect at DOPT). The dates come from the documents:\nadoption date, amendment effective date, restatement date. A set\nwith no dates in the documents gets null for both. A set that starts\nafter DOPT cannot apply \u2014 say so in `note`.\n\n## Plan form names\n\nRecord form names exactly as the documents write them: `SLA`,\n`3CC`, `5CC`, `JS50`, `JS75`, `JS100`. Do not translate them into\nBCV codes yourself \u2014 the app maps each name to its BCV function\ncode (a 3-year certain-and-life form writes as `SLA` with 36 months\ncertain). A form name the documents do not give is null, never\nguessed. If a form name is not `SLA`, a certain-and-continuous form\n(`3CC`, `5CC`, ...), or a joint-and-survivor form (`JS50`, ...),\nsay so in `note` and mark the set `ambiguous`.\n\n## PBGC honors only normal single form to normal married form\n\nThe prior plan administrator may have used benefit conversions that\nPBGC will not apply once the plan is in PBGC administration. PBGC\nhonors only conversions between the normal single form and the\nnormal married form. Every other conversion is left out of the\nworkbook. It is not a tab. It is not dropped silently \u2014 the app\nnames it and says why.\n\n- Record `normalMarriedForm` in `planMetadata`: the plan's normal\n  married form (for example `JS50`), copied from the plan\n  documents. Cite the provision that names it. Never assume `JS50`.\n  If the documents do not name a normal married form, leave it\n  null and mark the BFCF sets `missing` or `ambiguous`.\n- For each BFCF set, record `appliesInPbgcAdmin`: `true` only when\n  `fromForm` is the plan's normal single form (`normalForm`) AND\n  `toForm` is the normal married form. Otherwise `false`. Cite\n  both halves. The app derives the same decision itself from the\n  forms; if your value disagrees with the rule, the JSON is\n  refused. Do not resolve the disagreement yourself.\n\n## If a conversion is missing from the file\n\nYou do not need to invent a conversion the documents do not\nname. If a form pair is in the documents but you cannot work\nout its factors, report the set as `missing` or `ambiguous`\nand say why. The app has an \"Additional conversions\" section\nin Review: the user types any from-form to to-form pair and\nits BCV arguments by hand, and it gets its own tab. That is\nthe user's job, not yours. Never fill a missing pair from\nanother plan or from a guess.\n\n## Translate the rule from words to a formula\n\nFor each set, do two things, in order.\n\n1. Quote the plan's rule sentence into `ruleText`, short, with\n   its citation. Example: `reduction of 1/15 per year early`.\n2. State the matching `rule` \u2014 the same rule, as a formula kind:\n   - `{\"kind\": \"linear\", \"denominator\": 180}` \u2014 factor = 1 - months / 180.\n   - `{\"kind\": \"stepped\", \"firstMonths\": 60, \"firstDenominator\": 180, \"secondDenominator\": 360}` \u2014 first rate, then second rate.\n   - `{\"kind\": \"bcv\", \"function\": \"ERFAEQ\"}` \u2014 actuarial equivalence.\n     Use `LRFAEQ` for late factors, `BFCFAEQ` for conversion factors.\n     A bcv rule needs every argument filled in: interest, both\n     mortality tables, calc method, deferral mortality, months\n     certain, normal age, participant sex, and for BFCF also\n     beneficiary sex, survivor percent, and temporary months.\n     If any argument is not in the documents, leave it null and\n     set the set to `missing` or `ambiguous`. Never fill it in\n     from another plan or from a guess.\n\nThe `rule` must say the same thing as the `ruleText`. If the words\nand the formula disagree, the set is `ambiguous`. Say why in `note`.\n\n## Scrape the factor table, if the document prints one\n\nSome plan documents print a table of factors: months early and the\nfactor, or participant age and beneficiary age and the factor. If\nthe document prints one for a set, copy it into `table`:\n\n- Months table: `{\"kind\": \"months\", \"rows\": [{\"months\": 1, \"factor\": 0.9944, \"citation\": {...}}, ...]}`.\n- Age grid: `{\"kind\": \"grid\", \"rows\": [{\"partAge\": 65, \"benAge\": 61, \"factor\": 0.8123, \"citation\": {...}}, ...]}`.\n\nRules for the table:\n\n- Copy each row as printed: the month or the age pair, and the\n  factor as printed (4 decimals as printed).\n- State what each column means: months early, participant age,\n  beneficiary age. Never reorder rows. Never interpolate between\n  rows. Never fill in a row from the formula.\n- Copy only rows the document prints. A row the document does not\n  print stays out. The app writes formulas for the rest.\n- If the document prints no table for a set, set `table` to null.\n\n## What to record per set (field list)\n\n- `id`: short, unique. Example: `ERF-2020`, `BFCF-2020`.\n- `type`: `ERF`, `LRF`, `BFCF`, or `OTHER`.\n- `era`: plan year or era. Example: `2020`.\n- `title`: short title. Example: `Early Retirement Factors from NRA of 65 (2020 Plan)`.\n- `basis`: the rule in words, with the numbers. Example:\n  `reduction = 1/15 per year early (linear in months)`.\n- `normalForm`: `SLA` or a certain-and-continuous form (`3CC`,\n  `5CC`, ...). Copy it as written.\n- `effectiveFrom`, `effectiveTo`: ISO dates `YYYY-MM-DD`, or null.\n  See \"Effective dates\" above.\n- `mortalityConfirmed`: `true` only when you checked the mortality\n  code against the ATPBGC MORTNAME table. Otherwise `false`.\n- `fromForm`, `toForm`: BFCF only. Example: `SLA`, `JS50`.\n- `appliesInPbgcAdmin`: BFCF only. `true` only when `fromForm` is\n  the normal single form and `toForm` is the normal married form.\n  Otherwise `false`. See \"PBGC honors only\" above. The app checks\n  it again itself.\n- `nra`: normal retirement age. Example: `65`.\n- `interest`: annual rate as a decimal. Example: `0.08` for 8%.\n- `mortality1`, `mortality2`: table names. Example: `UP84M2`.\n  Copy the code exactly as the document writes it. Do not expand\n  it, do not guess a code the document does not name. The codes\n  live in the ATPBGC MORTNAME table; if a code is not one you can\n  confirm there, leave `mortalityConfirmed` false and say so in\n  `note`.\n- `calcMethod`: example: `MP`. Copy it as written (`MP`, `QP`,\n  `SP`, or what the document says). Never assume `MP`.\n- `deferralMortality`: `Y` or `N`. From the plan's definition of\n  the deferral period. Never assume `Y`.\n- `monthsCertain`: number, or `0`.\n- `partSex`: `M` or `F`. Whose mortality the plan uses for the\n  participant. From the plan's definition, not assumed.\n- `benSex`: BFCF only. `M` or `F`. Whose mortality the plan uses\n  for the beneficiary (contingent annuitant). From the plan's\n  definition, not assumed. The two sexes can differ.\n- `survivorPct`: BFCF only. The survivor percent of the to-form.\n  Example: `JS50` means 0.5. Copy it from the document when the\n  document states it. Leave null when it is only in the form name.\n- `monthsTemp`: BFCF only. Temporary period in months. Leave null\n  when the document has none (means 0).\n- `ruleText`: the plan's own words for the rule, quoted short.\n  Example: `reduction of 1/15 per year early`. With a citation.\n  The formula is translated from this sentence. Every present set\n  needs one.\n- `table`: a factor table printed in the plan documents, if any.\n  See \"Scrape the factor table\" below. Null when the documents\n  print no table for this set.\n- `monthMin`, `monthMax`: ERF, LRF, OTHER only. The range the documents\n  imply. Do not assume 1 to 120. Use what the documents say.\n- `partAgeMin`, `partAgeMax`, `benAgeMin`, `benAgeMax`: BFCF only. The\n  age ranges the documents imply. Do not assume 55 to 80 or 0 to 100.\n- `status`: `present`, `notApplicable`, `missing`, `ambiguous`, or\n  `conditional`. `missing` means the documents do not have it.\n  `ambiguous` means the documents disagree. Say why in `note`.\n- `note`: short note. Needed for `ambiguous` and `conditional`.\n- `citation`: `{\"document\": \"D1\", \"section\": \"2.1\", \"page\": \"3\"}`.\n  Every value needs a citation. Use the short code. Full document\n  name once per set, never in a cell.\n\n## Header\n\n- `planName`: full plan name.\n- `planNumber`: plan number as text.\n- `caseNumber`: case number as text. Keep leading zeros.\n- `dopt`: date of plan termination, ISO form `YYYY-MM-DD`.\n- `normalMarriedForm`: the plan's normal married form, for\n  example `JS50`. From the plan documents, with a citation.\n  Never assume it. Null when the documents do not name one.\n\n## Rules\n\n- Return **only** valid JSON. No markdown. No comment text.\n- Do not guess. If a value is not in the documents, set `status`\n  to `missing` and leave the value null.\n- If two documents disagree, set `status` to `ambiguous`. Do not pick one.\n- If a set does not apply to this plan, set `status` to `notApplicable`.\n- Values short. Smallest string that keeps the meaning.\n- Keep every distinct set. Do not merge eras. Do not drop a set\n  because it looks like another one.\n- The plan name, case number, and DOPT are in the header. Do not\n  repeat them in each set.\n\n## Shape\n\n```json\n{\n  \"schemaVersion\": \"0.3.0\",\n  \"planMetadata\": {\n    \"planName\": \"Riverbend Manufacturing Pension Plan\",\n    \"planNumber\": \"001\",\n    \"caseNumber\": \"98765400\",\n    \"dopt\": \"2025-06-30\",\n    \"normalMarriedForm\": \"JS50\"\n  },\n  \"factorSets\": [\n    {\n      \"id\": \"ERF-2020\",\n      \"type\": \"ERF\",\n      \"era\": \"2020\",\n      \"title\": \"Early Retirement Factors from NRA of 65 (2020 Plan)\",\n      \"basis\": \"reduction = 1/15 per year early (linear in months)\",\n      \"normalForm\": \"SLA\",\n      \"fromForm\": null,\n      \"toForm\": null,\n      \"appliesInPbgcAdmin\": null,\n      \"nra\": 65,\n      \"interest\": null,\n      \"mortality1\": null,\n      \"mortality2\": null,\n      \"calcMethod\": null,\n      \"deferralMortality\": null,\n      \"monthsCertain\": null,\n      \"partSex\": null,\n      \"benSex\": null,\n      \"survivorPct\": null,\n      \"monthsTemp\": null,\n      \"ruleText\": \"reduction of 1/15 per year early\",\n      \"table\": {\"kind\": \"months\", \"rows\": [\n        {\"months\": 1, \"factor\": 0.9944, \"citation\": {\"document\": \"D1\", \"section\": \"2.1\", \"page\": \"3\"}},\n        {\"months\": 60, \"factor\": 0.6667, \"citation\": {\"document\": \"D1\", \"section\": \"2.1\", \"page\": \"3\"}},\n        {\"months\": 120, \"factor\": 0.3333, \"citation\": {\"document\": \"D1\", \"section\": \"2.1\", \"page\": \"3\"}}\n      ]},\n      \"monthMin\": 1,\n      \"monthMax\": 120,\n      \"partAgeMin\": null,\n      \"partAgeMax\": null,\n      \"benAgeMin\": null,\n      \"benAgeMax\": null,\n      \"rule\": {\"kind\": \"linear\", \"denominator\": 180},\n      \"status\": \"present\",\n      \"note\": null,\n      \"citation\": {\"document\": \"D1\", \"section\": \"2.1\", \"page\": \"3\"},\n      \"effectiveFrom\": \"2020-01-01\",\n      \"effectiveTo\": null,\n      \"mortalityConfirmed\": false\n    }\n  ]\n}\n```\n";
+var PF_SCRAPER_PROMPT = "# PF scraper prompt \u2014 plan factors\n\nYou read plan documents. You return **only** valid JSON. No other text.\n\n## What to find\n\nEvery distinct set of factors the plan uses to work out benefits. One set per\nera, per type, per form pair. A plan with 5 eras has 5 ERF sets, not 1.\n\nTypes to look for:\n\n- **ERF** \u2014 early retirement factors. Each era. Disability ERF too, if any.\n- **LRF** \u2014 late retirement factors. Each era.\n- **BFCF** \u2014 benefit form conversion factors. Each era, each form pair\n  (for example SLA to JS50, 3CC to JS50).\n- **OTHER** \u2014 any other factor the plan uses for benefits: pre-retirement\n  death, optional forms past JS50, cash balance, anything else. Name it.\n\n## Work document by document, then combine\n\nA plan has many documents: the plan document, restatements,\namendments. Read each one on its own first, and note which sets\neach one gives. Then combine: one set per era, per type, per form\npair. An amendment that changes a rule starts a new era \u2014 it does\nnot overwrite the old era. If two documents give the same set with\ndifferent values, keep both as `ambiguous` and say why. Never merge\ntwo eras into one set, and never drop a set because another document\nlooks the same.\n\n## Effective dates\n\nFor each set, record when its rule applies: `effectiveFrom` (first\ndate, ISO `YYYY-MM-DD`) and `effectiveTo` (last date, or null when\nit is still in effect at DOPT). The dates come from the documents:\nadoption date, amendment effective date, restatement date. A set\nwith no dates in the documents gets null for both. A set that starts\nafter DOPT cannot apply \u2014 say so in `note`.\n\n## Plan form names\n\nRecord form names exactly as the documents write them: `SLA`,\n`3CC`, `5CC`, `3CO`, `JS50`, `JS75`, `JS100`. Do not translate them into\nBCV codes yourself \u2014 the app maps each name to its BCV function\ncode (a 3-year certain-and-life form writes as `SLA` with 36 months\ncertain; a 3-year certain-only form writes as `CTN` with 36 months\ncertain \u2014 payments stop after the term). A form name the documents\ndo not give is null, never guessed. If a form name is not `SLA`, a\ncertain-and-continuous form (`3CC`, `5CC`, ...), a certain-only\nform (`3CO`, `5CO`, ...), or a joint-and-survivor form (`JS50`, ...),\nsay so in `note` and mark the set `ambiguous`.\n\n## PBGC honors only normal single form to normal married form\n\nThe prior plan administrator may have used benefit conversions that\nPBGC will not apply once the plan is in PBGC administration. PBGC\nhonors only conversions between the normal single form and the\nnormal married form. Every other conversion is left out of the\nworkbook. It is not a tab. It is not dropped silently \u2014 the app\nnames it and says why.\n\n- Record `normalMarriedForm` in `planMetadata`: the plan's normal\n  married form (for example `JS50`), copied from the plan\n  documents. Cite the provision that names it. Never assume `JS50`.\n  If the documents do not name a normal married form, leave it\n  null and mark the BFCF sets `missing` or `ambiguous`.\n- For each BFCF set, record `appliesInPbgcAdmin`: `true` only when\n  `fromForm` is the plan's normal single form (`normalForm`) AND\n  `toForm` is the normal married form. Otherwise `false`. Cite\n  both halves. The app derives the same decision itself from the\n  forms; if your value disagrees with the rule, the JSON is\n  refused. Do not resolve the disagreement yourself.\n\n## If a conversion is missing from the file\n\nYou do not need to invent a conversion the documents do not\nname. If a form pair is in the documents but you cannot work\nout its factors, report the set as `missing` or `ambiguous`\nand say why. The app has an \"Additional conversions\" section\nin Review: the user types any from-form to to-form pair and\nits BCV arguments by hand, and it gets its own tab. That is\nthe user's job, not yours. Never fill a missing pair from\nanother plan or from a guess.\n\n## Translate the rule from words to a formula\n\nFor each set, do two things, in order.\n\n1. Quote the plan's rule sentence into `ruleText`, short, with\n   its citation. Example: `reduction of 1/15 per year early`.\n2. State the matching `rule` \u2014 the same rule, as a formula kind:\n   - `{\"kind\": \"linear\", \"denominator\": 180}` \u2014 factor = 1 - months / 180.\n   - `{\"kind\": \"stepped\", \"firstMonths\": 60, \"firstDenominator\": 180, \"secondDenominator\": 360}` \u2014 first rate, then second rate.\n   - `{\"kind\": \"bcv\", \"function\": \"ERFAEQ\"}` \u2014 actuarial equivalence.\n     Use `LRFAEQ` for late factors, `BFCFAEQ` for conversion factors.\n     A bcv rule needs every argument filled in: interest, both\n     mortality tables, calc method, months certain, normal age,\n     participant sex, and for BFCF also beneficiary sex, survivor\n     percent, temporary months, and the interest method (`intMethod`:\n     `N` for a fixed rate, `O` for the lump sum rate structure,\n     `L` for 417(e) segment rates, or `L` with a stability period\n     such as `LPQ`). Deferral mortality (`Y`/`N`) is an ERF/LRF\n     argument only \u2014 BFCFAEQ has no deferral-mortality parameter;\n     never put a deferral value in a BFCF set.\n     If any argument is not in the documents, leave it null and\n     set the set to `missing` or `ambiguous`. Never fill it in\n     from another plan or from a guess.\n\nThe `rule` must say the same thing as the `ruleText`. If the words\nand the formula disagree, the set is `ambiguous`. Say why in `note`.\n\n## Scrape the factor table, if the document prints one\n\nSome plan documents print a table of factors: months early and the\nfactor, or participant age and beneficiary age and the factor. If\nthe document prints one for a set, copy it into `table`:\n\n- Months table: `{\"kind\": \"months\", \"rows\": [{\"months\": 1, \"factor\": 0.9944, \"citation\": {...}}, ...]}`.\n- Age grid: `{\"kind\": \"grid\", \"rows\": [{\"partAge\": 65, \"benAge\": 61, \"factor\": 0.8123, \"citation\": {...}}, ...]}`.\n\nRules for the table:\n\n- Copy each row as printed: the month or the age pair, and the\n  factor as printed (4 decimals as printed).\n- State what each column means: months early, participant age,\n  beneficiary age. Never reorder rows. Never interpolate between\n  rows. Never fill in a row from the formula.\n- Copy only rows the document prints. A row the document does not\n  print stays out. The app writes formulas for the rest.\n- If the document prints no table for a set, set `table` to null.\n\n## What to record per set (field list)\n\n- `id`: short, unique. Example: `ERF-2020`, `BFCF-2020`.\n- `type`: `ERF`, `LRF`, `BFCF`, or `OTHER`.\n- `era`: plan year or era. Example: `2020`.\n- `title`: short title. Example: `Early Retirement Factors from NRA of 65 (2020 Plan)`.\n- `basis`: the rule in words, with the numbers. Example:\n  `reduction = 1/15 per year early (linear in months)`.\n- `normalForm`: `SLA`, a certain-and-continuous form (`3CC`,\n  `5CC`, ...), or a certain-only form (`3CO`, `5CO`, ...).\n  Copy it as written.\n- `effectiveFrom`, `effectiveTo`: ISO dates `YYYY-MM-DD`, or null.\n  See \"Effective dates\" above.\n- `mortalityConfirmed`: `true` only when you checked the mortality\n  code against the ATPBGC MORTNAME table. Otherwise `false`.\n- `fromForm`, `toForm`: BFCF only. Example: `SLA`, `JS50`.\n- `appliesInPbgcAdmin`: BFCF only. `true` only when `fromForm` is\n  the normal single form and `toForm` is the normal married form.\n  Otherwise `false`. See \"PBGC honors only\" above. The app checks\n  it again itself.\n- `nra`: normal retirement age. Example: `65`.\n- `interest`: annual rate as a decimal. Example: `0.08` for 8%.\n- `mortality1`, `mortality2`: table names. Example: `UP84M2`.\n  Copy the code exactly as the document writes it. Do not expand\n  it, do not guess a code the document does not name. The codes\n  live in the ATPBGC MORTNAME table; if a code is not one you can\n  confirm there, leave `mortalityConfirmed` false and say so in\n  `note`.\n- `calcMethod`: example: `MP`. Copy it as written (`MP`, `QP`,\n  `SP`, or what the document says). Never assume `MP`.\n- `deferralMortality`: ERF/LRF only. `Y` or `N`. From the plan's\n  definition of the deferral period. Never assume `Y`. Null for\n  a BFCF set.\n- `intMethod`: BFCF only. The interest method for the BFCFAEQ\n  `Method` argument. `N` for a fixed rate, `O` for the lump sum\n  rate structure, `L` for 417(e) segment rates, or `L` with a\n  stability period (`LPY`, `LCY`, `LPQ`, `LCQ`, `LM`, with an\n  optional lookback 1\u20135). Copy it as written. Null for an\n  ERF/LRF set.\n- `monthsCertain`: number, or `0`.\n- `partSex`: `M` or `F`. Whose mortality the plan uses for the\n  participant. From the plan's definition, not assumed.\n- `benSex`: BFCF only. `M` or `F`. Whose mortality the plan uses\n  for the beneficiary (contingent annuitant). From the plan's\n  definition, not assumed. The two sexes can differ.\n- `survivorPct`: BFCF only. The survivor percent of the to-form.\n  Example: `JS50` means 0.5. Copy it from the document when the\n  document states it. Leave null when it is only in the form name.\n- `monthsTemp`: BFCF only. Temporary period in months. Leave null\n  when the document has none (means 0).\n- `ruleText`: the plan's own words for the rule, quoted short.\n  Example: `reduction of 1/15 per year early`. With a citation.\n  The formula is translated from this sentence. Every present set\n  needs one.\n- `table`: a factor table printed in the plan documents, if any.\n  See \"Scrape the factor table\" below. Null when the documents\n  print no table for this set.\n- `monthMin`, `monthMax`: ERF, LRF, OTHER only. The range the documents\n  imply. Do not assume 1 to 120. Use what the documents say.\n- `partAgeMin`, `partAgeMax`, `benAgeMin`, `benAgeMax`: BFCF only. The\n  age ranges the documents imply. Do not assume 55 to 80 or 0 to 100.\n- `status`: `present`, `notApplicable`, `missing`, `ambiguous`, or\n  `conditional`. `missing` means the documents do not have it.\n  `ambiguous` means the documents disagree. Say why in `note`.\n- `note`: short note. Needed for `ambiguous` and `conditional`.\n- `citation`: `{\"document\": \"D1\", \"section\": \"2.1\", \"page\": \"3\"}`.\n  Every value needs a citation. Use the short code. Full document\n  name once per set, never in a cell.\n\n## Header\n\n- `planName`: full plan name.\n- `planNumber`: plan number as text.\n- `caseNumber`: case number as text. Keep leading zeros.\n- `dopt`: date of plan termination, ISO form `YYYY-MM-DD`.\n- `normalMarriedForm`: the plan's normal married form, for\n  example `JS50`. From the plan documents, with a citation.\n  Never assume it. Null when the documents do not name one.\n\n## Rules\n\n- Return **only** valid JSON. No markdown. No comment text.\n- Do not guess. If a value is not in the documents, set `status`\n  to `missing` and leave the value null.\n- If two documents disagree, set `status` to `ambiguous`. Do not pick one.\n- If a set does not apply to this plan, set `status` to `notApplicable`.\n- Values short. Smallest string that keeps the meaning.\n- Keep every distinct set. Do not merge eras. Do not drop a set\n  because it looks like another one.\n- The plan name, case number, and DOPT are in the header. Do not\n  repeat them in each set.\n\n## Shape\n\n```json\n{\n  \"schemaVersion\": \"0.4.0\",\n  \"planMetadata\": {\n    \"planName\": \"Riverbend Manufacturing Pension Plan\",\n    \"planNumber\": \"001\",\n    \"caseNumber\": \"98765400\",\n    \"dopt\": \"2025-06-30\",\n    \"normalMarriedForm\": \"JS50\"\n  },\n  \"factorSets\": [\n    {\n      \"id\": \"ERF-2020\",\n      \"type\": \"ERF\",\n      \"era\": \"2020\",\n      \"title\": \"Early Retirement Factors from NRA of 65 (2020 Plan)\",\n      \"basis\": \"reduction = 1/15 per year early (linear in months)\",\n      \"normalForm\": \"SLA\",\n      \"fromForm\": null,\n      \"toForm\": null,\n      \"appliesInPbgcAdmin\": null,\n      \"nra\": 65,\n      \"interest\": null,\n      \"mortality1\": null,\n      \"mortality2\": null,\n      \"calcMethod\": null,\n      \"deferralMortality\": null,\n      \"intMethod\": null,\n      \"monthsCertain\": null,\n      \"partSex\": null,\n      \"benSex\": null,\n      \"survivorPct\": null,\n      \"monthsTemp\": null,\n      \"ruleText\": \"reduction of 1/15 per year early\",\n      \"table\": {\"kind\": \"months\", \"rows\": [\n        {\"months\": 1, \"factor\": 0.9944, \"citation\": {\"document\": \"D1\", \"section\": \"2.1\", \"page\": \"3\"}},\n        {\"months\": 60, \"factor\": 0.6667, \"citation\": {\"document\": \"D1\", \"section\": \"2.1\", \"page\": \"3\"}},\n        {\"months\": 120, \"factor\": 0.3333, \"citation\": {\"document\": \"D1\", \"section\": \"2.1\", \"page\": \"3\"}}\n      ]},\n      \"monthMin\": 1,\n      \"monthMax\": 120,\n      \"partAgeMin\": null,\n      \"partAgeMax\": null,\n      \"benAgeMin\": null,\n      \"benAgeMax\": null,\n      \"rule\": {\"kind\": \"linear\", \"denominator\": 180},\n      \"status\": \"present\",\n      \"note\": null,\n      \"citation\": {\"document\": \"D1\", \"section\": \"2.1\", \"page\": \"3\"},\n      \"effectiveFrom\": \"2020-01-01\",\n      \"effectiveTo\": null,\n      \"mortalityConfirmed\": false\n    }\n  ]\n}\n```\n";
 /* PROMPT-END */
 var PF_TYPES=["ERF","LRF","BFCF","OTHER"];
 var PF_STATUSES=["present","notApplicable","missing","ambiguous","conditional"];
@@ -188,6 +190,33 @@ var PF_BCV_FUNCTIONS=["ERFAEQ","LRFAEQ","BFCFAEQ"];
 /* Calc methods the add-in doc names: Woolhouse MP/QP/SP, or Exact.
    ("Exact" is the family name in the doc; the literal is as written.) */
 var PF_CALC_METHODS=["MP","QP","SP","Exact"];
+/* Interest method (the "Method" argument of ERFAEQ, LRFAEQ and
+   BFCFAEQ), per the add-in doc p.143 "Method (IntMethod and
+   SMethod)" and Factor Training 2026:
+   O = PBGC lump sum rate structure (also pre-11/01/1993 annuity
+       factors); N = PBGC annuity rate structure (actuarial
+       equivalence NOT based on 417(e) applicable interest);
+   L = 417(e) segment rates; L** = L + stability period (PY plan
+       year, CY calendar year, PQ plan quarter, CQ calendar
+       quarter, M month); L**# = L** + lookback 1-5; O or N with a
+       stability period, ONLY with LS06SUYYYY/LS12SUYYYY
+       mortality. LPBGC is NOT available in these three functions
+       (NPVF2, INTCODE, MORTCODE only) and is refused.
+   BFCFAEQ has NO deferral-mortality parameter: its Method slot is
+   this interest method. Writing "Y" there (a deferral value) is
+   invalid — v0.3.0 did that by mistake whenever a BFCF set carried
+   deferralMortality "Y". Fixed-rate plans use "N". */
+var PF_INT_METHOD_STABILITY=["PY","CY","PQ","CQ","M"];
+function pfKnownIntMethod(m){
+  if(!m||typeof m!=="string") return false;
+  if(m==="O"||m==="N"||m==="L") return true;
+  if(/^L(PY|CY|PQ|CQ|M)([1-5])?$/.test(m)) return true;
+  if(/^[ON](PY|CY|PQ|CQ|M)$/.test(m)) return true;
+  return false;
+}
+function pfIntMethodNeedsLsMortality(m){
+  return /^[ON](PY|CY|PQ|CQ|M)$/.test(m||"");
+}
 /* Mortality table codes seen in the add-in doc (BCV_ATPBGC_Add-ins.pdf,
    Jul 2024) or the reference file. Codes live in the ATPBGC MORTNAME
    table; the doc lists no full list. UP84M2 comes from the reference
@@ -204,19 +233,23 @@ function pfKnownMortality(code){
 /* Plan benefit form -> BCV function code, per the add-in doc
    (PBGCBFCF2 "Suggested Input", same codes BFCFAEQ accepts):
    SLA -> SLA, spc 0, mths 0; n-year certain-and-continuous (3CC,
-   5CC, 10CC, 15CC) -> SLA, spc 0, mths n*12; joint-and-survivor
-   (JS50, JS75, JS100, ...) -> JSC, spc = pct, mths 0. That is why
-   the reference file's 3CC->JS50 tabs read BFCFAEQ("SLA",0,36,...):
-   the first argument is the BCV code, not the plan form name.
-   Writing "3CC" there is an invalid argument (BFCFAEQ accepts only
-   SLA, CTN, JSC, JSJ, JSN, JSP). Unknown plan forms return null:
-   the validator refuses them instead of guessing a code. */
+   5CC, 10CC, 15CC) -> SLA, spc 0, mths n*12; n-year certain-only
+   (3CO, 5CO, ...) -> CTN, spc 0, mths n*12 (payments stop after
+   the term: no life part); joint-and-survivor (JS50, JS75, JS100,
+   ...) -> JSC, spc = pct, mths 0. That is why the reference file's
+   3CC->JS50 tabs read BFCFAEQ("SLA",0,36,...): the first argument
+   is the BCV code, not the plan form name. Writing "3CC" there is
+   an invalid argument (BFCFAEQ accepts only SLA, CTN, JSC, JSJ,
+   JSN, JSP). Unknown plan forms return null: the validator refuses
+   them instead of guessing a code. */
 function pfPlanFormToBcv(form,survivorPct){
   var f=String(form||"").trim().toUpperCase();
   if(!f) return null;
   if(f==="SLA") return {code:"SLA",spc:0,mths:0};
   var cc=/^([0-9]+)CC$/.exec(f);
   if(cc) return {code:"SLA",spc:0,mths:parseInt(cc[1],10)*12};
+  var co=/^([0-9]+)CO$/.exec(f);
+  if(co) return {code:"CTN",spc:0,mths:parseInt(co[1],10)*12};
   var js=/^JS([0-9]+(?:\.[0-9]+)?)$/.exec(f);
   if(js){
     var pct=(survivorPct!==null&&survivorPct!==undefined&&pfNum(survivorPct)!==null)?pfNum(survivorPct):pfNum(js[1])/100;
@@ -311,8 +344,8 @@ var PF_DEMO_JSON={
   factorSets:[
     {id:"ERF-2020",type:"ERF",era:"2020",title:"Early Retirement Factors from NRA of 65 (2020 Plan)",basis:"reduction = 1/15 per year early (linear in months)",normalForm:"SLA",fromForm:null,toForm:null,appliesInPbgcAdmin:null,nra:65,interest:null,mortality1:null,mortality2:null,calcMethod:null,deferralMortality:null,monthsCertain:null,partSex:null,benSex:null,survivorPct:null,monthsTemp:null,ruleText:"reduction of 1/15 per year early",table:{kind:"months",rows:[{months:1,factor:0.9944,citation:{document:"D1",section:"2.1",page:"3"}},{months:60,factor:0.6667,citation:{document:"D1",section:"2.1",page:"3"}},{months:120,factor:0.3333,citation:{document:"D1",section:"2.1",page:"3"}}]},monthMin:1,monthMax:120,partAgeMin:null,partAgeMax:null,benAgeMin:null,benAgeMax:null,rule:{kind:"linear",denominator:180},status:"present",note:null,citation:{document:"D1",section:"2.1",page:"3"},effectiveFrom:"2020-01-01",effectiveTo:null,mortalityConfirmed:false},
     {id:"LRF-2020",type:"LRF",era:"2020",title:"Late Retirement Factors from NRA of 65 (2020 Plan)",basis:"LRFAEQ with interest=5%; mortality=GM83/GF83; calc method=MP; deferral mortality=Y; months certain=36",normalForm:"3CC",fromForm:null,toForm:null,appliesInPbgcAdmin:null,nra:65,interest:0.05,mortality1:"GM83",mortality2:"GF83",calcMethod:"MP",deferralMortality:"Y",monthsCertain:36,partSex:"M",benSex:null,survivorPct:null,monthsTemp:null,ruleText:"late retirement factor by actuarial equivalence",table:null,monthMin:1,monthMax:120,partAgeMin:null,partAgeMax:null,benAgeMin:null,benAgeMax:null,rule:{kind:"bcv",function:"LRFAEQ"},status:"present",note:null,citation:{document:"D1",section:"4.2",page:"7"},effectiveFrom:"2020-01-01",effectiveTo:null,mortalityConfirmed:false},
-    {id:"BFCF-2020",type:"BFCF",era:"2020",title:"Benefit Form Conversion Factors (2020 Plan)",basis:"BFCFAEQ with interest=8%; mortality=UP84M2/UP84M2; calc method=MP; deferral mortality=N; months certain=36",normalForm:"SLA",fromForm:"SLA",toForm:"JS50",appliesInPbgcAdmin:true,nra:65,interest:0.08,mortality1:"UP84M2",mortality2:"UP84M2",calcMethod:"MP",deferralMortality:"N",monthsCertain:36,partSex:"M",benSex:"F",survivorPct:0.5,monthsTemp:0,ruleText:"joint and 50% survivor conversion by actuarial equivalence",table:null,monthMin:null,monthMax:null,partAgeMin:55,partAgeMax:60,benAgeMin:0,benAgeMax:5,rule:{kind:"bcv",function:"BFCFAEQ"},status:"present",note:null,citation:{document:"D1",section:"6.1",page:"11"},effectiveFrom:"2020-01-01",effectiveTo:null,mortalityConfirmed:false},
-    {id:"BFCF-2020-JS75",type:"BFCF",era:"2020",title:"Benefit Form Conversion Factors — JS75 (2020 Plan)",basis:"BFCFAEQ with interest=8%; mortality=UP84M2/UP84M2; calc method=MP; deferral mortality=N; months certain=36",normalForm:"SLA",fromForm:"SLA",toForm:"JS75",appliesInPbgcAdmin:false,nra:65,interest:0.08,mortality1:"UP84M2",mortality2:"UP84M2",calcMethod:"MP",deferralMortality:"N",monthsCertain:36,partSex:"M",benSex:"F",survivorPct:0.75,monthsTemp:0,ruleText:"joint and 75% survivor conversion by actuarial equivalence",table:null,monthMin:null,monthMax:null,partAgeMin:55,partAgeMax:60,benAgeMin:0,benAgeMax:5,rule:{kind:"bcv",function:"BFCFAEQ"},status:"present",note:null,citation:{document:"D1",section:"6.2",page:"12"},effectiveFrom:"2020-01-01",effectiveTo:null,mortalityConfirmed:false},
+    {id:"BFCF-2020",type:"BFCF",era:"2020",title:"Benefit Form Conversion Factors (2020 Plan)",basis:"BFCFAEQ with interest=8%; mortality=UP84M2/UP84M2; calc method=MP; interest method=N; months certain=36",normalForm:"SLA",fromForm:"SLA",toForm:"JS50",appliesInPbgcAdmin:true,nra:65,interest:0.08,mortality1:"UP84M2",mortality2:"UP84M2",calcMethod:"MP",deferralMortality:null,intMethod:"N",monthsCertain:36,partSex:"M",benSex:"F",survivorPct:0.5,monthsTemp:0,ruleText:"joint and 50% survivor conversion by actuarial equivalence",table:null,monthMin:null,monthMax:null,partAgeMin:55,partAgeMax:60,benAgeMin:0,benAgeMax:5,rule:{kind:"bcv",function:"BFCFAEQ"},status:"present",note:null,citation:{document:"D1",section:"6.1",page:"11"},effectiveFrom:"2020-01-01",effectiveTo:null,mortalityConfirmed:false},
+    {id:"BFCF-2020-JS75",type:"BFCF",era:"2020",title:"Benefit Form Conversion Factors — JS75 (2020 Plan)",basis:"BFCFAEQ with interest=8%; mortality=UP84M2/UP84M2; calc method=MP; interest method=N; months certain=36",normalForm:"SLA",fromForm:"SLA",toForm:"JS75",appliesInPbgcAdmin:false,nra:65,interest:0.08,mortality1:"UP84M2",mortality2:"UP84M2",calcMethod:"MP",deferralMortality:null,intMethod:"N",monthsCertain:36,partSex:"M",benSex:"F",survivorPct:0.75,monthsTemp:0,ruleText:"joint and 75% survivor conversion by actuarial equivalence",table:null,monthMin:null,monthMax:null,partAgeMin:55,partAgeMax:60,benAgeMin:0,benAgeMax:5,rule:{kind:"bcv",function:"BFCFAEQ"},status:"present",note:null,citation:{document:"D1",section:"6.2",page:"12"},effectiveFrom:"2020-01-01",effectiveTo:null,mortalityConfirmed:false},
     {id:"ERF-DIS-2020",type:"ERF",era:"2020",title:"Early Retirement Factors — Disability (2020 Plan)",basis:"",normalForm:"3CC",fromForm:null,toForm:null,appliesInPbgcAdmin:null,nra:65,interest:null,mortality1:null,mortality2:null,calcMethod:null,deferralMortality:null,monthsCertain:null,partSex:null,benSex:null,survivorPct:null,monthsTemp:null,ruleText:null,table:null,monthMin:1,monthMax:120,partAgeMin:null,partAgeMax:null,benAgeMin:null,benAgeMax:null,rule:null,status:"missing",note:"Disability factors not found in the documents given",citation:null,effectiveFrom:null,effectiveTo:null,mortalityConfirmed:false}
   ],
   /* User-added, by hand in the app: a JS100 pair the scraper did not
@@ -320,7 +353,7 @@ var PF_DEMO_JSON={
      married form JS50), but the user chose to include it, so it gets
      a tab. Same BCV arguments as the honored BFCF-2020 set. */
   additionalConversions:[
-    {id:"BFCF-2020-JS100",type:"BFCF",era:"2020",title:"Benefit Form Conversion Factors — JS100 (2020 Plan)",basis:"BFCFAEQ with interest=8%; mortality=UP84M2/UP84M2; calc method=MP; deferral mortality=N; months certain=36",normalForm:"SLA",fromForm:"SLA",toForm:"JS100",appliesInPbgcAdmin:false,nra:65,interest:0.08,mortality1:"UP84M2",mortality2:"UP84M2",calcMethod:"MP",deferralMortality:"N",monthsCertain:36,partSex:"M",benSex:"F",survivorPct:null,monthsTemp:0,ruleText:"joint and 100% survivor conversion by actuarial equivalence",table:null,monthMin:null,monthMax:null,partAgeMin:55,partAgeMax:60,benAgeMin:0,benAgeMax:5,rule:{kind:"bcv",function:"BFCFAEQ"},status:"present",note:null,citation:{document:"D1",section:"6.3",page:"13"},effectiveFrom:"2020-01-01",effectiveTo:null,mortalityConfirmed:false}
+    {id:"BFCF-2020-JS100",type:"BFCF",era:"2020",title:"Benefit Form Conversion Factors — JS100 (2020 Plan)",basis:"BFCFAEQ with interest=8%; mortality=UP84M2/UP84M2; calc method=MP; interest method=N; months certain=36",normalForm:"SLA",fromForm:"SLA",toForm:"JS100",appliesInPbgcAdmin:false,nra:65,interest:0.08,mortality1:"UP84M2",mortality2:"UP84M2",calcMethod:"MP",deferralMortality:null,intMethod:"N",monthsCertain:36,partSex:"M",benSex:"F",survivorPct:null,monthsTemp:0,ruleText:"joint and 100% survivor conversion by actuarial equivalence",table:null,monthMin:null,monthMax:null,partAgeMin:55,partAgeMax:60,benAgeMin:0,benAgeMax:5,rule:{kind:"bcv",function:"BFCFAEQ"},status:"present",note:null,citation:{document:"D1",section:"6.3",page:"13"},effectiveFrom:"2020-01-01",effectiveTo:null,mortalityConfirmed:false}
   ]
 };
 
@@ -420,15 +453,32 @@ function pfValidatePfJson(d){
         if(s.partSex!=="M"&&s.partSex!=="F") err(tag+".partSex must be M or F for a bcv rule (from the plan documents)");
         if(!s.calcMethod||typeof s.calcMethod!=="string") err(tag+".calcMethod missing for a bcv rule (from the plan documents)");
         else if(PF_CALC_METHODS.indexOf(s.calcMethod)<0) err(tag+".calcMethod must be MP, QP, SP or Exact (the add-in doc names Woolhouse MP/QP/SP or Exact)");
-        if(s.deferralMortality!=="Y"&&s.deferralMortality!=="N") err(tag+".deferralMortality must be Y or N for a bcv rule (never assumed)");
+        /* Interest method vs deferral mortality — different slots.
+           BFCFAEQ has NO deferral-mortality parameter: its Method
+           argument is the interest method (O, N, L, L**[#],
+           O or N with a stability period, ONLY with LS06SU/LS12SU
+           mortality). ERFAEQ and
+           LRFAEQ DO have DeferralMort (Y/N) after CalcMethod, and
+           their intMethod is not written by this app (fixed-rate
+           plans only: interest is a number, not a date). */
+        if(s.type==="BFCF"){
+          if(!s.intMethod||typeof s.intMethod!=="string") err(tag+".intMethod missing for a bcv BFCF rule (the BFCFAEQ Method argument: O, N, L, or L with a stability period, e.g. LPQ; fixed-rate plans use N)");
+          else if(s.intMethod==="LPBGC") err(tag+".intMethod LPBGC is not available in BFCFAEQ (NPVF2, INTCODE and MORTCODE only)");
+          else if(!pfKnownIntMethod(s.intMethod)) err(tag+".intMethod "+s.intMethod+" is not a known interest method (O, N, L, LPY/LCY/LPQ/LCQ/LM with optional lookback 1-5, or O/N with a stability period PY/CY/PQ/CQ/M)");
+          else if(pfIntMethodNeedsLsMortality(s.intMethod)&&!(/^LS(06|12)SU[0-9]{4}$/.test(s.mortality1||"")||/^LS(06|12)SU[0-9]{4}$/.test(s.mortality2||""))) err(tag+".intMethod "+s.intMethod+" puts a stability period on O/N: the doc allows that only with LS06SUYYYY or LS12SUYYYY mortality");
+          if(s.deferralMortality!==null&&s.deferralMortality!==undefined) err(tag+".deferralMortality must be null for a BFCF set: BFCFAEQ has no deferral-mortality parameter (its Method argument is the interest method, intMethod)");
+        }else{
+          if(s.deferralMortality!=="Y"&&s.deferralMortality!=="N") err(tag+".deferralMortality must be Y or N for a bcv rule (never assumed)");
+          if(s.intMethod!==null&&s.intMethod!==undefined) err(tag+".intMethod must be null for an ERF/LRF set: this app writes fixed-rate plans only (interest is a number, not a date), so no interest method is written");
+        }
         if(pfNum(s.monthsCertain)!==null&&(!pfIsInt(s.monthsCertain)||pfNum(s.monthsCertain)<0)) err(tag+".monthsCertain must be a whole number of months, 0 or more");
         if(pfNum(s.monthsTemp)!==null&&(!pfIsInt(s.monthsTemp)||pfNum(s.monthsTemp)<0)) err(tag+".monthsTemp must be a whole number of months, 0 or more");
         if(pfIsInt(s.nra)&&pfNum(s.monthsCertain)!==null&&s.calcMethod&&PF_CALC_METHODS.indexOf(s.calcMethod)>=0&&s.calcMethod!=="Exact"&&s.nra+pfNum(s.monthsCertain)>124) err(tag+".nra plus monthsCertain is over 124 (the add-in rejects it for Woolhouse methods)");
-        /* A certain-and-continuous form name carries its own months:
-           3CC means 36. An explicit monthsCertain that disagrees is a
-           conflict, not a value to guess from. */
+        /* A certain form name carries its own months: 3CC means
+           36, 3CO means 36. An explicit monthsCertain that
+           disagrees is a conflict, not a value to guess from. */
         [s.normalForm,(s.type==="BFCF"?s.fromForm:null)].forEach(function(fm){
-          var mm=/^([0-9]+)CC$/.exec(String(fm||"").trim().toUpperCase());
+          var mm=/^([0-9]+)(CC|CO)$/.exec(String(fm||"").trim().toUpperCase());
           if(mm&&pfNum(s.monthsCertain)!==null&&pfNum(s.monthsCertain)!==parseInt(mm[1],10)*12) err(tag+".monthsCertain "+s.monthsCertain+" disagrees with the form "+fm+" ("+(parseInt(mm[1],10)*12)+" months certain)");
         });
         if(s.type==="BFCF"){
@@ -716,7 +766,10 @@ function pfBfcfFormula(set,partRef,benRef){
      from-form writes "SLA" with 36 months certain, as the
      reference file does — never "3CC", which the add-in rejects.
      FromSurvPct comes from the from-form (JSnn -> pct, else 0);
-     ToMthsCert comes from the to-form name (nCC -> n*12, else 0). */
+     ToMthsCert comes from the to-form name (nCC/nCO -> n*12,
+     else 0). The last argument is the interest method
+     (intMethod: N for fixed-rate plans), NOT deferral mortality —
+     BFCFAEQ has no deferral-mortality parameter. */
   var from=pfPlanFormToBcv(set.fromForm,null);
   var to=pfPlanFormToBcv(set.toForm,null);
   var it=pfNum(set.interest);
@@ -725,7 +778,7 @@ function pfBfcfFormula(set,partRef,benRef){
   var sp=pfSurvivorPctForSet(set);
   var fromSpc=from?from.spc:0;
   var toCert=to?to.mths:0;
-  return {formula:'ROUND(BFCFAEQ("'+(from?from.code:set.fromForm)+'",'+fromSpc+','+cert+','+temp+',"'+(to?to.code:set.toForm)+'",'+sp+','+toCert+',0,'+partRef+','+benRef+',"'+set.partSex+'","'+set.benSex+'",'+it+',"'+set.mortality1+'","'+set.mortality2+'","'+set.calcMethod+'","'+set.deferralMortality+'"),4)',cached:null};
+  return {formula:'ROUND(BFCFAEQ("'+(from?from.code:set.fromForm)+'",'+fromSpc+','+cert+','+temp+',"'+(to?to.code:set.toForm)+'",'+sp+','+toCert+',0,'+partRef+','+benRef+',"'+set.partSex+'","'+set.benSex+'",'+it+',"'+set.mortality1+'","'+set.mortality2+'","'+set.calcMethod+'","'+set.intMethod+'"),4)',cached:null};
 }
 /* The exact first-cell formula the workbook will carry for this
    set, as it will appear in Excel (with the leading =). Shown in
@@ -1115,7 +1168,7 @@ var pfState={
   data:null, decisions:{}, importReport:null,
   generated:null, audit:[], auditText:"",
   originalJson:null, originalJsonHash:null, inputSchemaVersion:null,
-  editingId:null
+  editingId:null, previewHtml:null
 };
 function pfFnv1a(s){
   var h=0x811C9DC5,i;
@@ -1192,6 +1245,7 @@ function pfApprovedData(){
 /* ---- import / generate (UI path, also used by tests) ---- */
 function pfImportText(text,label){
   var report={kind:"error",report:[]};
+  pfState.previewHtml=null;
   var obj;
   try{ obj=JSON.parse(text); }
   catch(e){ report.report.push("Not valid JSON: "+e.message); pfState.importReport=report; pfState.data=null; pfState.step=1; pfAudit("import failed",label||""); return report; }
@@ -1227,7 +1281,7 @@ function pfImportText(text,label){
 }
 function pfLoadDemo(){
   pfState.data=pfClone(PF_DEMO_JSON);
-  pfState.decisions={}; pfState.generated=null;
+  pfState.decisions={}; pfState.generated=null; pfState.previewHtml=null;
   pfState.originalJson=null; pfState.originalJsonHash=null; pfState.inputSchemaVersion=null;
   pfState.editingId=null;
   pfState.importReport={kind:"demo",report:["Demo case loaded: synthetic Riverbend plan."]};
@@ -1286,12 +1340,122 @@ function pfDownload(bytes,name,mime){
     return true;
   }catch(e){ return false; }
 }
-function pfDownloadPrompt(){
-  return pfDownload(new TextEncoder().encode(PF_SCRAPER_PROMPT),"pf-scraper-prompt.md","text/markdown");
+function pfDownloadPrompt(type){
+  var text=(type&&PF_TYPE_PROMPT_SCOPE[type])?pfTypePrompt(type):PF_SCRAPER_PROMPT;
+  var name=(type&&PF_TYPE_PROMPT_SCOPE[type])?("pf-scraper-prompt-"+type.toLowerCase()+".md"):"pf-scraper-prompt.md";
+  return pfDownload(new TextEncoder().encode(text),name,"text/markdown");
 }
 function pfDownloadAudit(){
   var text=pfAuditReport();
   return pfDownload(new TextEncoder().encode(text),"pf-audit-log.txt","text/plain");
+}
+
+/* Parse a printed BFCF factor table pasted as lines
+   "partAge, benAge, factor" (one row per line). Returns
+   {kind:"grid",rows:[...]} or null when blank. Throws on a bad
+   line, naming it, so the caller can refuse it. The validator
+   still checks the ages against the set's ranges. */
+function pfParseGridTable(text){
+  if(text===null||text===undefined) return null;
+  var lines=String(text).split(/\r?\n/);
+  var rows=[], seen={};
+  lines.forEach(function(ln,idx){
+    var t=ln.trim();
+    if(!t) return;
+    var parts=t.split(/[,\s;]+/).filter(function(x){ return x!==""; });
+    if(parts.length!==3) throw new Error("table line "+(idx+1)+": needs partAge, benAge, factor");
+    var pa=pfNum(parts[0]), ba=pfNum(parts[1]), fa=pfNum(parts[2]);
+    if(!pfIsInt(pa)||!pfIsInt(ba)||fa===null||fa<0||fa>2) throw new Error("table line "+(idx+1)+": ages must be whole numbers, factor 0 to 2");
+    var key=pa+"|"+ba;
+    if(seen[key]) throw new Error("table line "+(idx+1)+": age pair "+pa+", "+ba+" given twice");
+    seen[key]=1;
+    rows.push({partAge:pa,benAge:ba,factor:fa,citation:null});
+  });
+  if(!rows.length) return null;
+  return {kind:"grid",rows:rows};
+}
+function pfGridTableText(table){
+  if(!table||table.kind!=="grid"||!Array.isArray(table.rows)) return "";
+  return table.rows.map(function(r){ return r.partAge+", "+r.benAge+", "+pfFmt4(r.factor); }).join("\n");
+}
+/* Per-type scraper prompts: the full prompt, scoped to one factor
+   type. A plan with many eras is easier to scrape one type at a
+   time — the LLM sees only the ERF sets, say, and cannot drop one
+   while writing about another. The scope header overrides the
+   "What to find" section; everything else still applies. */
+var PF_TYPE_PROMPT_SCOPE={
+  ERF:"Find ONLY the early retirement factor (ERF) sets, each era, including disability ERF if any. Ignore LRF, BFCF, and OTHER sets.\n",
+  LRF:"Find ONLY the late retirement factor (LRF) sets, each era. Ignore ERF, BFCF, and OTHER sets.\n",
+  BFCF:"Find ONLY the benefit form conversion factor (BFCF) sets, each era, each form pair. Ignore ERF, LRF, and OTHER sets.\n",
+  OTHER:"Find ONLY the OTHER factor sets (pre-retirement death, optional forms past JS50, cash balance, anything else the plan uses for benefits). Ignore ERF, LRF, and BFCF sets.\n"
+};
+function pfTypePrompt(type){
+  var scope=PF_TYPE_PROMPT_SCOPE[type];
+  if(!scope) return PF_SCRAPER_PROMPT;
+  return scope+"\n"+PF_SCRAPER_PROMPT;
+}
+/* ---- print preview: the workbook as HTML tables ----
+   What the tabs will look like when printed: header rows, then
+   the factor table. Table values show as printed (4 decimals);
+   formula cells show the formula text — Excel computes them, the
+   preview cannot. Built from the same formula helpers as the
+   .xlsx, so the preview and the file agree. */
+function pfPreviewHtml(data){
+  if(!data) return '<p class="warn">Load JSON first.</p>';
+  var split=pfIncludedSets(data);
+  if(!split.included.length) return '<p class="warn">Nothing to preview: no approved set would be written.</p>';
+  var meta=data.planMetadata;
+  function esc(s){ return pfEscHtml(s); }
+  function headHtml(set){
+    var basisTxt=set.basis||"";
+    if(basisTxt&&basisTxt.toLowerCase().indexOf("basis:")!==0) basisTxt="Basis: "+basisTxt;
+    return "<p><strong>"+esc(meta.planName)+"</strong><br>Case Number: "+esc(meta.caseNumber)+"<br>DOPT: "+esc(meta.dopt)+"</p>"+
+      "<p><strong>"+esc(set.title)+"</strong><br>"+esc(basisTxt)+"<br>Normal single form: "+esc(set.normalForm||"")+"</p>";
+  }
+  function monthsHtml(set){
+    var months=[], m;
+    for(m=set.monthMin;m<=set.monthMax;m++) months.push(m);
+    var perCol=Math.ceil(months.length/5);
+    var h='<table><tr><th>Months</th><th>Factor</th><th>Months</th><th>Factor</th><th>Months</th><th>Factor</th><th>Months</th><th>Factor</th><th>Months</th><th>Factor</th></tr>';
+    var rows="";
+    for(var ri=0;ri<perCol;ri++){
+      rows+="<tr>";
+      for(var pi=0;pi<5;pi++){
+        var idx=pi*perCol+ri;
+        if(idx>=months.length){ rows+="<td></td><td></td>"; continue; }
+        var mo=months[idx];
+        var tv=pfTableValue(set,mo,null,null);
+        var cell;
+        if(tv!==null) cell=pfFmt4(tv);
+        else{ var fo=pfMonthFormula(set,pfColLetter(2*pi+1)+(11+ri),mo); cell=fo?"="+fo.formula:""; }
+        rows+="<td>"+mo+"</td><td>"+esc(cell)+"</td>";
+      }
+      rows+="</tr>";
+    }
+    return h+rows+"</table>";
+  }
+  function bfcfHtml(set){
+    var parts=[], bens=[], p, b;
+    for(p=set.partAgeMin;p<=set.partAgeMax;p++) parts.push(p);
+    for(b=set.benAgeMin;b<=set.benAgeMax;b++) bens.push(b);
+    var h='<table><tr><th>Age</th>'+parts.map(function(pa){ return "<th>"+pa+"</th>"; }).join("")+"</tr>";
+    var rows="";
+    bens.forEach(function(be,bi){
+      rows+="<tr><td>"+be+"</td>";
+      parts.forEach(function(pa,pi){
+        var tv=pfTableValue(set,null,pa,be);
+        var cell;
+        if(tv!==null) cell=pfFmt4(tv);
+        else{ var fo=pfBfcfFormula(set,pfColLetter(3+pi)+"10","B"+(11+bi)); cell=fo?"="+fo.formula:""; }
+        rows+="<td>"+esc(cell)+"</td>";
+      });
+      rows+="</tr>";
+    });
+    return h+rows+"</table>";
+  }
+  return split.included.map(function(set){
+    return '<div class="card"><h3>Tab: '+esc(pfTabName(set))+"</h3>"+headHtml(set)+(set.type==="BFCF"?bfcfHtml(set):monthsHtml(set))+"</div>";
+  }).join("");
 }
 
 /* ---- additional conversions: the user adds a form pair by hand ----
@@ -1320,7 +1484,8 @@ function pfAdditionalSetFromForm(){
   var mort1=pfAddFormVal("pf-add-mort1").trim();
   var mort2=pfAddFormVal("pf-add-mort2").trim();
   var cm=pfAddFormVal("pf-add-calcmethod").trim();
-  var dm=pfAddFormVal("pf-add-deferral").trim();
+  var im=pfAddFormVal("pf-add-intmethod").trim();
+  var tableText=pfAddFormVal("pf-add-table");
   var cert=pfNum(pfAddFormVal("pf-add-monthscertain"));
   var ps=pfAddFormVal("pf-add-partsex").trim();
   var bs=pfAddFormVal("pf-add-bensex").trim();
@@ -1346,15 +1511,15 @@ function pfAdditionalSetFromForm(){
     id:"BFCF-"+era+"-"+from+"-"+to,
     type:"BFCF", era:era,
     title:title||("Benefit Form Conversion Factors — "+to+" ("+era+" Plan)"),
-    basis:basis||("BFCFAEQ with interest="+(interest===null?"?":(interest*100)+"%")+"; mortality="+(mort1||"?")+"/"+(mort2||"?")+"; calc method="+(cm||"?")+"; deferral mortality="+(dm||"?")+"; months certain="+(cert===null?0:cert)),
+    basis:basis||("BFCFAEQ with interest="+(interest===null?"?":(interest*100)+"%")+"; mortality="+(mort1||"?")+"/"+(mort2||"?")+"; calc method="+(cm||"?")+"; interest method="+(im||"?")+"; months certain="+(cert===null?0:cert)),
     normalForm:normalForm, fromForm:from, toForm:to,
     appliesInPbgcAdmin:null, nra:(nra===null?null:Math.floor(nra)),
     interest:interest, mortality1:mort1||null, mortality2:mort2||null,
-    calcMethod:cm||null, deferralMortality:dm||null,
+    calcMethod:cm||null, deferralMortality:null, intMethod:im||null,
     monthsCertain:(cert===null?null:Math.floor(cert)),
     partSex:ps||null, benSex:bs||null,
     survivorPct:sp, monthsTemp:(temp===null?null:Math.floor(temp)),
-    ruleText:ruleText||null, table:null,
+    ruleText:ruleText||null, table:pfParseGridTable(tableText),
     monthMin:null, monthMax:null,
     partAgeMin:(pMin===null?null:Math.floor(pMin)), partAgeMax:(pMax===null?null:Math.floor(pMax)),
     benAgeMin:(bMin===null?null:Math.floor(bMin)), benAgeMax:(bMax===null?null:Math.floor(bMax)),
@@ -1369,7 +1534,13 @@ function pfAdditionalSetFromForm(){
 }
 function pfAddConversion(){
   if(!pfState.data) return {ok:false,errors:["Load JSON first."]};
-  var set=pfAdditionalSetFromForm();
+  var set;
+  try{ set=pfAdditionalSetFromForm(); }
+  catch(e){
+    var box0=(typeof document!=="undefined")?document.getElementById("pf-add-error"):null;
+    if(box0) box0.innerHTML='<div class="alert">'+pfEscHtml(e.message)+"</div>";
+    return {ok:false,errors:[e.message]};
+  }
   var probe=pfClone(pfState.data);
   probe.additionalConversions=(probe.additionalConversions||[]).concat([set]);
   var v=pfValidatePfJson(probe);
@@ -1393,12 +1564,13 @@ function pfAddConversion(){
   }
   pfState.data.additionalConversions=(pfState.data.additionalConversions||[]).concat([set]);
   pfState.decisions[set.id]="approved";
+  pfState.previewHtml=null;
   var h=pfPbgcHonors(set,pfState.data.planMetadata.normalMarriedForm);
   pfAudit("additional conversion added",set.id+" — from "+set.fromForm+" to "+set.toForm+(h.honored===false?" (PBGC does not honor: "+h.reason+"; included by your choice — override confirmed by the user)":h.honored===true?" (PBGC honors)":" (honors unknown: normal married form not given)"));
   /* Keep the BCV arguments in the form for the next pair; clear only
      the pair itself and the title. */
   var keep={};
-  ["pf-add-era","pf-add-normal","pf-add-nra","pf-add-interest","pf-add-mort1","pf-add-mort2","pf-add-calcmethod","pf-add-deferral","pf-add-monthscertain","pf-add-partsex","pf-add-bensex","pf-add-survivorpct","pf-add-monthstemp","pf-add-partmin","pf-add-partmax","pf-add-benmin","pf-add-benmax","pf-add-ruletext","pf-add-basis","pf-add-efffrom","pf-add-effto","pf-add-doc","pf-add-section","pf-add-page"].forEach(function(id){ keep[id]=pfAddFormVal(id); });
+  ["pf-add-era","pf-add-normal","pf-add-nra","pf-add-interest","pf-add-mort1","pf-add-mort2","pf-add-calcmethod","pf-add-intmethod","pf-add-monthscertain","pf-add-partsex","pf-add-bensex","pf-add-survivorpct","pf-add-monthstemp","pf-add-partmin","pf-add-partmax","pf-add-benmin","pf-add-benmax","pf-add-ruletext","pf-add-basis","pf-add-efffrom","pf-add-effto","pf-add-doc","pf-add-section","pf-add-page","pf-add-table"].forEach(function(id){ keep[id]=pfAddFormVal(id); });
   if(typeof document!=="undefined") pfRender();
   Object.keys(keep).forEach(function(id){
     var el=(typeof document!=="undefined")?document.getElementById(id):null;
@@ -1419,7 +1591,7 @@ function pfCopyConversionArgs(){
   setVal("pf-add-mort1",s.mortality1);
   setVal("pf-add-mort2",s.mortality2);
   setVal("pf-add-calcmethod",s.calcMethod);
-  setVal("pf-add-deferral",s.deferralMortality);
+  setVal("pf-add-intmethod",s.intMethod);
   setVal("pf-add-monthscertain",s.monthsCertain);
   setVal("pf-add-partsex",s.partSex);
   setVal("pf-add-bensex",s.benSex);
@@ -1442,6 +1614,7 @@ function pfRemoveConversion(id){
   pfState.data.additionalConversions=pfState.data.additionalConversions.filter(function(s){ return s.id!==id; });
   if(pfState.data.additionalConversions.length===before) return false;
   delete pfState.decisions[id];
+  pfState.previewHtml=null;
   pfAudit("additional conversion removed",id);
   if(typeof document!=="undefined") pfRender();
   return true;
@@ -1453,11 +1626,15 @@ function pfRemoveConversion(id){
    value is refused and the error names the field; nothing
    half-edited is written. A saved edit clears the set's decision —
    the edited set needs approval again. The audit log records the
-   fields that changed. The printed factor table is not editable
-   here: it stays in the JSON. */
+   fields that changed. A BFCF printed factor table is editable
+   here (one row per line); a months table stays in the JSON. */
 function pfEditReq(s,f){
   var req=["title","basis","ruleText","normalForm"];
-  if(s.rule&&s.rule.kind==="bcv") req=req.concat(["nra","interest","mortality1","mortality2","calcMethod","deferralMortality","partSex"]);
+  if(s.rule&&s.rule.kind==="bcv") req=req.concat(["nra","interest","mortality1","mortality2","calcMethod","partSex"]);
+  /* Deferral mortality is an ERF/LRF argument; the interest method
+     is a BFCF argument (BFCFAEQ has no deferral parameter). */
+  if(s.rule&&s.rule.kind==="bcv"&&s.type==="BFCF") req.push("intMethod");
+  if(s.rule&&s.rule.kind==="bcv"&&s.type!=="BFCF") req.push("deferralMortality");
   if(s.rule&&s.rule.kind==="bcv"&&s.type==="BFCF") req.push("benSex");
   return req.indexOf(f)>=0?" *":"";
 }
@@ -1491,7 +1668,8 @@ function pfEditFormHtml(s){
     (isBcv?pfEditInput(s,"mortality1","Mortality table 1"):"")+
     (isBcv?pfEditInput(s,"mortality2","Mortality table 2"):"")+
     (isBcv?pfEditInput(s,"calcMethod","Calc method (MP, QP, SP, Exact)"):"")+
-    (isBcv?pfEditSelect(s,"deferralMortality","Deferral mortality",["","Y","N"]):"")+
+    (isBcv&&!isBfcf?pfEditSelect(s,"deferralMortality","Deferral mortality",["","Y","N"]):"")+
+    (isBcv&&isBfcf?pfEditInput(s,"intMethod","Interest method (N, O, L, LPQ, …)"):"")+
     pfEditInput(s,"monthsCertain","Months certain")+
     (isBfcf?pfEditInput(s,"monthsTemp","Temporary months"):"")+
     (isBcv?pfEditSelect(s,"partSex","Participant sex",["","M","F"]):"")+
@@ -1508,11 +1686,12 @@ function pfEditFormHtml(s){
     pfEditInput(s,"citDoc","Citation document",s.citation?s.citation.document||"":"")+
     pfEditInput(s,"citSection","Citation section",s.citation?s.citation.section||"":"")+
     pfEditInput(s,"citPage","Citation page",s.citation?s.citation.page||"":"")+
+    (isBfcf?'<p><label>Printed factor table <span class="small">(one row per line: partAge, benAge, factor — blank = no table)</span><textarea data-edit-set="'+pfEscHtml(s.id)+'" data-edit-field="tableText" rows="4">'+pfEscHtml(pfGridTableText(s.table))+'</textarea></label></p>':"")+
     (isBcv?'<p><label><input type="checkbox" style="width:auto" data-edit-set="'+pfEscHtml(s.id)+'" data-edit-field="mortalityConfirmed"'+(s.mortalityConfirmed?" checked":"")+'> Mortality code confirmed in the ATPBGC MORTNAME table <span class="small">(only when the code is not in the app\u2019s known list)</span></label></p>':"")+
     '</div>'+
     '<p><button type="button" class="primary" data-action="save-edit" data-id="'+pfEscHtml(s.id)+'">Save changes</button> '+
     '<button type="button" class="secondary" data-action="cancel-edit" data-id="'+pfEscHtml(s.id)+'">Cancel</button></p>'+
-    '<p class="small">Printed factor table: edit in the JSON, not here.</p></div>';
+    '<p class="small">Months factor table: edit in the JSON, not here.</p></div>';
   return h;
 }
 function pfSaveSetEdit(id){
@@ -1520,7 +1699,7 @@ function pfSaveSetEdit(id){
   var set=pfFindSet(id);
   if(!set) return {ok:false,errors:["set not found"]};
   var next=pfClone(set);
-  var strFields=["title","basis","ruleText","note","era","normalForm","mortality1","mortality2","calcMethod","deferralMortality","partSex","benSex","fromForm","toForm","effectiveFrom","effectiveTo"];
+  var strFields=["title","basis","ruleText","note","era","normalForm","mortality1","mortality2","calcMethod","deferralMortality","intMethod","partSex","benSex","fromForm","toForm","effectiveFrom","effectiveTo"];
   var numFields=["nra","monthsCertain","monthsTemp","monthMin","monthMax","partAgeMin","partAgeMax","benAgeMin","benAgeMax"];
   function val(f){
     var el=document.querySelector('[data-edit-set="'+id+'"][data-edit-field="'+f+'"]');
@@ -1542,6 +1721,17 @@ function pfSaveSetEdit(id){
   ["interest","survivorPct"].forEach(function(f){ next[f]=pfNum(val(f)); });
   var mcEl=document.querySelector('[data-edit-set="'+id+'"][data-edit-field="mortalityConfirmed"]');
   next.mortalityConfirmed=mcEl?!!mcEl.checked:!!set.mortalityConfirmed;
+  /* A BFCF printed factor table is edited here as lines
+     "partAge, benAge, factor". A bad line is refused, naming it. */
+  var errBox0=document.getElementById("pf-edit-error-"+id);
+  var tableEl=document.querySelector('[data-edit-set="'+id+'"][data-edit-field="tableText"]');
+  if(tableEl){
+    try{ next.table=pfParseGridTable(tableEl.value); }
+    catch(e){
+      if(errBox0) errBox0.innerHTML='<div class="alert">'+pfEscHtml(e.message)+"</div>";
+      return {ok:false,errors:[e.message]};
+    }
+  }
   var probe=pfClone(pfState.data);
   function replaceIn(list){ return (list||[]).map(function(x){ return x.id===id?pfClone(next):x; }); }
   probe.factorSets=replaceIn(probe.factorSets);
@@ -1556,10 +1746,12 @@ function pfSaveSetEdit(id){
   strFields.concat(numFields).concat(["interest","survivorPct","mortalityConfirmed"]).forEach(function(f){
     if(JSON.stringify(set[f])!==JSON.stringify(next[f])) changed.push(f);
   });
+  if(JSON.stringify(set.table)!==JSON.stringify(next.table)) changed.push("table");
   if(JSON.stringify(set.citation)!==JSON.stringify(next.citation)) changed.push("citation");
   pfState.data=probe;
   delete pfState.decisions[id];
   pfState.editingId=null;
+  pfState.previewHtml=null;
   pfAudit("edit set",id+" — changed: "+(changed.length?changed.join(", "):"nothing")+" (needs approval again)");
   pfRender();
   return {ok:true,changed:changed};
@@ -1593,7 +1785,13 @@ function pfRenderPrompt(){
   el.innerHTML="<h2>Step 1 — Download the scraper prompt</h2>"+
     "<p>Feed the prompt and the plan documents to an LLM. Copilot in the office, any LLM at home. The LLM returns JSON. It only proposes.</p>"+
     '<p><button type="button" class="primary" data-action="prompt">Download the scraper prompt</button></p>'+
-    '<p class="small">The prompt asks for every distinct factor set: each era, each type, each form pair. Citation per value. No guessing.</p>';
+    '<p class="small">The prompt asks for every distinct factor set: each era, each type, each form pair. Citation per value. No guessing.</p>'+
+    '<h3>Or scrape one type at a time</h3>'+
+    '<p class="small">A plan with many eras is easier to scrape one type at a time. Each prompt below is the same prompt, scoped to one type. Run the LLM once per type, then combine the JSON.</p>'+
+    '<p><button type="button" class="secondary" data-action="prompt" data-type="ERF">ERF prompt</button> '+
+    '<button type="button" class="secondary" data-action="prompt" data-type="LRF">LRF prompt</button> '+
+    '<button type="button" class="secondary" data-action="prompt" data-type="BFCF">BFCF prompt</button> '+
+    '<button type="button" class="secondary" data-action="prompt" data-type="OTHER">OTHER prompt</button></p>';
 }
 function pfRenderUpload(){
   var el=pfEl("upload-box"); if(!el) return;
@@ -1684,7 +1882,7 @@ function pfAdditionalBlock(){
     '<p><label>Mortality table 1<input type="text" id="pf-add-mort1" placeholder="UP84M2"></label></p>'+
     '<p><label>Mortality table 2<input type="text" id="pf-add-mort2" placeholder="UP84M2"></label></p>'+
     '<p><label>Calc method<input type="text" id="pf-add-calcmethod" placeholder="MP"></label></p>'+
-    '<p><label>Deferral mortality<select id="pf-add-deferral"><option value="">—</option><option value="Y">Y</option><option value="N">N</option></select></label></p>'+
+    '<p><label>Interest method <span class="small">(N, O, L, LPQ, … — fixed-rate plans use N)</span><input type="text" id="pf-add-intmethod" placeholder="N"></label></p>'+
     '<p><label>Months certain<input type="text" id="pf-add-monthscertain" placeholder="0"></label></p>'+
     '<p><label>Participant sex<select id="pf-add-partsex"><option value="">—</option><option value="M">M</option><option value="F">F</option></select></label></p>'+
     '<p><label>Beneficiary sex<select id="pf-add-bensex"><option value="">—</option><option value="M">M</option><option value="F">F</option></select></label></p>'+
@@ -1694,6 +1892,7 @@ function pfAdditionalBlock(){
     '<p><label>Participant ages, last<input type="text" id="pf-add-partmax" placeholder="80"></label></p>'+
     '<p><label>Beneficiary ages, first<input type="text" id="pf-add-benmin" placeholder="0"></label></p>'+
     '<p><label>Beneficiary ages, last<input type="text" id="pf-add-benmax" placeholder="100"></label></p>'+
+    '<p><label>Printed factor table <span class="small">(one row per line: partAge, benAge, factor — blank = no table)</span><textarea id="pf-add-table" rows="4" placeholder="65, 61, 0.8123"></textarea></label></p>'+
     '<p><label>Plan words <span class="small">(the plan’s own words for the rule)</span><input type="text" id="pf-add-ruletext"></label></p>'+
     '<p><label>Basis <span class="small">(blank = made from the arguments)</span><input type="text" id="pf-add-basis"></label></p>'+
     '<p><label>Effective from <span class="small">(YYYY-MM-DD, blank = not given)</span><input type="text" id="pf-add-efffrom" placeholder="2020-01-01"></label></p>'+
@@ -1712,8 +1911,10 @@ function pfRenderGenerate(){
   var gate=pfCanGenerate();
   el.innerHTML="<h2>Step 4 — Generate</h2>"+
     (gate.ok?'<p class="ok">Ready. The workbook will hold the approved sets only.</p>':'<p class="warn">'+pfEscHtml(gate.why)+"</p>")+
-    '<p><button type="button" class="primary" data-action="generate" '+(gate.ok?"":"disabled")+">Generate the workbook</button></p>"+
-    '<p class="small">The app writes formulas, except values the document table prints. BCV formulas compute in Excel with the ATPBGC add-in. All factors round to 4 decimals.</p>';
+    '<p><button type="button" class="primary" data-action="generate" '+(gate.ok?"":"disabled")+">Generate the workbook</button> "+
+    '<button type="button" class="secondary" data-action="preview" '+(gate.ok?"":"disabled")+">Preview print layout</button></p>"+
+    '<p class="small">The app writes formulas, except values the document table prints. BCV formulas compute in Excel with the ATPBGC add-in. All factors round to 4 decimals.</p>'+
+    (pfState.previewHtml?'<div id="pf-preview">'+pfState.previewHtml+"</div>":"");
 }
 function pfRenderDownload(){
   var el=pfEl("download-box"); if(!el) return;
@@ -1729,7 +1930,12 @@ function pfRenderDownload(){
 function pfHandleAction(action,t){
   if(action==="theme"){ pfToggleTheme(); return; }
   if(action==="demo"){ pfLoadDemo(); return; }
-  if(action==="prompt"){ pfDownloadPrompt(); return; }
+  if(action==="prompt"){ pfDownloadPrompt(t?t.getAttribute("data-type"):null); return; }
+  if(action==="preview"){
+    if(pfState.data&&pfCanGenerate().ok) pfState.previewHtml=pfPreviewHtml(pfApprovedData());
+    pfRender();
+    return;
+  }
   if(action==="audit"){ pfDownloadAudit(); return; }
   if(action==="step"){
     var i=parseInt(t.getAttribute("data-step"),10);
@@ -1756,6 +1962,7 @@ function pfHandleAction(action,t){
       if(inp&&set&&inp.value!==set.title){ set.title=inp.value; pfAudit("edit title",id); }
     }
     pfState.decisions[id]=action==="approve"?"approved":"rejected";
+    pfState.previewHtml=null;
     pfAudit(action,id);
     pfRender();
     return;
@@ -1880,6 +2087,11 @@ globalThis.PF={
   pfBfcfFormCode:pfBfcfFormCode,
   pfPlanFormToBcv:pfPlanFormToBcv,
   pfKnownMortality:pfKnownMortality,
+  pfKnownIntMethod:pfKnownIntMethod,
+  pfParseGridTable:pfParseGridTable,
+  pfGridTableText:pfGridTableText,
+  pfTypePrompt:pfTypePrompt,
+  pfPreviewHtml:pfPreviewHtml,
   pfMonthsCertainForSet:pfMonthsCertainForSet,
   pfFormulaPreview:pfFormulaPreview,
   pfAuditReport:pfAuditReport,

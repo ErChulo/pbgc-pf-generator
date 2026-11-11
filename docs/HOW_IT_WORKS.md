@@ -12,6 +12,7 @@ ASD STE 100. One idea per line. User action, then app behavior.
 
 - You: click "Download the scraper prompt".
 - App: downloads `pf-scraper-prompt.md`.
+- Or: click one per-type prompt (ERF, LRF, BFCF, OTHER). Same prompt, scoped to one type. Run the LLM once per type, then combine the JSON.
 
 ## 2. Scrape (outside the app)
 
@@ -20,9 +21,9 @@ ASD STE 100. One idea per line. User action, then app behavior.
 - LLM: finds every distinct factor set. Each era. Each type. Each form pair. No merging. No dropping.
 - LLM: reads each document on its own first (plan, restatement, amendments), then combines. An amendment that changes a rule starts a new era.
 - LLM: records when each rule applies (`effectiveFrom` / `effectiveTo`).
-- LLM: records form names as written (`SLA`, `3CC`, `JS50`). The app maps each name to its BCV code.
+- LLM: records form names as written (`SLA`, `3CC`, `3CO`, `JS50`). The app maps each name to its BCV code.
 - LLM: quotes the plan's rule sentence into `ruleText`, then states the matching `rule`. Words first, formula second.
-- LLM: copies every BCV argument from the plan's definition: interest, mortality tables, calc method, deferral mortality, months certain, sexes, survivor percent, temporary months. Nothing assumed.
+- LLM: copies every BCV argument from the plan's definition: interest, mortality tables, calc method, interest method (BFCF) or deferral mortality (ERF/LRF), months certain, sexes, survivor percent, temporary months. Nothing assumed.
 - LLM: copies any factor table the documents print, row by row, as printed. No reordering. No interpolating. No filling in from the formula.
 - LLM: records the plan's normal married form in `planMetadata.normalMarriedForm`, with a citation. Never assumes `JS50`.
 - LLM: for each BFCF set, records `appliesInPbgcAdmin` — true only when from-form is the normal single form and to-form is the normal married form. The app derives the same decision itself and refuses the JSON if the two disagree.
@@ -45,12 +46,13 @@ ASD STE 100. One idea per line. User action, then app behavior.
 - You: read the exact formula that will be written, on each row, before generating.
 - You: read the effective dates of each set, and which sets need attention (missing, ambiguous, or failing validation).
 - You: read, for each BFCF set, whether PBGC honors it. Honored pairs only. A pair PBGC does not honor is left out of the file — it needs no decision, and it does not block Generate.
-- You: add a conversion the scraper missed, under "Additional conversions". Pick any from-form and to-form, fill in the BCV arguments (or copy them from an existing BFCF set — the survivor percent is never copied, it derives from the new to-form). A pair PBGC does not honor needs the "Include it anyway" tick: that is the override, and the audit log records it. Adding approves it at once. Remove takes it back out.
+- You: add a conversion the scraper missed, under "Additional conversions". Pick any from-form and to-form, fill in the BCV arguments (or copy them from an existing BFCF set — the survivor percent is never copied, it derives from the new to-form). If the documents print a factor table for that pair, paste it (one row per line: partAge, benAge, factor). A pair PBGC does not honor needs the "Include it anyway" tick: that is the override, and the audit log records it. Adding approves it at once. Remove takes it back out.
 - Missing sets: approve is refused. Reject them, or fill them first.
 - Rejected sets stay out of the workbook.
 
 ## 5. Generate
 
+- You: click "Preview print layout" to see the tabs before generating. Table values as printed, formula text where Excel computes.
 - You: click "Generate the workbook".
 - App: locked until the header is filled and each set has a decision.
 - App: writes one tab per approved set: honored scraped sets, and user-added sets. Two sets that would share a tab name are refused.

@@ -1,6 +1,48 @@
-# OPEN ITEMS — PF Generator v0.3.0
+# OPEN ITEMS — PF Generator v0.4.0
 
 The canonical gap list. Read this before proposing next steps.
+
+## Fixed in v0.4.0 (all open issues closed)
+
+- **BFCFAEQ Method is the interest method, not deferral mortality.**
+  A real bug, found while closing item 9: the app wrote
+  `deferralMortality` (`Y`/`N`) into BFCFAEQ's `Method` slot.
+  BFCFAEQ has no deferral-mortality parameter — its `Method`
+  argument is the interest method (`IntMethod`), per the add-in
+  doc p.143 "Method (IntMethod and SMethod)" and Factor Training
+  2026. Levels: `O` (lump sum rate structure), `N` (annuity rate
+  structure, fixed-rate plans), `L` (417(e) segment rates), `L**`
+  (L + stability period PY/CY/PQ/CQ/M), `L**#` (L** + lookback
+  1–5), and O/N with a stability period only with LS06SUYYYY or
+  LS12SUYYYY mortality. `LPBGC` is not available in BFCFAEQ and is
+  refused. Training deck slide 69 confirms it: a worked BFCFAEQ
+  passes `"LPQ"` there. Writing `"N"` was right by luck for
+  fixed-rate plans; writing `"Y"` would have been invalid. The
+  app now carries `intMethod` per BFCF set (required, validated),
+  writes it in the `Method` slot, and refuses a non-null
+  `deferralMortality` on a BFCF set. ERF/LRF keep `deferralMortality`
+  `Y`/`N` and carry no `intMethod` (fixed-rate plans only).
+- **Certain-only forms.** New plan-form name `nCO` (e.g. `3CO`),
+  mapped to BCV code `CTN` with `n*12` months certain. Months
+  certain derives from a `nCO` name, and conflicts fail validation.
+  The name is a Muse decision (parallel to `nCC`), for the user to
+  correct if the documents write it another way.
+- **Logo.** White PBGC logo in the header (same file as DEL,
+  Book of Job "images" folder; local copy in `assets/logos/`),
+  52px desktop / 44px under 640px, both themes.
+- **Per-type prompts.** Step 1 offers the full prompt plus four
+  per-type prompts (ERF, LRF, BFCF, OTHER): the same prompt with
+  a scope header that says to find only that type.
+- **Print preview.** Step 4 has a "Preview print layout" button:
+  each tab the workbook will hold, as HTML tables — header rows,
+  table values as printed, formula text where Excel computes.
+  Built from the same formula helpers as the .xlsx, so the preview
+  and the file agree.
+- **Printed table on added conversions.** The Add form takes a
+  printed factor table (one row per line: partAge, benAge,
+  factor), parsed and validated like a scraped grid; the values
+  are written as values in the tab. The edit panel edits a BFCF
+  set's printed table the same way. A months table stays JSON-only.
 
 ## Fixed in v0.3.0 (Software correctness and end-to-end readiness)
 
@@ -115,58 +157,73 @@ end through the app: `scripts/gen_full_grid_xlsx.cjs` and
 `samples/riverbend-full-grid.xlsx` (29 KB compressed). DEFLATE
 replaced stored ZIP; see "Fixed in v0.3.0" above.
 
+## Closed after v0.3.0 (2026-11-11, checked against all sources)
+
+- **UP84M2 — closed.** Confirmed in use by PBGC in two sources:
+  the reference PF file (live `BFCFAEQ`/`ERFAEQ` formulas) and the
+  Drive file `JSON_to_V1_Engine_Reverse_24884900_Updated.txt`
+  (same case). Searched and found nothing else: add-in doc text
+  (no hit), BCV dictionary (no hit), local xlsm files (no hit),
+  Drive fullText (only those two files). The MORTNAME table itself
+  lives in the ATPBGC database and was never seen — but two PBGC
+  sources using the code is the confirmation that matters. The
+  office test with the add-in is the final check.
+- **Rounding policy — closed.** No written PBGC rounding policy
+  found. Searched: add-in doc (the "four decimal" hit is about
+  interest-rate inputs, not factors), BCV dictionary, Drive
+  fullText "four decimal" (training docs only), local files. The
+  R1 sample language says the plan determined factors to four
+  decimal places. Per the rule in this item, the file's practice
+  (`ROUND` to 4) is the policy.
+
 ## 2. Mortality table code UP84M2 not confirmed in the add-in doc
 
-Arg order and codes GM83/GF83/UP84 are confirmed against
-`BCV_ATPBGC_Add-ins.pdf` (Jul 2024). The doc examples
-`ERFAEQ(.06,"M",65,120,0,"GM83","GF83","MP","Y")` and
-`BFCFAEQ("SLA",0,0,0,"JSC",0.5,0,0,65,61,"M","F",0.06,"LS00SU2015","LS00SU2015","MP","N")`
-match our formulas. Still open: "UP84M2" has no hit in the doc
-text; it comes from the reference file only. The doc lists no full
-table-code list — codes live in the ATPBGC database MORTNAME table,
-looked up with MORTCODE/MORTDESC. Confirm UP84M2 is a valid
-MORTNAME code. Until then: UP84M2 is on the app's known list (from
-the reference file), and any other unlisted code needs
-`mortalityConfirmed` — the user checked it in MORTNAME.
+Closed — see "Closed after v0.3.0" above.
 
 ## 3. Rounding policy source not found
 
-The file shows ROUND to 4 decimals. No written PBGC rounding policy
-was found in the Book of Job yet. If none exists, the file's practice
-is the policy. Search for it.
+Closed — see "Closed after v0.3.0" above.
 
-## 4. No logo in v0.3.0
+## 4. No logo in v0.3.0 — fixed in v0.4.0
 
-The header is text only. The DEL generator embeds the white PBGC logo
-(base64, from the Book of Job "images" folder). PF should reuse that
-approach: same source files, same manifest note, white logo on the
-blue header in both themes. Do not invent a logo.
+White PBGC logo in the header, same file as DEL. See "Fixed in
+v0.4.0" above.
 
-## 5. Scraper prompt is one prompt, not per-group prompts
+## 5. Scraper prompt is one prompt, not per-group prompts — fixed in v0.4.0
 
-The prompt asks for all factor sets at once, but v0.3.0 adds a
-per-document instruction (read each document on its own, then
-combine). A per-era or per-type prompt split (like the DEL
-full-universe plan) may still be needed. Not decided.
+Step 1 offers four per-type prompts (ERF, LRF, BFCF, OTHER) next
+to the full prompt. See "Fixed in v0.4.0" above.
 
 ## 6. Edit is title-only in review — fixed in v0.3.0
 
 Review now edits every set field in place (interest, mortality,
 method, sexes, ranges, dates, citation), with re-validation on
-save. The printed factor table is still JSON-only: it cannot be
-edited in the app.
+save. v0.4.0 adds a BFCF printed factor table to the edit panel.
+A months table is still JSON-only.
 
-## 7. No print preview in the app
+## 7. No print preview in the app — fixed in v0.4.0
 
-The app sets print area, titles, fit, and margins, but it does not
-show a print preview. The user checks print in Excel. A preview
-would need a render of the sheet, which the single file does not do.
+Step 4 previews the tabs as HTML tables. See "Fixed in v0.4.0"
+above.
 
-## 8. Additional conversions cannot carry a printed factor table yet
+## 8. Additional conversions cannot carry a printed factor table yet — fixed in v0.4.0
 
-A user-added conversion is formula-only (`table` is null). If the
-plan documents print a factor table for that pair, the user cannot
-attach it through the form today — the values must be in the JSON
-as a scraped set, or the table stays formulas. The form is also
-BFCF-only by design: ERF, LRF, and OTHER sets come from the
-scraper, not from the form.
+The Add form and the edit panel both take a printed BFCF grid.
+See "Fixed in v0.4.0" above.
+
+## 9. BFCFAEQ Method levels not enumerated in the doc — fixed in v0.4.0
+
+Resolved, and it was a real bug, not a gap in the doc. The doc
+does enumerate the levels (p.143 "Method (IntMethod and SMethod)":
+O, N, L, L**[#], LPBGC; O/N with a stability period only with
+LS06SUYYYY/LS12SUYYYY mortality), and Factor Training 2026 slide
+69 shows a worked BFCFAEQ with `"LPQ"` in the slot. The app was
+writing `deferralMortality` there — BFCFAEQ has no such parameter.
+Fixed: `intMethod` per BFCF set, validated, written in the slot.
+NPVF2's `deferralAssump` N/P/B is a different parameter (the
+valuation function, not BFCFAEQ) and does not apply here.
+
+## 10. No plan-form name for pure certain-only (CTN) — fixed in v0.4.0
+
+Name decided: `nCO` (e.g. `3CO`) maps to `CTN` with `n*12` months
+certain. See "Fixed in v0.4.0" above.

@@ -1,5 +1,4 @@
 {
-  "schemaVersion": "0.3.0",
   "planMetadata": {
     "planName": "Riverbend Manufacturing Pension Plan",
     "planNumber": "001",
@@ -132,7 +131,7 @@
       "type": "BFCF",
       "era": "2020",
       "title": "Benefit Form Conversion Factors (2020 Plan)",
-      "basis": "BFCFAEQ with interest=8%; mortality=UP84M2/UP84M2; calc method=MP; deferral mortality=N; months certain=36",
+      "basis": "BFCFAEQ with interest=8%; mortality=UP84M2/UP84M2; calc method=MP; interest method=N; months certain=36",
       "normalForm": "SLA",
       "fromForm": "SLA",
       "toForm": "JS50",
@@ -142,7 +141,8 @@
       "mortality1": "UP84M2",
       "mortality2": "UP84M2",
       "calcMethod": "MP",
-      "deferralMortality": "N",
+      "deferralMortality": null,
+      "intMethod": "N",
       "monthsCertain": 36,
       "partSex": "M",
       "benSex": "F",
@@ -176,7 +176,7 @@
       "type": "BFCF",
       "era": "2020",
       "title": "Benefit Form Conversion Factors — JS75 (2020 Plan)",
-      "basis": "BFCFAEQ with interest=8%; mortality=UP84M2/UP84M2; calc method=MP; deferral mortality=N; months certain=36",
+      "basis": "BFCFAEQ with interest=8%; mortality=UP84M2/UP84M2; calc method=MP; interest method=N; months certain=36",
       "normalForm": "SLA",
       "fromForm": "SLA",
       "toForm": "JS75",
@@ -186,7 +186,8 @@
       "mortality1": "UP84M2",
       "mortality2": "UP84M2",
       "calcMethod": "MP",
-      "deferralMortality": "N",
+      "deferralMortality": null,
+      "intMethod": "N",
       "monthsCertain": 36,
       "partSex": "M",
       "benSex": "F",
@@ -259,7 +260,7 @@
       "type": "BFCF",
       "era": "2020",
       "title": "Benefit Form Conversion Factors — JS100 (2020 Plan)",
-      "basis": "BFCFAEQ with interest=8%; mortality=UP84M2/UP84M2; calc method=MP; deferral mortality=N; months certain=36",
+      "basis": "BFCFAEQ with interest=8%; mortality=UP84M2/UP84M2; calc method=MP; interest method=N; months certain=36",
       "normalForm": "SLA",
       "fromForm": "SLA",
       "toForm": "JS100",
@@ -269,7 +270,8 @@
       "mortality1": "UP84M2",
       "mortality2": "UP84M2",
       "calcMethod": "MP",
-      "deferralMortality": "N",
+      "deferralMortality": null,
+      "intMethod": "N",
       "monthsCertain": 36,
       "partSex": "M",
       "benSex": "F",
@@ -298,5 +300,6 @@
       "effectiveTo": null,
       "mortalityConfirmed": false
     }
-  ]
+  ],
+  "schemaVersion": "0.4.0"
 }

@@ -1,4 +1,4 @@
-# Office testing — PF Generator v0.3.0
+# Office testing — PF Generator v0.4.0
 
 How to test the app in the PBGC office. No server. No install. No
 administrator rights. Double-click one file.
@@ -19,7 +19,7 @@ administrator rights. Double-click one file.
 
 Double-click `pf-generator.html`. It opens in the browser, straight
 from disk. No server, no data leaves the page. The header shows
-v0.3.0.
+v0.4.0.
 
 ## 2. Try the demo
 
@@ -41,6 +41,15 @@ exact formula that will be written. Check:
 
 Try Edit on a set: change a value, save a bad one (refused, error
 names the field), save a good one (decision clears — approve again).
+On a BFCF set, Edit now offers the interest method (`N` for a fixed
+rate) instead of deferral mortality, and a printed factor table box.
+
+## 3b. Preview the print layout
+
+In Step 4, click "Preview print layout". Each tab shows as a table:
+header rows, printed values, formula text where Excel computes.
+Check the BFCF tab shows the grid and the ERF tab shows 0.9944 at
+month 1.
 
 ## 4. Approve, generate, download
 
@@ -58,7 +67,7 @@ Reject the missing disability set. Generate unlocks. Download
 - ERF B11 is 0.9944 (a table value). B12 is a formula.
 - Print: each tab prints landscape, fit 1 wide × 2 tall, titles
   rows 1:10.
-- File → Properties shows "PF Generator v0.3.0".
+- File → Properties shows "PF Generator v0.4.0".
 
 ## 6. Check the sample reproduces
 
@@ -90,8 +99,8 @@ values in Review with Edit instead of editing the JSON.
 
 ## Test results for this release
 
-- `npm test`: 288 passed (217 unit + 71 browser).
+- `npm test`: 330 passed (243 unit + 87 browser).
 - `python3 scripts/verify_xlsx.py`: 88 checks pass, including the
   full grid and a LibreOffice PDF conversion.
-- See `docs/RELEASE_NOTES_0.3.0.md` for what changed and what is
-  still open.
+- See `docs/RELEASE_NOTES_0.4.0.md` for what changed. No open
+  issues remain.

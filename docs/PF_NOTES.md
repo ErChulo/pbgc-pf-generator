@@ -1,4 +1,4 @@
-# PF Notes — PF Generator v0.3.0
+# PF Notes — PF Generator v0.4.0
 
 ## What PF is
 
@@ -142,7 +142,8 @@ it. The review screen shows it under the set.
 | `monthsTemp` | — | FromMthsTemp (null means 0) |
 | `mortality1`, `mortality2` | TheMNameHandle, TheFNameHandle | mort1, mort2 |
 | `calcMethod` | CalcMethod (`MP`, `QP`, `SP`, …) | calcMethod |
-| `deferralMortality` | DeferralMort | deferralMort |
+| `deferralMortality` | DeferralMort | — (BFCFAEQ has none) |
+| `intMethod` | — (not written; fixed-rate plans only) | Method (interest method) |
 | `benSex` | — | benSex |
 | `fromForm` | — | FromBftForm |
 | `survivorPct` | — | ToSurvPct |
@@ -152,7 +153,7 @@ it. The review screen shows it under the set.
 - **stepped:** `=ROUND(1-(1/D1)*MIN(m,N)-(1/D2)*MAX(MIN(m-N,CAP),0),4)`. First rate for N months, then second rate.
 - **bcv ERF:** `=ROUND(ERFAEQ(interest,partSex,nra,months,certain,"mort1","mort2",calcMethod,deferralMortality),4)`.
 - **bcv LRF:** `=ROUND(LRFAEQ(interest,partSex,nra,months,certain,"mort1","mort2",calcMethod,deferralMortality),4)`.
-- **bcv BFCF:** `=ROUND(BFCFAEQ("fromCode",fromSpc,certain,temp,"toCode",survivorPct,toCertain,0,partAge,benAge,partSex,benSex,interest,"mort1","mort2",calcMethod,deferralMortality),4)`. `fromCode` / `toCode` are the BCV codes for the plan forms (see "Plan form names map to BCV codes" above), not the plan names. `toCertain` comes from the to-form name (`nCC` → `n*12`, else 0).
+- **bcv BFCF:** `=ROUND(BFCFAEQ("fromCode",fromSpc,certain,temp,"toCode",survivorPct,toCertain,0,partAge,benAge,partSex,benSex,interest,"mort1","mort2",calcMethod,intMethod),4)`. `fromCode` / `toCode` are the BCV codes for the plan forms (see "Plan form names map to BCV codes" above), not the plan names. `toCertain` comes from the to-form name (`nCC`/`nCO` → `n*12`, else 0). `intMethod` is the interest method: `N` for a fixed rate, `O` for the lump sum rate structure, `L` for 417(e) segment rates, `L` with a stability period (`LPQ`, …) or a lookback (`LPQ1`–`LPQ5`), or O/N with a stability period (only with LS06SUYYYY/LS12SUYYYY mortality). `LPBGC` is not available in BFCFAEQ. BFCFAEQ has **no** deferral-mortality parameter — v0.3.0 wrote `deferralMortality` in that slot by mistake; v0.4.0 writes `intMethod` there and refuses a non-null `deferralMortality` on a BFCF set.
 
 Derived, not scraped:
 
@@ -166,11 +167,12 @@ Derived, not scraped:
   neither, validation fails.
 
 Missing arguments fail validation. A bcv rule with no `partSex`,
-no `calcMethod`, or no `deferralMortality` is refused. There is no
-silent default: `deferralMortality` is never assumed to be "Y",
-`calcMethod` is never assumed to be "MP", sexes are never assumed
-to be "M". Any argument not in the documents leaves the set
-`missing` or `ambiguous`, never defaulted.
+no `calcMethod`, no `deferralMortality` (ERF/LRF), or no
+`intMethod` (BFCF) is refused. There is no silent default:
+`deferralMortality` is never assumed to be "Y", `calcMethod` is
+never assumed to be "MP", `intMethod` is never assumed to be "N",
+sexes are never assumed to be "M". Any argument not in the
+documents leaves the set `missing` or `ambiguous`, never defaulted.
 
 ### Factor tables printed in the documents
 
@@ -197,7 +199,24 @@ The plan form name is not a BCV argument. The app maps it:
 | --- | --- | --- | --- |
 | `SLA` | `SLA` | 0 | 0 |
 | `nCC` (`3CC`, `5CC`, ...) | `SLA` | 0 | `n*12` |
+| `nCO` (`3CO`, `5CO`, ...) | `CTN` | 0 | `n*12` |
 | `JSnn` (`JS50`, `JS75`, `JS100`) | `JSC` | `nn/100` | 0 |
+
+The `nCO` row is the other kind of "certain": a pure term that
+**stops** after n months (no life part). `nCC` always means certain
+**and continues** (for life). The name `nCO` is a Muse decision,
+parallel to `nCC`, for the user to correct if the documents write
+it another way. `CTN` with months 0 is refused by the add-in.
+
+### V1 uses digits, not these codes
+
+The same form is written differently in the valuation. `FORM_CODE`,
+`FORM_CODE_NSF`, `FORM_CODE_NMF` (BCV1) are one digit: `2` = SLA,
+`4` = Certain Only, `5` = C&C, with the months in `MthsNSF` /
+`MTHS`. So a 3-year C&C normal single form is `FORM_CODE_NSF`
+= `5`, `MthsNSF` = 36. The NPVF function fields
+(`NPVF_FORM_CODE`, `NPVF_FORM_CODE_NSF`, `NPVF_FORM_CODE_NMF`)
+use the 3-letter codes above: `SLA` with certain period 36.
 
 Source: the add-in doc, PBGCBFCF2 "Suggested Input" (same codes
 `BFCFAEQ` accepts: `SLA`, `CTN`, `JSC`, `JSJ`, `JSN`, `JSP`). The
@@ -211,10 +230,10 @@ survivor percent must match the form name (`JS50` → 0.5).
 
 `monthsCertain` is the months certain in the form the formula
 converts from (BFCF) or in the normal single form (ERF/LRF,
-`TheCPeriod`). When it is not stated, a certain-and-continuous
-form name supplies it (`3CC` → 36). A stated value that disagrees
-with the form name is a conflict and fails validation. The
-reference file's pattern: `SLA` → 0 (`LRF-1978`), `3CC` → 36
+`TheCPeriod`). When it is not stated, a certain form name supplies
+it (`3CC` → 36, `3CO` → 36). A stated value that disagrees with
+the form name is a conflict and fails validation. The reference
+file's pattern: `SLA` → 0 (`LRF-1978`), `3CC` → 36
 (`ERF-Disability`, `LRF-1982`, `LRF-2011`).
 
 ### Effective dates and duplicates (v0.3.0)
@@ -246,7 +265,7 @@ regenerates `samples/riverbend-pf.xlsx` byte-for-byte.
 
 ## Rounding
 
-`ROUND(...,4)`. Format `0.0000`. Source: the reference file's practice. No written PBGC rounding policy found yet (open item).
+`ROUND(...,4)`. Format `0.0000`. Source: the reference file's practice. No written PBGC rounding policy found in any source (add-in doc, dictionary, Book of Job, training) — the file's practice is the policy.
 
 ## Print (every tab)
 
@@ -254,6 +273,8 @@ regenerates `samples/riverbend-pf.xlsx` byte-for-byte.
 - Print titles = rows 1:10.
 - Orientation = landscape. Fit to page: 1 wide, 2 tall.
 - Margins: left/right 0.4, top/bottom 0.5.
+- Step 4 previews the tabs before generating (header rows, printed
+  values, formula text where Excel computes).
 
 ## Statuses
 

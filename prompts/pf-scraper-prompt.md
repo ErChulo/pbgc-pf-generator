@@ -39,12 +39,14 @@ after DOPT cannot apply — say so in `note`.
 ## Plan form names
 
 Record form names exactly as the documents write them: `SLA`,
-`3CC`, `5CC`, `JS50`, `JS75`, `JS100`. Do not translate them into
+`3CC`, `5CC`, `3CO`, `JS50`, `JS75`, `JS100`. Do not translate them into
 BCV codes yourself — the app maps each name to its BCV function
 code (a 3-year certain-and-life form writes as `SLA` with 36 months
-certain). A form name the documents do not give is null, never
-guessed. If a form name is not `SLA`, a certain-and-continuous form
-(`3CC`, `5CC`, ...), or a joint-and-survivor form (`JS50`, ...),
+certain; a 3-year certain-only form writes as `CTN` with 36 months
+certain — payments stop after the term). A form name the documents
+do not give is null, never guessed. If a form name is not `SLA`, a
+certain-and-continuous form (`3CC`, `5CC`, ...), a certain-only
+form (`3CO`, `5CO`, ...), or a joint-and-survivor form (`JS50`, ...),
 say so in `note` and mark the set `ambiguous`.
 
 ## PBGC honors only normal single form to normal married form
@@ -91,9 +93,14 @@ For each set, do two things, in order.
    - `{"kind": "bcv", "function": "ERFAEQ"}` — actuarial equivalence.
      Use `LRFAEQ` for late factors, `BFCFAEQ` for conversion factors.
      A bcv rule needs every argument filled in: interest, both
-     mortality tables, calc method, deferral mortality, months
-     certain, normal age, participant sex, and for BFCF also
-     beneficiary sex, survivor percent, and temporary months.
+     mortality tables, calc method, months certain, normal age,
+     participant sex, and for BFCF also beneficiary sex, survivor
+     percent, temporary months, and the interest method (`intMethod`:
+     `N` for a fixed rate, `O` for the lump sum rate structure,
+     `L` for 417(e) segment rates, or `L` with a stability period
+     such as `LPQ`). Deferral mortality (`Y`/`N`) is an ERF/LRF
+     argument only — BFCFAEQ has no deferral-mortality parameter;
+     never put a deferral value in a BFCF set.
      If any argument is not in the documents, leave it null and
      set the set to `missing` or `ambiguous`. Never fill it in
      from another plan or from a guess.
@@ -129,8 +136,9 @@ Rules for the table:
 - `title`: short title. Example: `Early Retirement Factors from NRA of 65 (2020 Plan)`.
 - `basis`: the rule in words, with the numbers. Example:
   `reduction = 1/15 per year early (linear in months)`.
-- `normalForm`: `SLA` or a certain-and-continuous form (`3CC`,
-  `5CC`, ...). Copy it as written.
+- `normalForm`: `SLA`, a certain-and-continuous form (`3CC`,
+  `5CC`, ...), or a certain-only form (`3CO`, `5CO`, ...).
+  Copy it as written.
 - `effectiveFrom`, `effectiveTo`: ISO dates `YYYY-MM-DD`, or null.
   See "Effective dates" above.
 - `mortalityConfirmed`: `true` only when you checked the mortality
@@ -150,8 +158,15 @@ Rules for the table:
   `note`.
 - `calcMethod`: example: `MP`. Copy it as written (`MP`, `QP`,
   `SP`, or what the document says). Never assume `MP`.
-- `deferralMortality`: `Y` or `N`. From the plan's definition of
-  the deferral period. Never assume `Y`.
+- `deferralMortality`: ERF/LRF only. `Y` or `N`. From the plan's
+  definition of the deferral period. Never assume `Y`. Null for
+  a BFCF set.
+- `intMethod`: BFCF only. The interest method for the BFCFAEQ
+  `Method` argument. `N` for a fixed rate, `O` for the lump sum
+  rate structure, `L` for 417(e) segment rates, or `L` with a
+  stability period (`LPY`, `LCY`, `LPQ`, `LCQ`, `LM`, with an
+  optional lookback 1–5). Copy it as written. Null for an
+  ERF/LRF set.
 - `monthsCertain`: number, or `0`.
 - `partSex`: `M` or `F`. Whose mortality the plan uses for the
   participant. From the plan's definition, not assumed.
@@ -209,7 +224,7 @@ Rules for the table:
 
 ```json
 {
-  "schemaVersion": "0.3.0",
+  "schemaVersion": "0.4.0",
   "planMetadata": {
     "planName": "Riverbend Manufacturing Pension Plan",
     "planNumber": "001",
@@ -234,6 +249,7 @@ Rules for the table:
       "mortality2": null,
       "calcMethod": null,
       "deferralMortality": null,
+      "intMethod": null,
       "monthsCertain": null,
       "partSex": null,
       "benSex": null,

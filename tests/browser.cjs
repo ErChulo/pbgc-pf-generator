@@ -93,7 +93,7 @@ function ruleHas(rule, prop, value) {
   const { document } = window;
   check('Part 1: page loads on an opaque origin with no script errors', errors.length === 0, errors.join('; '));
   check('Part 1: PF global exists', !!window.PF);
-  check('Part 1: PF version is 0.3.0', window.PF && window.PF.VERSION === '0.3.0');
+  check('Part 1: PF version is 0.4.0', window.PF && window.PF.VERSION === '0.4.0');
 
   // Demo from the PF view: use the public loader (same as the button).
   window.pfLoadDemo();
@@ -106,7 +106,7 @@ function ruleHas(rule, prop, value) {
   check('Part 1: review says the user-added JS100 set is included by choice', rev && rev.textContent.includes('included by your choice'));
   check('Part 1: review shows the formula preview', rev && rev.textContent.includes('Formula: =ROUND(BFCFAEQ'));
   check('Part 1: review shows the effective dates', rev && rev.textContent.includes('Effective'));
-  check('Part 1: review shows the version and progress', rev && rev.textContent.includes('PF Generator v0.3.0') && rev.textContent.includes('Step 3 of 5'));
+  check('Part 1: review shows the version and progress', rev && rev.textContent.includes('PF Generator v0.4.0') && rev.textContent.includes('Step 3 of 5'));
   check('Part 1: review flags the missing set', rev && rev.textContent.includes('Needs attention') && rev.textContent.includes('ERF-DIS-2020 (missing'));
   // Edit panel: open it, save a bad value (refused), save a good one.
   document.querySelector('#review-box [data-action="edit"][data-id="ERF-2020"]').click();
@@ -261,6 +261,56 @@ function ruleHas(rule, prop, value) {
   document.querySelector('#review-box [data-action="remove-conversion"][data-id="BFCF-2020-3CC-JS75"]').click();
   check('Part 7: removing the pair takes it back out', window.PF.state.data.additionalConversions.length === 1 && !window.PF.state.data.additionalConversions.some((s) => s.id === 'BFCF-2020-3CC-JS75'));
   check('Part 7: audit log records the removal', window.PF.state.audit.some((a) => a.action === 'additional conversion removed' && a.detail === 'BFCF-2020-3CC-JS75'));
+
+  // Part 8 (v0.4.0): logo, per-type prompts, intMethod, printed table, print preview.
+  window.pfLoadDemo();
+  const logo = document.querySelector('header .brand-logo');
+  check('Part 8: white PBGC logo sits in the header', !!logo && logo.getAttribute('src').startsWith('data:image/png;base64,') && logo.getAttribute('alt').includes('Pension Benefit Guaranty Corporation'));
+  const typeBtns = Array.from(document.querySelectorAll('#prompt-card [data-action="prompt"][data-type]'));
+  check('Part 8: four per-type prompt buttons (ERF, LRF, BFCF, OTHER)', typeBtns.length === 4 && typeBtns.map((b) => b.getAttribute('data-type')).join(',') === 'ERF,LRF,BFCF,OTHER', typeBtns.map((b) => b.getAttribute('data-type')).join(','));
+  check('Part 8: add form asks for the interest method, not deferral mortality', !!document.getElementById('pf-add-intmethod') && !document.getElementById('pf-add-deferral'));
+  check('Part 8: add form has a printed factor table box', !!document.getElementById('pf-add-table'));
+  document.getElementById('pf-add-copy').value = 'BFCF-2020';
+  document.querySelector('#review-box [data-action="copy-conversion-args"]').click();
+  check('Part 8: copying arguments copies the interest method N', document.getElementById('pf-add-intmethod').value === 'N');
+  // Add a pair with a printed table: 3CC to JS100, two grid rows
+  // (inside the demo set's small age ranges, 55-60 and 0-5).
+  document.getElementById('pf-add-era').value = '2020';
+  document.getElementById('pf-add-from').value = '3CC';
+  document.getElementById('pf-add-to').value = 'JS100';
+  document.getElementById('pf-add-ruletext').value = 'joint and 100% survivor conversion by actuarial equivalence';
+  document.getElementById('pf-add-table').value = '55, 0, 0.8123\n56, 1, 0.8001';
+  document.getElementById('pf-add-confirm').checked = true;
+  document.querySelector('#review-box [data-action="add-conversion"]').click();
+  const added = window.PF.state.data.additionalConversions.find((s) => s.id === 'BFCF-2020-3CC-JS100');
+  check('Part 8: adding a pair with a printed table keeps the table', !!added && added.table && added.table.kind === 'grid' && added.table.rows.length === 2, added ? JSON.stringify(added.table) : 'no set');
+  check('Part 8: the table value is read back for its age pair', !!added && window.PF.pfTableValue(added, null, 55, 0) === 0.8123);
+  check('Part 8: the added set carries intMethod N and no deferralMortality', !!added && added.intMethod === 'N' && added.deferralMortality === null);
+  // Edit panel: BFCF sets edit the interest method, not deferral mortality.
+  document.querySelector('#review-box [data-action="edit"][data-id="BFCF-2020"]').click();
+  check('Part 8: edit panel for a BFCF set has an interest method field, no deferral field', !!document.querySelector('[data-edit-set="BFCF-2020"][data-edit-field="intMethod"]') && !document.querySelector('[data-edit-set="BFCF-2020"][data-edit-field="deferralMortality"]'));
+  const intInput = document.querySelector('[data-edit-set="BFCF-2020"][data-edit-field="intMethod"]');
+  intInput.value = 'Y';
+  document.querySelector('#review-box [data-action="save-edit"][data-id="BFCF-2020"]').click();
+  const intErr = document.getElementById('pf-edit-error-BFCF-2020');
+  check('Part 8: saving interest method Y is refused', intErr && intErr.textContent.includes('intMethod'), intErr ? intErr.textContent : 'no error box');
+  intInput.value = 'LPQ';
+  document.querySelector('#review-box [data-action="save-edit"][data-id="BFCF-2020"]').click();
+  check('Part 8: saving interest method LPQ applies it', window.PF.state.data.factorSets.find((s) => s.id === 'BFCF-2020').intMethod === 'LPQ');
+  // Approve everything decidable, reject the missing set, then preview.
+  ['ERF-2020', 'LRF-2020', 'BFCF-2020', 'BFCF-2020-JS100'].forEach((id) => {
+    document.querySelector('#review-box [data-action="approve"][data-id="' + id + '"]').click();
+  });
+  document.querySelector('#review-box [data-action="reject"][data-id="ERF-DIS-2020"]').click();
+  const previewBtn = document.querySelector('#generate-box [data-action="preview"]');
+  check('Part 8: preview button is enabled once generate is ready', previewBtn && !previewBtn.disabled);
+  previewBtn.click();
+  const previewBox = document.getElementById('pf-preview');
+  check('Part 8: preview shows the tabs and a BFCF formula', previewBox && previewBox.textContent.includes('Tab: ERF-2020') && previewBox.textContent.includes('BFCFAEQ'), previewBox ? previewBox.textContent.slice(0, 120) : 'no preview');
+  check('Part 8: preview shows the added table value, not a formula, for its age pair', previewBox && previewBox.textContent.includes('0.8123'));
+  document.querySelector('#generate-box [data-action="generate"]').click();
+  check('Part 8: generate still produces the workbook with the table set', window.PF.state.generated && window.PF.state.generated.tabs === 5, window.PF.state.generated ? String(window.PF.state.generated.tabs) : 'no workbook');
+  check('Part 8: audit log records the added table values', window.PF.state.audit.some((a) => a.action === 'generate set' && a.detail.indexOf('BFCF-2020-3CC-JS100') === 0 && a.detail.includes('table values: 2')));
 }
 
 console.log('\n' + failures + ' failure(s)');
