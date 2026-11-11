@@ -49,6 +49,7 @@ Demo case: synthetic. Riverbend Manufacturing Pension Plan, Plan No. 001, case 9
 | `docs/PF_NOTES.md` | PF definition, tab mapping, formulas, print setup, statuses. |
 | `docs/HOW_IT_WORKS.md` | End-to-end mechanics: user actions and app behavior. |
 | `docs/XLSX_LIBRARY.md` | Why direct XML, prototype evidence. |
+| `docs/OLD_ATTEMPT_COMPARISON.md` | Old March 2026 attempt vs this version; what was borrowed (v0.1.1 layout parity). |
 | `scripts/build_single_file.py` | Injects the prompt into the HTML; runs safety checks. |
 | `scripts/gen_demo_xlsx.cjs` | Generates the demo .xlsx through the HTML's own code. |
 | `scripts/verify_xlsx.py` | Checks the generated .xlsx with openpyxl + LibreOffice. |
