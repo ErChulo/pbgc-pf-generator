@@ -15,6 +15,9 @@
 // Part 6 — Review + generate: demo loads 5 sets, decisions gate the
 // generate button, approving 3 and rejecting 1 unlocks it; the JS75
 // set needs no decision (PBGC rule leaves it out).
+// Part 7 — Additional conversions: the form in Review adds a pair the
+// scraper missed; copying arguments fills the BCV fields but never
+// the survivor percent; adding approves it and the audit log records it.
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -90,14 +93,17 @@ function ruleHas(rule, prop, value) {
   const { document } = window;
   check('Part 1: page loads on an opaque origin with no script errors', errors.length === 0, errors.join('; '));
   check('Part 1: PF global exists', !!window.PF);
-  check('Part 1: PF version is 0.2.2', window.PF && window.PF.VERSION === '0.2.2');
+  check('Part 1: PF version is 0.2.3', window.PF && window.PF.VERSION === '0.2.3');
 
   // Demo from the PF view: use the public loader (same as the button).
   window.pfLoadDemo();
   check('Part 1: demo loads 5 factor sets', window.PF.state.data && window.PF.state.data.factorSets.length === 5);
+  check('Part 1: demo loads 1 additional conversion', window.PF.state.data && window.PF.state.data.additionalConversions && window.PF.state.data.additionalConversions.length === 1);
   check('Part 1: demo step is Review (2)', window.PF.state.step === 2);
   const rev = document.getElementById('review-box');
-  check('Part 1: review renders 5 set rows', rev && rev.querySelectorAll('.revrow').length === 5, rev ? String(rev.querySelectorAll('.revrow').length) : 'no review box');
+  check('Part 1: review renders 7 rows (5 scraped + 1 user-added + the Additional conversions block)', rev && rev.querySelectorAll('.revrow').length === 7, rev ? String(rev.querySelectorAll('.revrow').length) : 'no review box');
+  check('Part 1: review shows the Additional conversions form', rev && !!document.getElementById('pf-add-from') && !!document.getElementById('pf-add-to'));
+  check('Part 1: review says the user-added JS100 set is included by choice', rev && rev.textContent.includes('included by your choice'));
   check('Part 1: review shows the plan words (ruleText)', rev && rev.textContent.includes('Plan words:'), rev ? rev.textContent.slice(0, 200) : 'no review box');
   check('Part 1: review shows the source label (Table / Formulas)', rev && rev.textContent.includes('Source: Table:') && rev.textContent.includes('Source: Formulas from the rule'));
   check('Part 1: review says PBGC honors the JS50 set', rev && rev.textContent.includes('PBGC honors: Yes'));
@@ -182,9 +188,9 @@ function ruleHas(rule, prop, value) {
   check('Part 6: generate button starts disabled', genBtn && genBtn.disabled);
   const approveBtns = Array.from(document.querySelectorAll('#review-box [data-action="approve"]'));
   const rejectBtns = Array.from(document.querySelectorAll('#review-box [data-action="reject"]'));
-  check('Part 6: 4 approve buttons, 4 reject buttons (excluded set has none)', approveBtns.length === 4 && rejectBtns.length === 4);
+  check('Part 6: 5 approve buttons, 5 reject buttons (excluded set has none)', approveBtns.length === 5 && rejectBtns.length === 5, approveBtns.length + '/' + rejectBtns.length);
   // Re-query before each click: approving re-renders the review list.
-  ['ERF-2020', 'LRF-2020', 'BFCF-2020', 'ERF-DIS-2020'].forEach((id) => {
+  ['ERF-2020', 'LRF-2020', 'BFCF-2020', 'BFCF-2020-JS100', 'ERF-DIS-2020'].forEach((id) => {
     document.querySelector('#review-box [data-action="approve"][data-id="' + id + '"]').click();
   });
   // The missing disability set is approved here too; the gate must block it.
@@ -199,8 +205,37 @@ function ruleHas(rule, prop, value) {
   check('Part 6: rejecting the missing set unlocks generate (excluded set still undecided)', genBtn3 && !genBtn3.disabled);
   genBtn3.click();
   check('Part 6: generate produces 98765400PF.xlsx', window.PF.state.generated && window.PF.state.generated.name === '98765400PF.xlsx');
-  check('Part 6: generated workbook has 3 tabs', window.PF.state.generated && window.PF.state.generated.tabs === 3);
+  check('Part 6: generated workbook has 4 tabs (3 honored + 1 user-added)', window.PF.state.generated && window.PF.state.generated.tabs === 4);
   check('Part 6: download step shows the filename', document.getElementById('download-box').textContent.includes('98765400PF.xlsx'));
+
+  // Part 7: add a conversion the scraper missed, through the form.
+  window.pfLoadDemo();
+  // Empty form first: adding must fail and say what is missing.
+  document.querySelector('#review-box [data-action="add-conversion"]').click();
+  const addErr = document.getElementById('pf-add-error');
+  check('Part 7: adding with an empty form shows the missing fields', addErr && addErr.textContent.includes('fromForm'), addErr ? addErr.textContent : 'no error box');
+  check('Part 7: failed add adds nothing', window.PF.state.data.additionalConversions.length === 1);
+  // Copy the BCV arguments from the honored BFCF set.
+  const copySel = document.getElementById('pf-add-copy');
+  copySel.value = 'BFCF-2020';
+  document.querySelector('#review-box [data-action="copy-conversion-args"]').click();
+  check('Part 7: copying arguments fills interest and mortality', document.getElementById('pf-add-interest').value === '0.08' && document.getElementById('pf-add-mort1').value === 'UP84M2' && document.getElementById('pf-add-calcmethod').value === 'MP');
+  check('Part 7: copying arguments does not copy the survivor percent', document.getElementById('pf-add-survivorpct').value === '');
+  // A pair the scraper did not propose: 3CC to JS75.
+  document.getElementById('pf-add-era').value = '2020';
+  document.getElementById('pf-add-from').value = '3CC';
+  document.getElementById('pf-add-to').value = 'JS75';
+  document.getElementById('pf-add-ruletext').value = 'joint and 75% survivor conversion by actuarial equivalence';
+  document.querySelector('#review-box [data-action="add-conversion"]').click();
+  check('Part 7: adding the pair appends it to additionalConversions', window.PF.state.data.additionalConversions.length === 2 && window.PF.state.data.additionalConversions.some((s) => s.id === 'BFCF-2020-3CC-JS75'));
+  check('Part 7: adding approves the pair at once', window.PF.state.decisions['BFCF-2020-3CC-JS75'] === 'approved');
+  check('Part 7: the new row has a Remove button', !!document.querySelector('#review-box [data-action="remove-conversion"][data-id="BFCF-2020-3CC-JS75"]'));
+  check('Part 7: the new row says it is included by choice (PBGC does not honor 3CC->JS75)', document.getElementById('review-box').textContent.includes('included by your choice'));
+  check('Part 7: audit log records the added conversion', window.PF.state.audit.some((a) => a.action === 'additional conversion added' && a.detail.indexOf('BFCF-2020-3CC-JS75') === 0));
+  // Removing it takes it back out.
+  document.querySelector('#review-box [data-action="remove-conversion"][data-id="BFCF-2020-3CC-JS75"]').click();
+  check('Part 7: removing the pair takes it back out', window.PF.state.data.additionalConversions.length === 1 && !window.PF.state.data.additionalConversions.some((s) => s.id === 'BFCF-2020-3CC-JS75'));
+  check('Part 7: audit log records the removal', window.PF.state.audit.some((a) => a.action === 'additional conversion removed' && a.detail === 'BFCF-2020-3CC-JS75'));
 }
 
 console.log('\n' + failures + ' failure(s)');

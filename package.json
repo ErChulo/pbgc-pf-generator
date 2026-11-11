@@ -1,1 +1,1 @@
-{"description":"PF Generator — Plan Factors workbook. Single HTML file deliverable (pf-generator.html).","devDependencies":{"jsdom":"^27.0.0"},"name":"pf-generator","private":true,"scripts":{"test":"node tests/run.cjs && node tests/browser.cjs"},"version":"0.2.2"}
+{"description":"PF Generator — Plan Factors workbook. Single HTML file deliverable (pf-generator.html).","devDependencies":{"jsdom":"^27.0.0"},"name":"pf-generator","private":true,"scripts":{"test":"node tests/run.cjs && node tests/browser.cjs"},"version":"0.2.3"}

@@ -1,5 +1,5 @@
 "use strict";
-/* PF Generator v0.2.2 — test runner.
+/* PF Generator v0.2.3 — test runner.
    Loads the single <script> block of pf-generator.html into a Node vm
    (no DOM, no localStorage — the pure logic only) and checks schema
    validation, flexible import, partial merge, formula builders, and
@@ -37,7 +37,7 @@ console.log("PF Generator v" + PF.VERSION + " — tests");
 
 /* --- 1. Schema + demo --- */
 const schema = JSON.parse(fs.readFileSync(path.join(ROOT, "schema", "pf.schema.json"), "utf-8"));
-check("schema is valid JSON with planMetadata + factorSets", Object.keys(schema.properties).length === 2);
+check("schema is valid JSON with planMetadata + factorSets + additionalConversions", Object.keys(schema.properties).length === 3 && schema.properties.additionalConversions && schema.properties.additionalConversions.items.$ref === "#/properties/factorSets/items");
 const demo = PF.DEMO_PF_JSON;
 check("demo has 5 factor sets", demo.factorSets.length === 5);
 const demoErrs = PF.validatePfJson(demo);
@@ -62,6 +62,10 @@ check("demo ERF table values are the linear-rule values",
 check("demo present sets have ruleText (the plan's own words)",
   demo.factorSets.filter((s) => s.status === "present").every((s) => typeof s.ruleText === "string" && s.ruleText.length > 0));
 check("demo BFCF sexes are M/F from the plan", demo.factorSets[2].partSex === "M" && demo.factorSets[2].benSex === "F");
+check("demo has 1 additional conversion (SLA->JS100, user-added)",
+  Array.isArray(demo.additionalConversions) && demo.additionalConversions.length === 1 &&
+  demo.additionalConversions[0].id === "BFCF-2020-JS100" && demo.additionalConversions[0].toForm === "JS100" &&
+  demo.additionalConversions[0].appliesInPbgcAdmin === false);
 
 /* --- 1b. .xlsx filename: <case>PF.xlsx --- */
 check("xlsx filename is <case>PF.xlsx", PF.pfXlsxFileName("98765400") === "98765400PF.xlsx");
@@ -197,6 +201,7 @@ check("xlsx contains print titles", has("_xlnm.Print_Titles"));
 check("xlsx contains the missing set title nowhere (rejected sets are out)", !has("Disability"));
 const missingOnly = clone(demo);
 missingOnly.factorSets = missingOnly.factorSets.filter((s) => s.status === "missing");
+missingOnly.additionalConversions = [];
 let threw = false;
 try { PF.pfBuildXlsxBytes(missingOnly); } catch (e) { threw = true; }
 check("xlsx build refuses data with no present sets", threw);
@@ -278,8 +283,9 @@ const statsOut = [];
 PF.pfBuildXlsxBytes(approved, statsOut);
 const statById = {};
 statsOut.forEach((st) => { statById[st.id] = st; });
-check("build stats report table vs formula cells per set, plus the excluded set",
-  statsOut.length === 4 && statById["ERF-2020"].tableCells === 3 && statById["ERF-2020"].formulaCells === 117 && statById["LRF-2020"].tableCells === 0 &&
+check("build stats report table vs formula cells per set, plus the excluded set and the user-added set",
+  statsOut.length === 5 && statById["ERF-2020"].tableCells === 3 && statById["ERF-2020"].formulaCells === 117 && statById["LRF-2020"].tableCells === 0 &&
+  statById["BFCF-2020-JS100"].formulaCells === 36 &&
   statById["BFCF-2020-JS75"].excluded === true && statById["BFCF-2020-JS75"].reason.indexOf("JS75") >= 0, JSON.stringify(statsOut));
 
 /* --- 8c. v0.2.2: PBGC honors only normal single form to normal married form --- */
@@ -302,9 +308,10 @@ check("PBGC honors cannot be judged without a normal married form",
 check("PBGC rule does not touch ERF/LRF sets",
   PF.pfPbgcHonors(demo.factorSets[0], "JS50").honored === true);
 const split = PF.pfIncludedSets(approved);
-check("included sets are the 3 honored present sets, excluded is the JS75 set",
-  split.included.length === 3 && split.excluded.length === 1 && split.excluded[0].set.id === "BFCF-2020-JS75",
-  JSON.stringify({ inc: split.included.map((s) => s.id), exc: split.excluded.map((x) => x.set.id) }));
+check("included sets are the 3 honored present sets plus the user-added JS100 set; excluded is the JS75 set",
+  split.included.length === 4 && split.excluded.length === 1 && split.excluded[0].set.id === "BFCF-2020-JS75" &&
+  split.userAdded.length === 1 && split.userAdded[0].set.id === "BFCF-2020-JS100" && split.userAdded[0].honored === false,
+  JSON.stringify({ inc: split.included.map((s) => s.id), exc: split.excluded.map((x) => x.set.id), add: split.userAdded.map((x) => x.set.id) }));
 const noNmf = clone(demo); noNmf.planMetadata.normalMarriedForm = null;
 check("validator rejects a BFCF set with no normal married form given",
   PF.validatePfJson(noNmf).errors.some((e) => e.indexOf("normalMarriedForm") >= 0), PF.validatePfJson(noNmf).errors.join("; "));
@@ -326,11 +333,53 @@ check("built workbook has no JS75 tab", (() => {
   const b = Buffer.from(PF.pfBuildXlsxBytes(approved));
   return b.indexOf(Buffer.from("JS75", "utf8")) < 0;
 })());
+check("built workbook has the user-added JS100 tab", (() => {
+  const b = Buffer.from(PF.pfBuildXlsxBytes(approved));
+  return b.indexOf(Buffer.from("BFCF-2020 SLA->JS100", "utf8")) >= 0;
+})());
+check("user-added JS100 formula derives survivor percent 1 from the to-form", (() => {
+  const b = Buffer.from(PF.pfBuildXlsxBytes(approved)).toString("utf8");
+  return b.indexOf('BFCFAEQ(&quot;SLA&quot;,0,36,0,&quot;JSC&quot;,1,0,0,') >= 0;
+})());
 const onlyOut = clone(demo);
 onlyOut.factorSets = onlyOut.factorSets.filter((s) => s.id === "BFCF-2020-JS75");
+onlyOut.additionalConversions = [];
 let threwOut = false;
 try { PF.pfBuildXlsxBytes(onlyOut); } catch (e) { threwOut = /PBGC rule/.test(e.message); }
 check("xlsx build refuses data whose only set is excluded by the PBGC rule", threwOut);
+
+/* --- 8d. v0.2.3: Additional conversions (user-added, any pair) --- */
+const man = demo.additionalConversions[0];
+check("user-added set is a BFCF set with a form pair",
+  man.type === "BFCF" && man.fromForm === "SLA" && man.toForm === "JS100");
+check("user-added set is included even though PBGC does not honor it",
+  PF.pfIncludedSets(approved).userAdded.length === 1 &&
+  PF.pfIncludedSets(approved).included.some((s) => s.id === "BFCF-2020-JS100"));
+const wrongType = clone(demo); wrongType.additionalConversions.push(Object.assign(clone(man), { id: "ERF-ADD-2020", type: "ERF" }));
+check("validator rejects a non-BFCF set in additionalConversions",
+  PF.validatePfJson(wrongType).errors.some((e) => e.indexOf("must be BFCF") >= 0), PF.validatePfJson(wrongType).errors.join("; "));
+const dupId = clone(demo); dupId.additionalConversions.push(clone(demo.factorSets[2]));
+check("validator rejects a manual set id that duplicates a factor set id",
+  PF.validatePfJson(dupId).errors.some((e) => e.indexOf("duplicate factor set id") >= 0), PF.validatePfJson(dupId).errors.join("; "));
+const noBen = clone(demo); noBen.additionalConversions[0].benSex = null;
+check("validator rejects a manual set with no benSex (same checks as scraped sets)",
+  PF.validatePfJson(noBen).errors.some((e) => e.indexOf("benSex") >= 0), PF.validatePfJson(noBen).errors.join("; "));
+const noNmfMan = clone(demo); noNmfMan.planMetadata.normalMarriedForm = null;
+check("validator rejects a manual BFCF set with no normal married form given",
+  PF.validatePfJson(noNmfMan).errors.some((e) => e.indexOf("normalMarriedForm") >= 0));
+const notArr = clone(demo); notArr.additionalConversions = "JS100";
+check("validator rejects additionalConversions that is not an array",
+  PF.validatePfJson(notArr).errors.some((e) => e.indexOf("additionalConversions") >= 0));
+check("validator accepts JSON with no additionalConversions key at all",
+  PF.validatePfJson((() => { const d = clone(demo); delete d.additionalConversions; return d; })()).errors.length === 0);
+const flexMan = PF.importFlexPfJson({ planMetadata: clone(demo.planMetadata), factorSets: [clone(demo.factorSets[0])], additionalConversions: [clone(man)] }, {});
+check("flex import maps an additionalConversions key",
+  flexMan.kind === "pf" && flexMan.data.additionalConversions.length === 1, flexMan.kind);
+const manHonored = clone(man); manHonored.id = "BFCF-2020-JS50-ADD"; manHonored.toForm = "JS50"; manHonored.appliesInPbgcAdmin = true; manHonored.survivorPct = 0.5;
+const honDemo = clone(demo); honDemo.additionalConversions = [manHonored];
+check("a user-added honored pair is flagged honored, not excluded",
+  PF.pfIncludedSets(honDemo).userAdded[0].honored === true &&
+  PF.pfIncludedSets(honDemo).excluded.length === 1);
 
 /* --- 9. UI import/generate path (minimal DOM stub) --- */
 {
@@ -376,18 +425,20 @@ check("xlsx build refuses data whose only set is excluded by the PBGC rule", thr
     "ERF-2020": "approved",
     "LRF-2020": "approved",
     "BFCF-2020": "approved",
+    "BFCF-2020-JS100": "approved",
     "ERF-DIS-2020": "rejected",
   };
   const gen = sb2.pfGenerate();
   check("UI generate unlocks with the excluded set undecided", gen.ok && st().generated !== null, gen.why || "");
   check("UI generate produces the .xlsx once all decidable sets are decided", gen.ok && st().generated && st().generated.name === "98765400PF.xlsx" && st().step === 4, "name=" + (st().generated && st().generated.name));
-  check("UI generate wrote 3 tabs", st().generated && st().generated.tabs === 3);
+  check("UI generate wrote 4 tabs (3 honored + 1 user-added)", st().generated && st().generated.tabs === 4);
   const gbuf = Buffer.from(st().generated.bytes);
   check("generated bytes contain the BFCF formula", gbuf.indexOf(Buffer.from("BFCFAEQ(", "utf8")) >= 0);
   check("generated bytes omit the rejected set", gbuf.indexOf(Buffer.from("Disability", "utf8")) < 0);
   check("audit log has entries", st().audit.length >= 3);
   check("audit log records per-set table vs formula counts", st().audit.some((a) => a.action === "generate set" && a.detail.indexOf("ERF-2020") === 0 && a.detail.indexOf("table values: 3") >= 0), st().audit.map((a) => a.action + " " + a.detail).join(" | "));
   check("audit log names the excluded set and its reason", st().audit.some((a) => a.action === "excluded (PBGC does not honor)" && a.detail.indexOf("BFCF-2020-JS75") === 0 && a.detail.indexOf("not the normal married form JS50") >= 0), st().audit.map((a) => a.action + " " + a.detail).join(" | "));
+  check("audit log records the user-added conversion and that it is included by choice", st().audit.some((a) => a.action === "additional conversion (user-added)" && a.detail.indexOf("BFCF-2020-JS100") === 0 && a.detail.indexOf("included by your choice") >= 0), st().audit.map((a) => a.action + " " + a.detail).join(" | "));
   check("audit log records the normal married form", st().audit.some((a) => a.action === "normal married form" && a.detail === "JS50"));
   check("generated bytes contain no JS75 tab", gbuf.indexOf(Buffer.from("JS75", "utf8")) < 0);
 }

@@ -1,13 +1,27 @@
 # PF Generator — Plan Factors
 
-![Tests: 206 passing](https://img.shields.io/badge/tests-206%20passing-brightgreen)
-![Unit tests: 161 passing](https://img.shields.io/badge/unit%20tests-161%20passing-brightgreen)
-![Browser tests: 45 passing](https://img.shields.io/badge/browser%20tests-45%20passing-brightgreen)
-![XLSX checks: 66 passing](https://img.shields.io/badge/xlsx%20checks-66%20passing-brightgreen)
+![Tests: 234 passing](https://img.shields.io/badge/tests-234%20passing-brightgreen)
+![Unit tests: 175 passing](https://img.shields.io/badge/unit%20tests-175%20passing-brightgreen)
+![Browser tests: 59 passing](https://img.shields.io/badge/browser%20tests-59%20passing-brightgreen)
+![XLSX checks: 71 passing](https://img.shields.io/badge/xlsx%20checks-71%20passing-brightgreen)
 ![Network calls: 0](https://img.shields.io/badge/network%20calls-0-brightgreen)
-![Version: v0.2.2](https://img.shields.io/badge/version-v0.2.2-blue)
+![Version: v0.2.3](https://img.shields.io/badge/version-v0.2.3-blue)
 
-Badges show grades measured on v0.2.2. Update badges when tests change.
+Badges show grades measured on v0.2.3. Update badges when tests change.
+
+## v0.2.3 — Additional conversions
+
+The user can add any from-form to to-form conversion by hand, in
+Review, under "Additional conversions" — a pair the scraper missed,
+or one he knows belongs in the file. The form builds a BFCF set
+with the same shape as a scraped set and the same validator checks
+it. Copying BCV arguments from an existing BFCF set fills interest,
+mortality, method, sexes, and ranges, but never the survivor
+percent: it derives from the new to-form. A user-added pair gets a
+tab even when PBGC does not honor it — the review says "included
+by your choice" with the reason, and the audit log records it.
+Adding approves the pair at once. Demo: the JS100 pair is
+user-added; the workbook has 4 tabs.
 
 ## v0.2.2 — PBGC honors only normal single form to normal married form
 
@@ -61,7 +75,7 @@ Open `pf-generator.html` in a browser, straight from disk (`file://`). No server
 
 1. **Download prompt** — scraper prompt for the LLM.
 2. **Upload JSON** — JSON from the LLM, or flat JSON. Partial JSON fills only missing sets.
-3. **Review** — each factor set: Approve / Edit / Reject. Read the plan's words (`ruleText`) and the source (table values or formulas). Unmapped keys listed, never dropped. Conflicts become ambiguous, never merged.
+3. **Review** — each factor set: Approve / Edit / Reject. Read the plan's words (`ruleText`) and the source (table values or formulas). Unmapped keys listed, never dropped. Conflicts become ambiguous, never merged. Additional conversions: add any from-form to to-form pair the scraper missed; it gets its own tab, even when PBGC does not honor it (the review says so).
 4. **Generate** — locked until header (plan name, case number, DOPT) is filled and each set has a decision. Approved sets must be present.
 5. **Download** — filled `<case>PF.xlsx` + audit log.
 
@@ -85,8 +99,8 @@ Demo case: synthetic. Riverbend Manufacturing Pension Plan, Plan No. 001, case 9
 | `scripts/build_single_file.py` | Injects the prompt into the HTML; runs safety checks. |
 | `scripts/gen_demo_xlsx.cjs` | Generates the demo .xlsx through the HTML's own code. |
 | `scripts/verify_xlsx.py` | Checks the generated .xlsx with openpyxl + LibreOffice. |
-| `tests/run.cjs` | Unit tests (161). |
-| `tests/browser.cjs` | Browser tests (45, jsdom). |
+| `tests/run.cjs` | Unit tests (175). |
+| `tests/browser.cjs` | Browser tests (59, jsdom). |
 | `package.json` | Test command (`npm test`), jsdom dev dependency. |
 | `OPEN_ITEMS.md` | Gap list. Read it before next steps. |
 
@@ -114,16 +128,16 @@ Every tab: print area = full table, print titles rows 1:10, landscape, fit 1 wid
 ## Tests
 
 ```sh
-npm test                              # 161 unit + 45 browser checks
-python3 scripts/verify_xlsx.py        # demo .xlsx checks (66)
+npm test                              # 175 unit + 59 browser checks
+python3 scripts/verify_xlsx.py        # demo .xlsx checks (71)
 python3 scripts/build_single_file.py  # re-inject prompt, run safety checks
 ```
 
-## Verified — v0.2.2
+## Verified — v0.2.3
 
-- `npm test`: **206 passed, 0 failed** (161 unit + 45 browser).
+- `npm test`: **234 passed, 0 failed** (175 unit + 59 browser).
 - `node --check` on the HTML script: passes.
-- `python3 scripts/verify_xlsx.py`: all 66 checks pass. 3 tabs (ERF-2020, LRF-2020, BFCF-2020 SLA->JS50). No JS75 tab: the SLA->JS75 pair is left out by the PBGC rule. The audit log names the excluded set and its reason, and records the normal married form JS50. Headers filled. Formulas present. Print setup, merged headers, freeze panes, and column widths present on every tab. BFCF headers in column B, as in the reference file. Demo ERF tab: months fill down each column (C11=25, E11=49, G11=73, I11=97); months 1, 60, 120 are table values (0.9944 at B11, 0.6667 at F22, 0.3333 at J34); the rest are formulas. Header fonts match the reference file (A1=14 bold, A5=12 bold), thin borders on row 10 and table cells, row heights match. BFCF formula carries the plan sexes "M","F". LibreOffice Calc opens the file and shows the month-1 factor (0.9944).
+- `python3 scripts/verify_xlsx.py`: all 71 checks pass. 4 tabs (ERF-2020, LRF-2020, BFCF-2020 SLA->JS50, BFCF-2020 SLA->JS100). No JS75 tab: the SLA->JS75 pair is left out by the PBGC rule. The user-added JS100 tab carries the BFCFAEQ formula with survivor percent 1, derived from the to-form. The audit log names the excluded set and its reason, records the user-added conversion as included by choice, and records the normal married form JS50. Headers filled. Formulas present. Print setup, merged headers, freeze panes, and column widths present on every tab. BFCF headers in column B, as in the reference file. Demo ERF tab: months fill down each column (C11=25, E11=49, G11=73, I11=97); months 1, 60, 120 are table values (0.9944 at B11, 0.6667 at F22, 0.3333 at J34); the rest are formulas. Header fonts match the reference file (A1=14 bold, A5=12 bold), thin borders on row 10 and table cells, row heights match. BFCF formula carries the plan sexes "M","F". LibreOffice Calc opens the file and shows the month-1 factor (0.9944).
 - Grep: 0 `fetch(`, 0 `<script src`, 0 `<link>`, 0 `import(`, no external URLs. Only `http://` strings: OOXML namespace URIs in the .xlsx builder — identifiers, not fetches.
 - Browser test: page loads in jsdom on an opaque origin (file: URL). Demo button loads the demo case, moves to Review. Generate stays locked until all sets are decided; approving a missing set stays locked.
 - Theme toggle: flips data-theme, dark page #000, header stays brand blue, choice persists.

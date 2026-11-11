@@ -18,13 +18,14 @@ vm.createContext(sandbox);
 vm.runInContext(m[1], sandbox, { filename: "pf-generator.html" });
 const PF = sandbox.PF;
 // Demo: approve the 3 included present sets, reject the missing
-// disability set. The JS75 set needs no decision: the PBGC rule
-// leaves it out.
+// disability set, approve the user-added JS100 conversion. The JS75
+// set needs no decision: the PBGC rule leaves it out.
 sandbox.pfLoadDemo();
 PF.state.decisions = {
   "ERF-2020": "approved",
   "LRF-2020": "approved",
   "BFCF-2020": "approved",
+  "BFCF-2020-JS100": "approved",
   "ERF-DIS-2020": "rejected",
 };
 const res = sandbox.pfGenerate();

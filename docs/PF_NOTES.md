@@ -1,4 +1,4 @@
-# PF Notes — PF Generator v0.2.2
+# PF Notes — PF Generator v0.2.3
 
 ## What PF is
 
@@ -7,7 +7,7 @@ the plan uses to work out benefits.
 
 - **ERF** — early retirement factors. One tab per era. Disability ERF too, if any.
 - **LRF** — late retirement factors. One tab per era.
-- **BFCF** — benefit form conversion factors. One tab per era and form pair (SLA to JS50, 3CC to JS50). Only pairs PBGC honors get a tab: from the normal single form to the normal married form. Any other pair is left out of the workbook (see "PBGC honors" below).
+- **BFCF** — benefit form conversion factors. One tab per era and form pair (SLA to JS50, 3CC to JS50). Only pairs PBGC honors get a tab: from the normal single form to the normal married form. Any other pair is left out of the workbook (see "PBGC honors" below) — unless the user adds it by hand (see "Additional conversions" below).
 - **OTHER** — any other factor for benefits. Pre-retirement death, optional forms past JS50, anything else.
 
 PF is not R1 §§17–18 asset allocation / 4022(c). That material belongs to R1, not PF.
@@ -80,6 +80,33 @@ log records it.
 - The audit log records, per excluded set: id, fromForm, toForm,
   normalForm, normalMarriedForm, and the reason. It also records
   the normal married form used.
+
+## Additional conversions (v0.2.3)
+
+A conversion the scraper missed — or one the user knows belongs in
+the file — can be added by hand in Review, under "Additional
+conversions". The user picks any from-form and to-form and fills in
+the BCV arguments (interest, mortality tables, calc method,
+deferral mortality, months certain, sexes, survivor percent,
+temporary months, age ranges, the plan's words). The form can copy
+the BCV arguments from an existing BFCF set, but never the survivor
+percent: it derives from the new to-form (JS100 -> 1).
+
+- The added set lives in `additionalConversions` in the JSON, same
+  shape as a factorSets entry, type always BFCF. The same validator
+  checks it. A bad argument fails the add and the form says what is
+  missing; nothing half-filled is written.
+- A user-added pair is included in the workbook by the user's
+  choice, even when PBGC does not honor it. The PBGC rule never
+  leaves it out. The review shows "PBGC honors: No — included by
+  your choice" with the reason, and the audit log records it as
+  "additional conversion (user-added)" with the honored status.
+- Adding approves the pair at once: the user's own entry is the
+  approval. An imported user-added pair (from JSON) still needs an
+  Approve in review, like any scraped set. A user-added pair can be
+  removed in review; the audit log records the removal.
+- A user-added conversion is formula-only: it cannot carry a
+  printed factor table through the form (see OPEN_ITEMS.md item 8).
 
 ## Layout parity (v0.1.1, v0.2.1)
 

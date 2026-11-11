@@ -37,6 +37,17 @@ names it and says why.
   forms; if your value disagrees with the rule, the JSON is
   refused. Do not resolve the disagreement yourself.
 
+## If a conversion is missing from the file
+
+You do not need to invent a conversion the documents do not
+name. If a form pair is in the documents but you cannot work
+out its factors, report the set as `missing` or `ambiguous`
+and say why. The app has an "Additional conversions" section
+in Review: the user types any from-form to to-form pair and
+its BCV arguments by hand, and it gets its own tab. That is
+the user's job, not yours. Never fill a missing pair from
+another plan or from a guess.
+
 ## Translate the rule from words to a formula
 
 For each set, do two things, in order.

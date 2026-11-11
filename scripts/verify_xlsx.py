@@ -37,7 +37,7 @@ def main():
 
     import openpyxl
     wb = openpyxl.load_workbook(str(OUT))
-    check("workbook has 3 tabs", wb.sheetnames == ["ERF-2020", "LRF-2020", "BFCF-2020 SLA->JS50"],
+    check("workbook has 4 tabs", wb.sheetnames == ["ERF-2020", "LRF-2020", "BFCF-2020 SLA->JS50", "BFCF-2020 SLA->JS100"],
           str(wb.sheetnames))
     check("workbook has no JS75 tab (PBGC does not honor it)",
           all("JS75" not in name for name in wb.sheetnames), str(wb.sheetnames))
@@ -50,6 +50,9 @@ def main():
         check("audit log names the excluded JS75 set and its reason",
               "excluded (PBGC does not honor)" in audit and "BFCF-2020-JS75" in audit and
               "to-form JS75 is not the normal married form JS50" in audit, audit)
+        check("audit log records the user-added JS100 conversion and that it is included by choice",
+              "additional conversion (user-added)" in audit and "BFCF-2020-JS100" in audit and
+              "included by your choice" in audit, audit)
         check("audit log records the normal married form",
               "normal married form — JS50" in audit, audit)
 
@@ -140,6 +143,14 @@ def main():
     check("BFCF print area is full grid", bf.print_area == "'BFCF-2020 SLA->JS50'!$A$1:$H$16", bf.print_area)
     check("BFCF print titles rows 1:10", str(bf.print_title_rows) == "$1:$10")
     check("BFCF landscape + fit", bf.page_setup.orientation == "landscape" and bf.page_setup.fitToWidth == 1)
+
+    bf100 = wb["BFCF-2020 SLA->JS100"]
+    check("JS100 tab: title in B5", "JS100" in (bf100["B5"].value or ""), repr(bf100["B5"].value))
+    check("JS100 tab: C11 formula is BFCFAEQ with survivor percent 1",
+          bf100["C11"].value == '=ROUND(BFCFAEQ("SLA",0,36,0,"JSC",1,0,0,C10,B11,"M","F",0.08,"UP84M2","UP84M2","MP","N"),4)',
+          repr(bf100["C11"].value))
+    check("JS100 tab: print area is full grid", bf100.print_area == "'BFCF-2020 SLA->JS100'!$A$1:$H$16", bf100.print_area)
+    check("JS100 tab: freeze panes at C11", bf100.freeze_panes == "C11", str(bf100.freeze_panes))
 
     # Layout parity with the reference file (template layout, synthetic data).
     check("ERF merges are header rows 1-8",

@@ -1,6 +1,23 @@
-# OPEN ITEMS — PF Generator v0.2.2
+# OPEN ITEMS — PF Generator v0.2.3
 
 The canonical gap list. Read this before proposing next steps.
+
+## Fixed in v0.2.3 (Additional conversions)
+
+The user can add any from-form to to-form pair by hand in Review,
+under "Additional conversions". The form builds a BFCF set with the
+same shape as a scraped set; the same validator checks it (same
+BCV arguments, same age ranges, same rule). Adding it approves it:
+the user's own entry is the approval. A user-added pair gets a tab
+even when PBGC does not honor it — the PBGC rule never leaves it
+out. The review says "PBGC honors: No — included by your choice"
+with the reason, and the audit log records it as "additional
+conversion (user-added)". Copying BCV arguments from an existing
+BFCF set fills interest, mortality, method, sexes, and ranges, but
+never the survivor percent: it derives from the new to-form (JS100
+-> 1). Demo: the JS100 pair is user-added; the workbook has 4 tabs.
+See the "Additional conversions" part of the "PBGC honors" section
+in `docs/PF_NOTES.md`.
 
 ## Fixed in v0.2.2 (PBGC honors rule)
 
@@ -108,3 +125,12 @@ missing sets). In-place editing of rule values is a later step.
 The app sets print area, titles, fit, and margins, but it does not
 show a print preview. The user checks print in Excel. A preview
 would need a render of the sheet, which the single file does not do.
+
+## 8. Additional conversions cannot carry a printed factor table yet
+
+A user-added conversion is formula-only (`table` is null). If the
+plan documents print a factor table for that pair, the user cannot
+attach it through the form today — the values must be in the JSON
+as a scraped set, or the table stays formulas. The form is also
+BFCF-only by design: ERF, LRF, and OTHER sets come from the
+scraper, not from the form.

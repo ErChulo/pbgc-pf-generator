@@ -380,6 +380,13 @@
       "minItems": 1,
       "type": "array"
     },
+    "additionalConversions": {
+      "description": "BFCF sets the user adds by hand in the app (a form pair the scraper missed). Same shape as a factorSets entry; type must be BFCF. Included in the workbook by the user's choice, even when PBGC does not honor the pair; the review says so and the audit log records it.",
+      "items": {
+        "$ref": "#/properties/factorSets/items"
+      },
+      "type": "array"
+    },
     "planMetadata": {
       "properties": {
         "caseNumber": {
@@ -422,7 +429,7 @@
     "planMetadata",
     "factorSets"
   ],
-  "title": "PF Generator JSON (draft v0.2.2)",
+  "title": "PF Generator JSON (draft v0.2.3)",
   "type": "object",
   "additionalProperties": false
 }
