@@ -6,6 +6,13 @@
     "factorSets": {
       "items": {
         "properties": {
+          "appliesInPbgcAdmin": {
+            "description": "BFCF only: the LLM's read of whether PBGC honors this conversion. The app derives the decision itself from fromForm, normalForm, toForm and planMetadata.normalMarriedForm, and fails validation if this value disagrees.",
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
           "basis": {
             "description": "Rule in words, e.g. reduction = 1/15 per year early.",
             "type": "string"
@@ -385,6 +392,13 @@
           "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
           "type": "string"
         },
+        "normalMarriedForm": {
+          "description": "The plan's normal married form, e.g. JS50, as the plan documents define it. Never assumed. Needed to judge which BFCF sets PBGC honors.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "planName": {
           "minLength": 1,
           "type": "string"
@@ -408,7 +422,7 @@
     "planMetadata",
     "factorSets"
   ],
-  "title": "PF Generator JSON (draft v0.2.1)",
+  "title": "PF Generator JSON (draft v0.2.2)",
   "type": "object",
   "additionalProperties": false
 }

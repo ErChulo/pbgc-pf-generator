@@ -1,4 +1,4 @@
-# PF Notes — PF Generator v0.2.1
+# PF Notes — PF Generator v0.2.2
 
 ## What PF is
 
@@ -7,7 +7,7 @@ the plan uses to work out benefits.
 
 - **ERF** — early retirement factors. One tab per era. Disability ERF too, if any.
 - **LRF** — late retirement factors. One tab per era.
-- **BFCF** — benefit form conversion factors. One tab per era and form pair (SLA to JS50, 3CC to JS50).
+- **BFCF** — benefit form conversion factors. One tab per era and form pair (SLA to JS50, 3CC to JS50). Only pairs PBGC honors get a tab: from the normal single form to the normal married form. Any other pair is left out of the workbook (see "PBGC honors" below).
 - **OTHER** — any other factor for benefits. Pre-retirement death, optional forms past JS50, anything else.
 
 PF is not R1 §§17–18 asset allocation / 4022(c). That material belongs to R1, not PF.
@@ -50,6 +50,36 @@ Header rows 1–9, row 10 headers. Follows the reference file.
 - Age ranges come from the data, not from the app. The demo uses part 55–60, ben 0–5. A full grid is 26 x 101.
 - Column widths: A = 4.0, B onward = 8.5.
 - BFCF formulas use plain refs, as in the reference file: `C11 =ROUND(BFCFAEQ(...,C10,B11,...),4)`.
+
+## PBGC honors only normal single form to normal married form
+
+Source: user, 2026-11-11. The prior plan administrator may have
+used benefit conversions that PBGC will not apply once the plan is
+in PBGC administration. PBGC honors only conversions between the
+normal single form and the normal married form. Everything else is
+left out of the PF workbook. It is not a tab. It is not dropped
+silently: the review screen names it and says why, and the audit
+log records it.
+
+- The plan's normal married form lives in
+  `planMetadata.normalMarriedForm` (for example `JS50`), copied
+  from the plan documents. Never assumed. If the documents do not
+  name one and any BFCF set is present, validation fails and names
+  the missing field. The app cannot judge without it, and it must
+  not guess `JS50`.
+- The app derives the decision itself, per BFCF set: honored only
+  when `fromForm` equals the set's `normalForm` (the normal single
+  form for that era) AND `toForm` equals `normalMarriedForm`.
+  Otherwise the set is excluded: no tab, no decision needed in
+  review, and the generate gate is not blocked by it. ERF, LRF,
+  and OTHER sets are not touched by this rule.
+- The LLM's `appliesInPbgcAdmin` is its read of the same rule,
+  with a citation. The app checks it against the derived decision
+  and fails validation on any disagreement. A mismatch is never
+  silently resolved.
+- The audit log records, per excluded set: id, fromForm, toForm,
+  normalForm, normalMarriedForm, and the reason. It also records
+  the normal married form used.
 
 ## Layout parity (v0.1.1, v0.2.1)
 

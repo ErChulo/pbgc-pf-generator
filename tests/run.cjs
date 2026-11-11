@@ -1,5 +1,5 @@
 "use strict";
-/* PF Generator v0.2.1 — test runner.
+/* PF Generator v0.2.2 — test runner.
    Loads the single <script> block of pf-generator.html into a Node vm
    (no DOM, no localStorage — the pure logic only) and checks schema
    validation, flexible import, partial merge, formula builders, and
@@ -39,9 +39,14 @@ console.log("PF Generator v" + PF.VERSION + " — tests");
 const schema = JSON.parse(fs.readFileSync(path.join(ROOT, "schema", "pf.schema.json"), "utf-8"));
 check("schema is valid JSON with planMetadata + factorSets", Object.keys(schema.properties).length === 2);
 const demo = PF.DEMO_PF_JSON;
-check("demo has 4 factor sets", demo.factorSets.length === 4);
+check("demo has 5 factor sets", demo.factorSets.length === 5);
 const demoErrs = PF.validatePfJson(demo);
 check("demo validates", demoErrs.errors.length === 0, demoErrs.errors.join("; "));
+check("demo normal married form is JS50", demo.planMetadata.normalMarriedForm === "JS50");
+check("demo has a BFCF set PBGC does not honor (SLA->JS75)",
+  demo.factorSets.some((s) => s.id === "BFCF-2020-JS75" && s.type === "BFCF" && s.toForm === "JS75" && s.appliesInPbgcAdmin === false));
+check("demo honored BFCF set says PBGC honors it",
+  demo.factorSets.find((s) => s.id === "BFCF-2020").appliesInPbgcAdmin === true);
 check("demo plan is the synthetic Riverbend plan", demo.planMetadata.planName === "Riverbend Manufacturing Pension Plan");
 check("demo case number is text 98765400", demo.planMetadata.caseNumber === "98765400");
 check("demo DOPT is 2025-06-30", demo.planMetadata.dopt === "2025-06-30");
@@ -215,7 +220,7 @@ check("flex import detects a partial payload", PF.importFlexPfJson({ factorSets:
 
 /* --- 7. Partial merge --- */
 const cur = clone(demo);
-const dis = clone(demo.factorSets[3]);
+const dis = clone(demo.factorSets.find((s) => s.id === "ERF-DIS-2020"));
 dis.status = "present"; dis.basis = "ERFAEQ with interest=8%; mortality=UP84M2/UP84M2";
 dis.interest = 0.08; dis.mortality1 = "UP84M2"; dis.mortality2 = "UP84M2";
 dis.calcMethod = "MP"; dis.deferralMortality = "Y"; dis.monthsCertain = 36;
@@ -271,7 +276,61 @@ check("ERF sheet writes table month 120 as a value", erfSheet2.xml.indexOf('<c r
 check("ERF sheet still writes formulas off the table (month 2 at A12)", erfSheet2.xml.indexOf("ROUND(1-(A12/180),4)") >= 0);
 const statsOut = [];
 PF.pfBuildXlsxBytes(approved, statsOut);
-check("build stats report table vs formula cells per set", statsOut.length === 3 && statsOut[0].tableCells === 3 && statsOut[0].formulaCells === 117 && statsOut[1].tableCells === 0, JSON.stringify(statsOut));
+const statById = {};
+statsOut.forEach((st) => { statById[st.id] = st; });
+check("build stats report table vs formula cells per set, plus the excluded set",
+  statsOut.length === 4 && statById["ERF-2020"].tableCells === 3 && statById["ERF-2020"].formulaCells === 117 && statById["LRF-2020"].tableCells === 0 &&
+  statById["BFCF-2020-JS75"].excluded === true && statById["BFCF-2020-JS75"].reason.indexOf("JS75") >= 0, JSON.stringify(statsOut));
+
+/* --- 8c. v0.2.2: PBGC honors only normal single form to normal married form --- */
+const bfcfOk = demo.factorSets.find((s) => s.id === "BFCF-2020");
+const bfcfOut = demo.factorSets.find((s) => s.id === "BFCF-2020-JS75");
+check("PBGC honors SLA->JS50 (normal single to normal married)",
+  PF.pfPbgcHonors(bfcfOk, "JS50").honored === true);
+check("PBGC does not honor SLA->JS75, reason names both forms",
+  PF.pfPbgcHonors(bfcfOut, "JS50").honored === false &&
+  PF.pfPbgcHonors(bfcfOut, "JS50").reason.indexOf("JS75") >= 0 &&
+  PF.pfPbgcHonors(bfcfOut, "JS50").reason.indexOf("JS50") >= 0,
+  PF.pfPbgcHonors(bfcfOut, "JS50").reason);
+const wrongFrom = clone(bfcfOk); wrongFrom.fromForm = "3CC";
+check("PBGC does not honor 3CC->JS50 when the normal single form is SLA",
+  PF.pfPbgcHonors(wrongFrom, "JS50").honored === false &&
+  PF.pfPbgcHonors(wrongFrom, "JS50").reason.indexOf("normal single form SLA") >= 0,
+  PF.pfPbgcHonors(wrongFrom, "JS50").reason);
+check("PBGC honors cannot be judged without a normal married form",
+  PF.pfPbgcHonors(bfcfOk, null).honored === null);
+check("PBGC rule does not touch ERF/LRF sets",
+  PF.pfPbgcHonors(demo.factorSets[0], "JS50").honored === true);
+const split = PF.pfIncludedSets(approved);
+check("included sets are the 3 honored present sets, excluded is the JS75 set",
+  split.included.length === 3 && split.excluded.length === 1 && split.excluded[0].set.id === "BFCF-2020-JS75",
+  JSON.stringify({ inc: split.included.map((s) => s.id), exc: split.excluded.map((x) => x.set.id) }));
+const noNmf = clone(demo); noNmf.planMetadata.normalMarriedForm = null;
+check("validator rejects a BFCF set with no normal married form given",
+  PF.validatePfJson(noNmf).errors.some((e) => e.indexOf("normalMarriedForm") >= 0), PF.validatePfJson(noNmf).errors.join("; "));
+const noFrom = clone(demo); noFrom.factorSets[2].fromForm = null;
+check("validator rejects a BFCF set with no fromForm",
+  PF.validatePfJson(noFrom).errors.some((e) => e.indexOf("fromForm") >= 0));
+const noNf = clone(demo); noNf.factorSets[2].normalForm = "";
+check("validator rejects a BFCF set with no normalForm",
+  PF.validatePfJson(noNf).errors.some((e) => e.indexOf("normalForm") >= 0));
+const liar = clone(demo); liar.factorSets[3].appliesInPbgcAdmin = true;
+check("validator rejects an LLM appliesInPbgcAdmin that disagrees with the rule",
+  PF.validatePfJson(liar).errors.some((e) => e.indexOf("appliesInPbgcAdmin") >= 0), PF.validatePfJson(liar).errors.join("; "));
+const liar2 = clone(demo); liar2.factorSets[2].appliesInPbgcAdmin = false;
+check("validator rejects appliesInPbgcAdmin false on a honored set",
+  PF.validatePfJson(liar2).errors.some((e) => e.indexOf("appliesInPbgcAdmin") >= 0));
+check("validator accepts appliesInPbgcAdmin null (not stated)",
+  PF.validatePfJson((() => { const d = clone(demo); d.factorSets[2].appliesInPbgcAdmin = null; return d; })()).errors.length === 0);
+check("built workbook has no JS75 tab", (() => {
+  const b = Buffer.from(PF.pfBuildXlsxBytes(approved));
+  return b.indexOf(Buffer.from("JS75", "utf8")) < 0;
+})());
+const onlyOut = clone(demo);
+onlyOut.factorSets = onlyOut.factorSets.filter((s) => s.id === "BFCF-2020-JS75");
+let threwOut = false;
+try { PF.pfBuildXlsxBytes(onlyOut); } catch (e) { threwOut = /PBGC rule/.test(e.message); }
+check("xlsx build refuses data whose only set is excluded by the PBGC rule", threwOut);
 
 /* --- 9. UI import/generate path (minimal DOM stub) --- */
 {
@@ -303,25 +362,34 @@ check("build stats report table vs formula cells per set", statsOut.length === 3
 
   // Partial merge through the UI path.
   sb2.pfImportText(JSON.stringify(P2.DEMO_PF_JSON), "test file");
-  const part = { factorSets: [Object.assign(clone(P2.DEMO_PF_JSON.factorSets[3]), { status: "present", basis: "ERFAEQ with interest=8%; mortality=UP84M2/UP84M2", interest: 0.08, mortality1: "UP84M2", mortality2: "UP84M2", calcMethod: "MP", deferralMortality: "Y", monthsCertain: 36, partSex: "M", ruleText: "disability retirement factor by actuarial equivalence", rule: { kind: "bcv", function: "ERFAEQ" }, note: null })] };
+  const part = { factorSets: [Object.assign(clone(P2.DEMO_PF_JSON.factorSets.find((s) => s.id === "ERF-DIS-2020")), { status: "present", basis: "ERFAEQ with interest=8%; mortality=UP84M2/UP84M2", interest: 0.08, mortality1: "UP84M2", mortality2: "UP84M2", calcMethod: "MP", deferralMortality: "Y", monthsCertain: 36, partSex: "M", ruleText: "disability retirement factor by actuarial equivalence", rule: { kind: "bcv", function: "ERFAEQ" }, note: null })] };
   sb2.pfImportText(JSON.stringify(part), "partial file");
   check("UI partial import fills the missing set", st().importReport.kind === "partial" && st().importReport.filled === 1 && st().data.factorSets.find((s) => s.id === "ERF-DIS-2020").status === "present");
 
-  // Generate gate: locked while undecided, open once all decided.
+  // Generate gate: locked while undecided, open once all decidable sets are decided.
+  // The JS75 set is left undecided on purpose: the PBGC rule leaves
+  // it out, so it must not block generate.
   sb2.pfImportText(JSON.stringify(P2.DEMO_PF_JSON), "test file");
   sb2.pfGenerate();
   check("UI generate is locked while sets are undecided", st().generated === null);
-  st().data.factorSets.forEach((s) => {
-    st().decisions[s.id] = s.status === "missing" ? "rejected" : "approved";
-  });
+  st().decisions = {
+    "ERF-2020": "approved",
+    "LRF-2020": "approved",
+    "BFCF-2020": "approved",
+    "ERF-DIS-2020": "rejected",
+  };
   const gen = sb2.pfGenerate();
-  check("UI generate produces the .xlsx once all decided", gen.ok && st().generated && st().generated.name === "98765400PF.xlsx" && st().step === 4, "name=" + (st().generated && st().generated.name));
+  check("UI generate unlocks with the excluded set undecided", gen.ok && st().generated !== null, gen.why || "");
+  check("UI generate produces the .xlsx once all decidable sets are decided", gen.ok && st().generated && st().generated.name === "98765400PF.xlsx" && st().step === 4, "name=" + (st().generated && st().generated.name));
   check("UI generate wrote 3 tabs", st().generated && st().generated.tabs === 3);
   const gbuf = Buffer.from(st().generated.bytes);
   check("generated bytes contain the BFCF formula", gbuf.indexOf(Buffer.from("BFCFAEQ(", "utf8")) >= 0);
   check("generated bytes omit the rejected set", gbuf.indexOf(Buffer.from("Disability", "utf8")) < 0);
   check("audit log has entries", st().audit.length >= 3);
   check("audit log records per-set table vs formula counts", st().audit.some((a) => a.action === "generate set" && a.detail.indexOf("ERF-2020") === 0 && a.detail.indexOf("table values: 3") >= 0), st().audit.map((a) => a.action + " " + a.detail).join(" | "));
+  check("audit log names the excluded set and its reason", st().audit.some((a) => a.action === "excluded (PBGC does not honor)" && a.detail.indexOf("BFCF-2020-JS75") === 0 && a.detail.indexOf("not the normal married form JS50") >= 0), st().audit.map((a) => a.action + " " + a.detail).join(" | "));
+  check("audit log records the normal married form", st().audit.some((a) => a.action === "normal married form" && a.detail === "JS50"));
+  check("generated bytes contain no JS75 tab", gbuf.indexOf(Buffer.from("JS75", "utf8")) < 0);
 }
 
 console.log("\n" + pass + " passed, " + fail + " failed");

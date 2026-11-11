@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PF Generator v0.2.1 — Plan Factors</title>
+<title>PF Generator v0.2.2 — Plan Factors</title>
 <style>
-/* PBGC Design System v1.1.0 DRAFT (tokens/tokens.json, commit 84a7149d, 2026-11-08). NOT approved. Dark theme: toggle in header; page background #000 (user override of provisional night-0 #0B1B36); provisional, COLA approval pending. No logo in v0.2.1 (see OPEN_ITEMS.md). */
+/* PBGC Design System v1.1.0 DRAFT (tokens/tokens.json, commit 84a7149d, 2026-11-08). NOT approved. Dark theme: toggle in header; page background #000 (user override of provisional night-0 #0B1B36); provisional, COLA approval pending. No logo in v0.2.2 (see OPEN_ITEMS.md). */
 :root{
   --blue:#002D72; --red:#E4002B; --med-blue:#004B8D;
   --ink:#1A1A1A; --gray-1:#58585B; --gray-2:#D2D2D2; --gray-3:#E0E0E0; --gray-4:#F2F2F2;
@@ -121,7 +121,7 @@ footer{margin:2rem 0 1rem;border-top:1px solid var(--gray-2);padding-top:1rem}
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to main content</a>
-<header class="topbar"><div class="wrap topbar-row"><div class="topbar-title"><h1>PF Generator</h1><p class="tag">Plan Factors · v0.2.1</p></div><button type="button" id="theme-toggle" class="theme-toggle" data-action="theme" aria-label="Switch to dark theme" aria-pressed="false"><span class="theme-toggle-icon" aria-hidden="true">☾</span> <span class="theme-toggle-label">Dark</span></button></div></header>
+<header class="topbar"><div class="wrap topbar-row"><div class="topbar-title"><h1>PF Generator</h1><p class="tag">Plan Factors · v0.2.2</p></div><button type="button" id="theme-toggle" class="theme-toggle" data-action="theme" aria-label="Switch to dark theme" aria-pressed="false"><span class="theme-toggle-icon" aria-hidden="true">☾</span> <span class="theme-toggle-label">Dark</span></button></div></header>
 <nav id="views-nav" class="views" aria-label="Views">
   <div class="wrap views-row">
     <button type="button" id="menu-toggle" class="menu-toggle" aria-expanded="false" aria-controls="views-list">Menu</button>
@@ -159,20 +159,22 @@ footer{margin:2rem 0 1rem;border-top:1px solid var(--gray-2);padding-top:1rem}
     <p>It reads the plan documents and finds every distinct factor set — each era, each type, each form pair — with the rule, the numbers, and a citation. It returns JSON. It never writes the workbook.</p>
     <h3>What does the app write in the cells?</h3>
     <p>Formulas, not values — except values the document table prints, which are copied as printed. Plain Excel formulas where the rule is arithmetic. BCV add-in formulas (ERFAEQ, LRFAEQ, BFCFAEQ) where the rule is actuarial equivalence, with every argument from the plan documents. They compute in Excel with the ATPBGC add-in. All factors round to 4 decimals.</p>
+    <h3>What does PBGC honor?</h3>
+    <p>PBGC honors only conversions from the normal single form to the normal married form. A conversion the prior administrator used that is not that pair is left out of the workbook. The review screen names it and says why.</p>
     <h3>What if a factor set is missing?</h3>
     <p>Reject it in review and it stays out of the workbook. The workbook holds only sets you approved.</p>
   </section>
 </div>
 </main>
-<footer class="wrap"><p class="small">PF Generator v0.2.1. Single file. No server. No data leaves this page. PBGC Design System v1.1.0 DRAFT.</p></footer>
+<footer class="wrap"><p class="small">PF Generator v0.2.2. Single file. No server. No data leaves this page. PBGC Design System v1.1.0 DRAFT.</p></footer>
 <script>
 "use strict";
-/* PF Generator v0.2.1 — plan factors workbook.
+/* PF Generator v0.2.2 — plan factors workbook.
    Single HTML file. No server, no fetch, no CDN.
    Loop: LLM proposes JSON. App checks. You decide. App writes .xlsx. */
-var PF_VERSION="0.2.1";
+var PF_VERSION="0.2.2";
 /* PROMPT-START */
-var PF_SCRAPER_PROMPT = "# PF scraper prompt \u2014 plan factors\n\nYou read plan documents. You return **only** valid JSON. No other text.\n\n## What to find\n\nEvery distinct set of factors the plan uses to work out benefits. One set per\nera, per type, per form pair. A plan with 5 eras has 5 ERF sets, not 1.\n\nTypes to look for:\n\n- **ERF** \u2014 early retirement factors. Each era. Disability ERF too, if any.\n- **LRF** \u2014 late retirement factors. Each era.\n- **BFCF** \u2014 benefit form conversion factors. Each era, each form pair\n  (for example SLA to JS50, 3CC to JS50).\n- **OTHER** \u2014 any other factor the plan uses for benefits: pre-retirement\n  death, optional forms past JS50, cash balance, anything else. Name it.\n\n## Translate the rule from words to a formula\n\nFor each set, do two things, in order.\n\n1. Quote the plan's rule sentence into `ruleText`, short, with\n   its citation. Example: `reduction of 1/15 per year early`.\n2. State the matching `rule` \u2014 the same rule, as a formula kind:\n   - `{\"kind\": \"linear\", \"denominator\": 180}` \u2014 factor = 1 - months / 180.\n   - `{\"kind\": \"stepped\", \"firstMonths\": 60, \"firstDenominator\": 180, \"secondDenominator\": 360}` \u2014 first rate, then second rate.\n   - `{\"kind\": \"bcv\", \"function\": \"ERFAEQ\"}` \u2014 actuarial equivalence.\n     Use `LRFAEQ` for late factors, `BFCFAEQ` for conversion factors.\n     A bcv rule needs every argument filled in: interest, both\n     mortality tables, calc method, deferral mortality, months\n     certain, normal age, participant sex, and for BFCF also\n     beneficiary sex, survivor percent, and temporary months.\n     If any argument is not in the documents, leave it null and\n     set the set to `missing` or `ambiguous`. Never fill it in\n     from another plan or from a guess.\n\nThe `rule` must say the same thing as the `ruleText`. If the words\nand the formula disagree, the set is `ambiguous`. Say why in `note`.\n\n## Scrape the factor table, if the document prints one\n\nSome plan documents print a table of factors: months early and the\nfactor, or participant age and beneficiary age and the factor. If\nthe document prints one for a set, copy it into `table`:\n\n- Months table: `{\"kind\": \"months\", \"rows\": [{\"months\": 1, \"factor\": 0.9944, \"citation\": {...}}, ...]}`.\n- Age grid: `{\"kind\": \"grid\", \"rows\": [{\"partAge\": 65, \"benAge\": 61, \"factor\": 0.8123, \"citation\": {...}}, ...]}`.\n\nRules for the table:\n\n- Copy each row as printed: the month or the age pair, and the\n  factor as printed (4 decimals as printed).\n- State what each column means: months early, participant age,\n  beneficiary age. Never reorder rows. Never interpolate between\n  rows. Never fill in a row from the formula.\n- Copy only rows the document prints. A row the document does not\n  print stays out. The app writes formulas for the rest.\n- If the document prints no table for a set, set `table` to null.\n\n## What to record per set (field list)\n\n- `id`: short, unique. Example: `ERF-2020`, `BFCF-2020`.\n- `type`: `ERF`, `LRF`, `BFCF`, or `OTHER`.\n- `era`: plan year or era. Example: `2020`.\n- `title`: short title. Example: `Early Retirement Factors from NRA of 65 (2020 Plan)`.\n- `basis`: the rule in words, with the numbers. Example:\n  `reduction = 1/15 per year early (linear in months)`.\n- `normalForm`: `SLA` or `3CC`.\n- `fromForm`, `toForm`: BFCF only. Example: `SLA`, `JS50`.\n- `nra`: normal retirement age. Example: `65`.\n- `interest`: annual rate as a decimal. Example: `0.08` for 8%.\n- `mortality1`, `mortality2`: table names. Example: `UP84M2`.\n  Copy the code exactly as the document writes it. Do not expand\n  it, do not guess a code the document does not name.\n- `calcMethod`: example: `MP`. Copy it as written (`MP`, `QP`,\n  `SP`, or what the document says). Never assume `MP`.\n- `deferralMortality`: `Y` or `N`. From the plan's definition of\n  the deferral period. Never assume `Y`.\n- `monthsCertain`: number, or `0`.\n- `partSex`: `M` or `F`. Whose mortality the plan uses for the\n  participant. From the plan's definition, not assumed.\n- `benSex`: BFCF only. `M` or `F`. Whose mortality the plan uses\n  for the beneficiary (contingent annuitant). From the plan's\n  definition, not assumed. The two sexes can differ.\n- `survivorPct`: BFCF only. The survivor percent of the to-form.\n  Example: `JS50` means 0.5. Copy it from the document when the\n  document states it. Leave null when it is only in the form name.\n- `monthsTemp`: BFCF only. Temporary period in months. Leave null\n  when the document has none (means 0).\n- `ruleText`: the plan's own words for the rule, quoted short.\n  Example: `reduction of 1/15 per year early`. With a citation.\n  The formula is translated from this sentence. Every present set\n  needs one.\n- `table`: a factor table printed in the plan documents, if any.\n  See \"Scrape the factor table\" below. Null when the documents\n  print no table for this set.\n- `monthMin`, `monthMax`: ERF, LRF, OTHER only. The range the documents\n  imply. Do not assume 1 to 120. Use what the documents say.\n- `partAgeMin`, `partAgeMax`, `benAgeMin`, `benAgeMax`: BFCF only. The\n  age ranges the documents imply. Do not assume 55 to 80 or 0 to 100.\n- `status`: `present`, `notApplicable`, `missing`, `ambiguous`, or\n  `conditional`. `missing` means the documents do not have it.\n  `ambiguous` means the documents disagree. Say why in `note`.\n- `note`: short note. Needed for `ambiguous` and `conditional`.\n- `citation`: `{\"document\": \"D1\", \"section\": \"2.1\", \"page\": \"3\"}`.\n  Every value needs a citation. Use the short code. Full document\n  name once per set, never in a cell.\n\n## Header\n\n- `planName`: full plan name.\n- `planNumber`: plan number as text.\n- `caseNumber`: case number as text. Keep leading zeros.\n- `dopt`: date of plan termination, ISO form `YYYY-MM-DD`.\n\n## Rules\n\n- Return **only** valid JSON. No markdown. No comment text.\n- Do not guess. If a value is not in the documents, set `status`\n  to `missing` and leave the value null.\n- If two documents disagree, set `status` to `ambiguous`. Do not pick one.\n- If a set does not apply to this plan, set `status` to `notApplicable`.\n- Values short. Smallest string that keeps the meaning.\n- Keep every distinct set. Do not merge eras. Do not drop a set\n  because it looks like another one.\n- The plan name, case number, and DOPT are in the header. Do not\n  repeat them in each set.\n\n## Shape\n\n```json\n{\n  \"planMetadata\": {\n    \"planName\": \"Riverbend Manufacturing Pension Plan\",\n    \"planNumber\": \"001\",\n    \"caseNumber\": \"98765400\",\n    \"dopt\": \"2025-06-30\"\n  },\n  \"factorSets\": [\n    {\n      \"id\": \"ERF-2020\",\n      \"type\": \"ERF\",\n      \"era\": \"2020\",\n      \"title\": \"Early Retirement Factors from NRA of 65 (2020 Plan)\",\n      \"basis\": \"reduction = 1/15 per year early (linear in months)\",\n      \"normalForm\": \"SLA\",\n      \"fromForm\": null,\n      \"toForm\": null,\n      \"nra\": 65,\n      \"interest\": null,\n      \"mortality1\": null,\n      \"mortality2\": null,\n      \"calcMethod\": null,\n      \"deferralMortality\": null,\n      \"monthsCertain\": null,\n      \"partSex\": null,\n      \"benSex\": null,\n      \"survivorPct\": null,\n      \"monthsTemp\": null,\n      \"ruleText\": \"reduction of 1/15 per year early\",\n      \"table\": {\"kind\": \"months\", \"rows\": [\n        {\"months\": 1, \"factor\": 0.9944, \"citation\": {\"document\": \"D1\", \"section\": \"2.1\", \"page\": \"3\"}},\n        {\"months\": 60, \"factor\": 0.6667, \"citation\": {\"document\": \"D1\", \"section\": \"2.1\", \"page\": \"3\"}},\n        {\"months\": 120, \"factor\": 0.3333, \"citation\": {\"document\": \"D1\", \"section\": \"2.1\", \"page\": \"3\"}}\n      ]},\n      \"monthMin\": 1,\n      \"monthMax\": 120,\n      \"partAgeMin\": null,\n      \"partAgeMax\": null,\n      \"benAgeMin\": null,\n      \"benAgeMax\": null,\n      \"rule\": {\"kind\": \"linear\", \"denominator\": 180},\n      \"status\": \"present\",\n      \"note\": null,\n      \"citation\": {\"document\": \"D1\", \"section\": \"2.1\", \"page\": \"3\"}\n    }\n  ]\n}\n```\n";
+var PF_SCRAPER_PROMPT = "# PF scraper prompt \u2014 plan factors\n\nYou read plan documents. You return **only** valid JSON. No other text.\n\n## What to find\n\nEvery distinct set of factors the plan uses to work out benefits. One set per\nera, per type, per form pair. A plan with 5 eras has 5 ERF sets, not 1.\n\nTypes to look for:\n\n- **ERF** \u2014 early retirement factors. Each era. Disability ERF too, if any.\n- **LRF** \u2014 late retirement factors. Each era.\n- **BFCF** \u2014 benefit form conversion factors. Each era, each form pair\n  (for example SLA to JS50, 3CC to JS50).\n- **OTHER** \u2014 any other factor the plan uses for benefits: pre-retirement\n  death, optional forms past JS50, cash balance, anything else. Name it.\n\n## PBGC honors only normal single form to normal married form\n\nThe prior plan administrator may have used benefit conversions that\nPBGC will not apply once the plan is in PBGC administration. PBGC\nhonors only conversions between the normal single form and the\nnormal married form. Every other conversion is left out of the\nworkbook. It is not a tab. It is not dropped silently \u2014 the app\nnames it and says why.\n\n- Record `normalMarriedForm` in `planMetadata`: the plan's normal\n  married form (for example `JS50`), copied from the plan\n  documents. Cite the provision that names it. Never assume `JS50`.\n  If the documents do not name a normal married form, leave it\n  null and mark the BFCF sets `missing` or `ambiguous`.\n- For each BFCF set, record `appliesInPbgcAdmin`: `true` only when\n  `fromForm` is the plan's normal single form (`normalForm`) AND\n  `toForm` is the normal married form. Otherwise `false`. Cite\n  both halves. The app derives the same decision itself from the\n  forms; if your value disagrees with the rule, the JSON is\n  refused. Do not resolve the disagreement yourself.\n\n## Translate the rule from words to a formula\n\nFor each set, do two things, in order.\n\n1. Quote the plan's rule sentence into `ruleText`, short, with\n   its citation. Example: `reduction of 1/15 per year early`.\n2. State the matching `rule` \u2014 the same rule, as a formula kind:\n   - `{\"kind\": \"linear\", \"denominator\": 180}` \u2014 factor = 1 - months / 180.\n   - `{\"kind\": \"stepped\", \"firstMonths\": 60, \"firstDenominator\": 180, \"secondDenominator\": 360}` \u2014 first rate, then second rate.\n   - `{\"kind\": \"bcv\", \"function\": \"ERFAEQ\"}` \u2014 actuarial equivalence.\n     Use `LRFAEQ` for late factors, `BFCFAEQ` for conversion factors.\n     A bcv rule needs every argument filled in: interest, both\n     mortality tables, calc method, deferral mortality, months\n     certain, normal age, participant sex, and for BFCF also\n     beneficiary sex, survivor percent, and temporary months.\n     If any argument is not in the documents, leave it null and\n     set the set to `missing` or `ambiguous`. Never fill it in\n     from another plan or from a guess.\n\nThe `rule` must say the same thing as the `ruleText`. If the words\nand the formula disagree, the set is `ambiguous`. Say why in `note`.\n\n## Scrape the factor table, if the document prints one\n\nSome plan documents print a table of factors: months early and the\nfactor, or participant age and beneficiary age and the factor. If\nthe document prints one for a set, copy it into `table`:\n\n- Months table: `{\"kind\": \"months\", \"rows\": [{\"months\": 1, \"factor\": 0.9944, \"citation\": {...}}, ...]}`.\n- Age grid: `{\"kind\": \"grid\", \"rows\": [{\"partAge\": 65, \"benAge\": 61, \"factor\": 0.8123, \"citation\": {...}}, ...]}`.\n\nRules for the table:\n\n- Copy each row as printed: the month or the age pair, and the\n  factor as printed (4 decimals as printed).\n- State what each column means: months early, participant age,\n  beneficiary age. Never reorder rows. Never interpolate between\n  rows. Never fill in a row from the formula.\n- Copy only rows the document prints. A row the document does not\n  print stays out. The app writes formulas for the rest.\n- If the document prints no table for a set, set `table` to null.\n\n## What to record per set (field list)\n\n- `id`: short, unique. Example: `ERF-2020`, `BFCF-2020`.\n- `type`: `ERF`, `LRF`, `BFCF`, or `OTHER`.\n- `era`: plan year or era. Example: `2020`.\n- `title`: short title. Example: `Early Retirement Factors from NRA of 65 (2020 Plan)`.\n- `basis`: the rule in words, with the numbers. Example:\n  `reduction = 1/15 per year early (linear in months)`.\n- `normalForm`: `SLA` or `3CC`.\n- `fromForm`, `toForm`: BFCF only. Example: `SLA`, `JS50`.\n- `appliesInPbgcAdmin`: BFCF only. `true` only when `fromForm` is\n  the normal single form and `toForm` is the normal married form.\n  Otherwise `false`. See \"PBGC honors only\" above. The app checks\n  it again itself.\n- `nra`: normal retirement age. Example: `65`.\n- `interest`: annual rate as a decimal. Example: `0.08` for 8%.\n- `mortality1`, `mortality2`: table names. Example: `UP84M2`.\n  Copy the code exactly as the document writes it. Do not expand\n  it, do not guess a code the document does not name.\n- `calcMethod`: example: `MP`. Copy it as written (`MP`, `QP`,\n  `SP`, or what the document says). Never assume `MP`.\n- `deferralMortality`: `Y` or `N`. From the plan's definition of\n  the deferral period. Never assume `Y`.\n- `monthsCertain`: number, or `0`.\n- `partSex`: `M` or `F`. Whose mortality the plan uses for the\n  participant. From the plan's definition, not assumed.\n- `benSex`: BFCF only. `M` or `F`. Whose mortality the plan uses\n  for the beneficiary (contingent annuitant). From the plan's\n  definition, not assumed. The two sexes can differ.\n- `survivorPct`: BFCF only. The survivor percent of the to-form.\n  Example: `JS50` means 0.5. Copy it from the document when the\n  document states it. Leave null when it is only in the form name.\n- `monthsTemp`: BFCF only. Temporary period in months. Leave null\n  when the document has none (means 0).\n- `ruleText`: the plan's own words for the rule, quoted short.\n  Example: `reduction of 1/15 per year early`. With a citation.\n  The formula is translated from this sentence. Every present set\n  needs one.\n- `table`: a factor table printed in the plan documents, if any.\n  See \"Scrape the factor table\" below. Null when the documents\n  print no table for this set.\n- `monthMin`, `monthMax`: ERF, LRF, OTHER only. The range the documents\n  imply. Do not assume 1 to 120. Use what the documents say.\n- `partAgeMin`, `partAgeMax`, `benAgeMin`, `benAgeMax`: BFCF only. The\n  age ranges the documents imply. Do not assume 55 to 80 or 0 to 100.\n- `status`: `present`, `notApplicable`, `missing`, `ambiguous`, or\n  `conditional`. `missing` means the documents do not have it.\n  `ambiguous` means the documents disagree. Say why in `note`.\n- `note`: short note. Needed for `ambiguous` and `conditional`.\n- `citation`: `{\"document\": \"D1\", \"section\": \"2.1\", \"page\": \"3\"}`.\n  Every value needs a citation. Use the short code. Full document\n  name once per set, never in a cell.\n\n## Header\n\n- `planName`: full plan name.\n- `planNumber`: plan number as text.\n- `caseNumber`: case number as text. Keep leading zeros.\n- `dopt`: date of plan termination, ISO form `YYYY-MM-DD`.\n- `normalMarriedForm`: the plan's normal married form, for\n  example `JS50`. From the plan documents, with a citation.\n  Never assume it. Null when the documents do not name one.\n\n## Rules\n\n- Return **only** valid JSON. No markdown. No comment text.\n- Do not guess. If a value is not in the documents, set `status`\n  to `missing` and leave the value null.\n- If two documents disagree, set `status` to `ambiguous`. Do not pick one.\n- If a set does not apply to this plan, set `status` to `notApplicable`.\n- Values short. Smallest string that keeps the meaning.\n- Keep every distinct set. Do not merge eras. Do not drop a set\n  because it looks like another one.\n- The plan name, case number, and DOPT are in the header. Do not\n  repeat them in each set.\n\n## Shape\n\n```json\n{\n  \"planMetadata\": {\n    \"planName\": \"Riverbend Manufacturing Pension Plan\",\n    \"planNumber\": \"001\",\n    \"caseNumber\": \"98765400\",\n    \"dopt\": \"2025-06-30\",\n    \"normalMarriedForm\": \"JS50\"\n  },\n  \"factorSets\": [\n    {\n      \"id\": \"ERF-2020\",\n      \"type\": \"ERF\",\n      \"era\": \"2020\",\n      \"title\": \"Early Retirement Factors from NRA of 65 (2020 Plan)\",\n      \"basis\": \"reduction = 1/15 per year early (linear in months)\",\n      \"normalForm\": \"SLA\",\n      \"fromForm\": null,\n      \"toForm\": null,\n      \"appliesInPbgcAdmin\": null,\n      \"nra\": 65,\n      \"interest\": null,\n      \"mortality1\": null,\n      \"mortality2\": null,\n      \"calcMethod\": null,\n      \"deferralMortality\": null,\n      \"monthsCertain\": null,\n      \"partSex\": null,\n      \"benSex\": null,\n      \"survivorPct\": null,\n      \"monthsTemp\": null,\n      \"ruleText\": \"reduction of 1/15 per year early\",\n      \"table\": {\"kind\": \"months\", \"rows\": [\n        {\"months\": 1, \"factor\": 0.9944, \"citation\": {\"document\": \"D1\", \"section\": \"2.1\", \"page\": \"3\"}},\n        {\"months\": 60, \"factor\": 0.6667, \"citation\": {\"document\": \"D1\", \"section\": \"2.1\", \"page\": \"3\"}},\n        {\"months\": 120, \"factor\": 0.3333, \"citation\": {\"document\": \"D1\", \"section\": \"2.1\", \"page\": \"3\"}}\n      ]},\n      \"monthMin\": 1,\n      \"monthMax\": 120,\n      \"partAgeMin\": null,\n      \"partAgeMax\": null,\n      \"benAgeMin\": null,\n      \"benAgeMax\": null,\n      \"rule\": {\"kind\": \"linear\", \"denominator\": 180},\n      \"status\": \"present\",\n      \"note\": null,\n      \"citation\": {\"document\": \"D1\", \"section\": \"2.1\", \"page\": \"3\"}\n    }\n  ]\n}\n```\n";
 /* PROMPT-END */
 var PF_TYPES=["ERF","LRF","BFCF","OTHER"];
 var PF_STATUSES=["present","notApplicable","missing","ambiguous","conditional"];
@@ -248,12 +250,13 @@ function pfNum(v){
 
 /* ---- demo data: synthetic only. Same invented plan as R5 / DEL. ---- */
 var PF_DEMO_JSON={
-  planMetadata:{planName:"Riverbend Manufacturing Pension Plan",planNumber:"001",caseNumber:"98765400",dopt:"2025-06-30"},
+  planMetadata:{planName:"Riverbend Manufacturing Pension Plan",planNumber:"001",caseNumber:"98765400",dopt:"2025-06-30",normalMarriedForm:"JS50"},
   factorSets:[
-    {id:"ERF-2020",type:"ERF",era:"2020",title:"Early Retirement Factors from NRA of 65 (2020 Plan)",basis:"reduction = 1/15 per year early (linear in months)",normalForm:"SLA",fromForm:null,toForm:null,nra:65,interest:null,mortality1:null,mortality2:null,calcMethod:null,deferralMortality:null,monthsCertain:null,partSex:null,benSex:null,survivorPct:null,monthsTemp:null,ruleText:"reduction of 1/15 per year early",table:{kind:"months",rows:[{months:1,factor:0.9944,citation:{document:"D1",section:"2.1",page:"3"}},{months:60,factor:0.6667,citation:{document:"D1",section:"2.1",page:"3"}},{months:120,factor:0.3333,citation:{document:"D1",section:"2.1",page:"3"}}]},monthMin:1,monthMax:120,partAgeMin:null,partAgeMax:null,benAgeMin:null,benAgeMax:null,rule:{kind:"linear",denominator:180},status:"present",note:null,citation:{document:"D1",section:"2.1",page:"3"}},
-    {id:"LRF-2020",type:"LRF",era:"2020",title:"Late Retirement Factors from NRA of 65 (2020 Plan)",basis:"LRFAEQ with interest=5%; mortality=GM83/GF83; calc method=MP; deferral mortality=Y; months certain=0",normalForm:"3CC",fromForm:null,toForm:null,nra:65,interest:0.05,mortality1:"GM83",mortality2:"GF83",calcMethod:"MP",deferralMortality:"Y",monthsCertain:0,partSex:"M",benSex:null,survivorPct:null,monthsTemp:null,ruleText:"late retirement factor by actuarial equivalence",table:null,monthMin:1,monthMax:120,partAgeMin:null,partAgeMax:null,benAgeMin:null,benAgeMax:null,rule:{kind:"bcv",function:"LRFAEQ"},status:"present",note:null,citation:{document:"D1",section:"4.2",page:"7"}},
-    {id:"BFCF-2020",type:"BFCF",era:"2020",title:"Benefit Form Conversion Factors (2020 Plan)",basis:"BFCFAEQ with interest=8%; mortality=UP84M2/UP84M2; calc method=MP; deferral mortality=N; months certain=36",normalForm:"SLA",fromForm:"SLA",toForm:"JS50",nra:65,interest:0.08,mortality1:"UP84M2",mortality2:"UP84M2",calcMethod:"MP",deferralMortality:"N",monthsCertain:36,partSex:"M",benSex:"F",survivorPct:0.5,monthsTemp:0,ruleText:"joint and 50% survivor conversion by actuarial equivalence",table:null,monthMin:null,monthMax:null,partAgeMin:55,partAgeMax:60,benAgeMin:0,benAgeMax:5,rule:{kind:"bcv",function:"BFCFAEQ"},status:"present",note:null,citation:{document:"D1",section:"6.1",page:"11"}},
-    {id:"ERF-DIS-2020",type:"ERF",era:"2020",title:"Early Retirement Factors — Disability (2020 Plan)",basis:"",normalForm:"3CC",fromForm:null,toForm:null,nra:65,interest:null,mortality1:null,mortality2:null,calcMethod:null,deferralMortality:null,monthsCertain:null,partSex:null,benSex:null,survivorPct:null,monthsTemp:null,ruleText:null,table:null,monthMin:1,monthMax:120,partAgeMin:null,partAgeMax:null,benAgeMin:null,benAgeMax:null,rule:null,status:"missing",note:"Disability factors not found in the documents given",citation:null}
+    {id:"ERF-2020",type:"ERF",era:"2020",title:"Early Retirement Factors from NRA of 65 (2020 Plan)",basis:"reduction = 1/15 per year early (linear in months)",normalForm:"SLA",fromForm:null,toForm:null,appliesInPbgcAdmin:null,nra:65,interest:null,mortality1:null,mortality2:null,calcMethod:null,deferralMortality:null,monthsCertain:null,partSex:null,benSex:null,survivorPct:null,monthsTemp:null,ruleText:"reduction of 1/15 per year early",table:{kind:"months",rows:[{months:1,factor:0.9944,citation:{document:"D1",section:"2.1",page:"3"}},{months:60,factor:0.6667,citation:{document:"D1",section:"2.1",page:"3"}},{months:120,factor:0.3333,citation:{document:"D1",section:"2.1",page:"3"}}]},monthMin:1,monthMax:120,partAgeMin:null,partAgeMax:null,benAgeMin:null,benAgeMax:null,rule:{kind:"linear",denominator:180},status:"present",note:null,citation:{document:"D1",section:"2.1",page:"3"}},
+    {id:"LRF-2020",type:"LRF",era:"2020",title:"Late Retirement Factors from NRA of 65 (2020 Plan)",basis:"LRFAEQ with interest=5%; mortality=GM83/GF83; calc method=MP; deferral mortality=Y; months certain=0",normalForm:"3CC",fromForm:null,toForm:null,appliesInPbgcAdmin:null,nra:65,interest:0.05,mortality1:"GM83",mortality2:"GF83",calcMethod:"MP",deferralMortality:"Y",monthsCertain:0,partSex:"M",benSex:null,survivorPct:null,monthsTemp:null,ruleText:"late retirement factor by actuarial equivalence",table:null,monthMin:1,monthMax:120,partAgeMin:null,partAgeMax:null,benAgeMin:null,benAgeMax:null,rule:{kind:"bcv",function:"LRFAEQ"},status:"present",note:null,citation:{document:"D1",section:"4.2",page:"7"}},
+    {id:"BFCF-2020",type:"BFCF",era:"2020",title:"Benefit Form Conversion Factors (2020 Plan)",basis:"BFCFAEQ with interest=8%; mortality=UP84M2/UP84M2; calc method=MP; deferral mortality=N; months certain=36",normalForm:"SLA",fromForm:"SLA",toForm:"JS50",appliesInPbgcAdmin:true,nra:65,interest:0.08,mortality1:"UP84M2",mortality2:"UP84M2",calcMethod:"MP",deferralMortality:"N",monthsCertain:36,partSex:"M",benSex:"F",survivorPct:0.5,monthsTemp:0,ruleText:"joint and 50% survivor conversion by actuarial equivalence",table:null,monthMin:null,monthMax:null,partAgeMin:55,partAgeMax:60,benAgeMin:0,benAgeMax:5,rule:{kind:"bcv",function:"BFCFAEQ"},status:"present",note:null,citation:{document:"D1",section:"6.1",page:"11"}},
+    {id:"BFCF-2020-JS75",type:"BFCF",era:"2020",title:"Benefit Form Conversion Factors — JS75 (2020 Plan)",basis:"BFCFAEQ with interest=8%; mortality=UP84M2/UP84M2; calc method=MP; deferral mortality=N; months certain=36",normalForm:"SLA",fromForm:"SLA",toForm:"JS75",appliesInPbgcAdmin:false,nra:65,interest:0.08,mortality1:"UP84M2",mortality2:"UP84M2",calcMethod:"MP",deferralMortality:"N",monthsCertain:36,partSex:"M",benSex:"F",survivorPct:0.75,monthsTemp:0,ruleText:"joint and 75% survivor conversion by actuarial equivalence",table:null,monthMin:null,monthMax:null,partAgeMin:55,partAgeMax:60,benAgeMin:0,benAgeMax:5,rule:{kind:"bcv",function:"BFCFAEQ"},status:"present",note:null,citation:{document:"D1",section:"6.2",page:"12"}},
+    {id:"ERF-DIS-2020",type:"ERF",era:"2020",title:"Early Retirement Factors — Disability (2020 Plan)",basis:"",normalForm:"3CC",fromForm:null,toForm:null,appliesInPbgcAdmin:null,nra:65,interest:null,mortality1:null,mortality2:null,calcMethod:null,deferralMortality:null,monthsCertain:null,partSex:null,benSex:null,survivorPct:null,monthsTemp:null,ruleText:null,table:null,monthMin:1,monthMax:120,partAgeMin:null,partAgeMax:null,benAgeMin:null,benAgeMax:null,rule:null,status:"missing",note:"Disability factors not found in the documents given",citation:null}
   ]
 };
 
@@ -285,6 +288,8 @@ function pfValidatePfJson(d){
   }
   var sets=d.factorSets;
   if(!Array.isArray(sets)||sets.length<1){ err("factorSets must be a non-empty array"); return {errors:errors}; }
+  var hasBfcf=sets.some(function(s){ return s&&s.type==="BFCF"&&(s.status==="present"||s.status==="conditional"); });
+  if(hasBfcf&&(!m||!m.normalMarriedForm)) err("planMetadata.normalMarriedForm missing: needed to judge whether a BFCF set is honored by PBGC (only normal single form to normal married form is honored)");
   var seen={};
   sets.forEach(function(s,i){
     var tag="factorSets["+i+"]";
@@ -308,6 +313,14 @@ function pfValidatePfJson(d){
       if(!pfIsInt(s.benAgeMin)||!pfIsInt(s.benAgeMax)||s.benAgeMax<s.benAgeMin) err(tag+".benAgeMin/benAgeMax bad");
       if(s.partAgeMax-s.partAgeMin>100||s.benAgeMax-s.benAgeMin>150) err(tag+".age range too wide");
       if(s.status==="present"&&(!s.fromForm||!s.toForm)) err(tag+".fromForm/toForm missing for a present BFCF set");
+      if((s.status==="present"||s.status==="conditional")&&(!s.fromForm||!s.toForm||!s.normalForm)) err(tag+".fromForm/toForm/normalForm missing for a BFCF set (needed to judge whether PBGC honors it)");
+      if(s.appliesInPbgcAdmin===true||s.appliesInPbgcAdmin===false){
+        var nmf2=m?m.normalMarriedForm:null;
+        if(nmf2&&s.fromForm&&s.toForm&&s.normalForm){
+          var derived=pfPbgcHonors(s,nmf2);
+          if(derived.honored!==s.appliesInPbgcAdmin) err(tag+".appliesInPbgcAdmin disagrees with the PBGC rule: derived "+(derived.honored?"honored":"not honored")+" ("+(derived.reason||"normal single form to normal married form")+")");
+        }
+      }
     }else{
       if(s.monthMin!==null&&s.monthMin!==undefined||s.monthMax!==null&&s.monthMax!==undefined){
         if(!pfIsInt(s.monthMin)||!pfIsInt(s.monthMax)||s.monthMax<s.monthMin) err(tag+".monthMin/monthMax bad");
@@ -370,7 +383,8 @@ var PF_HEADER_KEYS={
   "planname":"planName","plan":"planName","plan name":"planName",
   "plannumber":"planNumber","plan number":"planNumber","plan no":"planNumber","pn":"planNumber",
   "casenumber":"caseNumber","case number":"caseNumber","case":"caseNumber",
-  "dopt":"dopt","date of plan termination":"dopt","dateofplantermination":"dopt"
+  "dopt":"dopt","date of plan termination":"dopt","dateofplantermination":"dopt",
+  "normalmarriedform":"normalMarriedForm","normal married form":"normalMarriedForm"
 };
 function pfFlexNormKey(k){ return String(k).trim().toLowerCase().replace(/[^a-z0-9]/g,""); }
 function pfImportFlexPfJson(obj,opts){
@@ -388,7 +402,7 @@ function pfImportFlexPfJson(obj,opts){
     return out;
   }
   /* Flat JSON: header synonyms + factorSets array. */
-  var data={planMetadata:{planName:"",planNumber:"",caseNumber:"",dopt:""},factorSets:[]};
+  var data={planMetadata:{planName:"",planNumber:"",caseNumber:"",dopt:"",normalMarriedForm:null},factorSets:[]};
   var seenHeader={}, seenSets={};
   var keys=Object.keys(obj);
   keys.forEach(function(k){
@@ -497,6 +511,40 @@ function pfTableValue(set,months,partAge,benAge){
 function pfSetSourceLabel(set){
   if(set.table&&Array.isArray(set.table.rows)&&set.table.rows.length) return "Table: "+set.table.rows.length+" value(s) from the document table, rest formulas";
   return "Formulas from the rule";
+}
+/* ---- PBGC honors rule (user, 2026-11-11): PBGC honors ONLY
+   conversions from the normal single form to the normal married
+   form. Everything else is left out of the workbook. The app
+   derives the decision itself; the LLM's appliesInPbgcAdmin is
+   checked against it in the validator, never trusted blindly.
+   honored: true (write it), false (leave it out), null (cannot
+   tell — normal married form not given). */
+function pfPbgcHonors(set,normalMarriedForm){
+  if(set.type!=="BFCF") return {honored:true,reason:null};
+  if(!normalMarriedForm) return {honored:null,reason:"normal married form not given in the plan documents"};
+  if(set.fromForm!==set.normalForm) return {honored:false,reason:"from-form "+set.fromForm+" is not the normal single form "+set.normalForm};
+  if(set.toForm!==normalMarriedForm) return {honored:false,reason:"to-form "+set.toForm+" is not the normal married form "+normalMarriedForm};
+  return {honored:true,reason:null};
+}
+function pfNeedsDecision(set,data){
+  if(set.type==="BFCF"){
+    var h=pfPbgcHonors(set,data&&data.planMetadata?data.planMetadata.normalMarriedForm:null);
+    if(h.honored===false) return false;
+  }
+  return true;
+}
+function pfIncludedSets(data){
+  var nmf=data&&data.planMetadata?data.planMetadata.normalMarriedForm:null;
+  var included=[], excluded=[];
+  (data.factorSets||[]).forEach(function(s){
+    if(!(s.status==="present"||s.status==="conditional")) return;
+    if(s.type==="BFCF"){
+      var h=pfPbgcHonors(s,nmf);
+      if(h.honored===false){ excluded.push({set:s,reason:h.reason}); return; }
+    }
+    included.push(s);
+  });
+  return {included:included,excluded:excluded,normalMarriedForm:nmf};
 }
 function pfMonthFormula(set,mRef,m){
   var r=set.rule;
@@ -611,7 +659,7 @@ function pfSheetXml(dim,rows,colsXml,layout){
    bold, row 5 Calibri 12 bold, rows 6/7 Calibri 11. Months tabs wrap
    rows 5-7 at the top (heights 28/18/18); BFCF tabs centre them
    (heights 18/16/16). Row heights: 1=20, 2=16, 3=16, as in the
-   template. Style ids are the v0.2.1 cellXfs table in pfStylesXml. */
+   template. Style ids are the v0.2.2 cellXfs table in pfStylesXml. */
 function pfHeaderRows(meta,set,base,heights,wrapRows){
   var b=base||"A";
   var h=heights||{1:20,2:16,3:16,5:28,6:18,7:18};
@@ -753,13 +801,20 @@ function pfWorkbookXml(sheets){
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="'+PF_XLSX_NS+'" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'+sXml+'</sheets><definedNames>'+dn+'</definedNames><calcPr fullCalcOnLoad="1"/></workbook>';
 }
 /* Build the .xlsx bytes for the given data. Only sets with status
-   present or conditional are written. Missing / rejected sets are out. */
+   present or conditional are written. Missing / rejected sets are out.
+   BFCF sets PBGC does not honor are left out too (see pfPbgcHonors);
+   they are reported in statsOut as {id, excluded:true, reason}. */
 function pfBuildXlsxBytes(data,statsOut){
   var v=pfValidatePfJson(data);
   if(v.errors.length) throw new Error("invalid PF JSON: "+v.errors.join("; "));
   var meta=data.planMetadata;
-  var sets=(data.factorSets||[]).filter(function(s){ return s.status==="present"||s.status==="conditional"; });
-  if(sets.length<1) throw new Error("no factor sets to write");
+  var split=pfIncludedSets(data);
+  var sets=split.included;
+  if(sets.length<1){
+    if(split.excluded.length) throw new Error("no factor sets to write: every approved BFCF set is left out by the PBGC rule (only normal single form to normal married form is honored)");
+    throw new Error("no factor sets to write");
+  }
+  if(Array.isArray(statsOut)) split.excluded.forEach(function(x){ statsOut.push({id:x.set.id,excluded:true,reason:x.reason}); });
   var sheets=sets.map(function(s){ var sh=pfSheetForSet(s,meta); if(Array.isArray(statsOut)) statsOut.push({id:s.id,tableCells:sh.stats?sh.stats.tableCells:0,formulaCells:sh.stats?sh.stats.formulaCells:0}); return {name:pfTabName(s),lastRow:sh.lastRow,lastCol:sh.lastCol,xml:sh.xml}; });
   var rels=sheets.map(function(s,i){ return '<Relationship Id="rId'+(i+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>'; }).join("")+
     '<Relationship Id="rId'+(sheets.length+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>';
@@ -788,22 +843,29 @@ function pfAudit(action,detail){
   pfState.auditText=pfState.audit.map(function(a){ return a.time+" "+a.action+(a.detail?" — "+a.detail:""); }).join("\n");
   return e;
 }
+function pfDecidableSets(){
+  if(!pfState.data) return [];
+  return pfState.data.factorSets.filter(function(s){ return pfNeedsDecision(s,pfState.data); });
+}
 function pfSetDecidedCount(){
-  if(!pfState.data) return 0;
-  return pfState.data.factorSets.filter(function(s){ return pfState.decisions[s.id]; }).length;
+  return pfDecidableSets().filter(function(s){ return pfState.decisions[s.id]; }).length;
 }
 function pfCanGenerate(){
   if(!pfState.data) return {ok:false,why:"No JSON loaded yet."};
   var m=pfState.data.planMetadata;
   if(!m.planName||!m.caseNumber||!m.dopt) return {ok:false,why:"Header is not filled: plan name, case number, DOPT."};
-  var undecided=pfState.data.factorSets.filter(function(s){ return !pfState.decisions[s.id]; });
+  /* BFCF sets PBGC does not honor need no decision: the rule, not
+     the reviewer, leaves them out. */
+  var undecided=pfDecidableSets().filter(function(s){ return !pfState.decisions[s.id]; });
   if(undecided.length) return {ok:false,why:undecided.length+" factor set(s) still undecided."};
   var bad=pfState.data.factorSets.filter(function(s){
     return pfState.decisions[s.id]==="approved"&&!(s.status==="present"||s.status==="conditional");
   });
   if(bad.length) return {ok:false,why:"Approved set "+bad[0].id+" has status "+bad[0].status+": approve only present sets, or reject it."};
-  var none=pfState.data.factorSets.filter(function(s){ return pfState.decisions[s.id]==="approved"; });
-  if(!none.length) return {ok:false,why:"No set approved. Approve at least one set."};
+  var approved=pfState.data.factorSets.filter(function(s){ return pfState.decisions[s.id]==="approved"; });
+  if(!approved.length) return {ok:false,why:"No set approved. Approve at least one set."};
+  var apd=pfClone(pfState.data); apd.factorSets=approved;
+  if(pfIncludedSets(apd).included.length<1) return {ok:false,why:"No approved set would be written: the approved BFCF set(s) are not honored by PBGC."};
   return {ok:true,why:""};
 }
 function pfApprovedData(){
@@ -856,10 +918,21 @@ function pfGenerate(){
   var bytes, stats=[];
   try{ bytes=pfBuildXlsxBytes(d,stats); }
   catch(e){ return {ok:false,why:e.message}; }
-  pfState.generated={name:pfXlsxFileName(d.planMetadata.caseNumber),bytes:bytes,tabs:d.factorSets.length};
+  var split=pfIncludedSets(d);
+  pfState.generated={name:pfXlsxFileName(d.planMetadata.caseNumber),bytes:bytes,tabs:split.included.length};
   pfState.step=4;
-  pfAudit("generate",pfState.generated.name+" ("+d.factorSets.length+" tabs)");
+  pfAudit("generate",pfState.generated.name+" ("+split.included.length+" tabs)");
+  if(d.planMetadata.normalMarriedForm) pfAudit("normal married form",d.planMetadata.normalMarriedForm);
+  /* Exclusions are audited from the full loaded data, not the
+     approved subset: an excluded set has no Approve button, so it
+     is never in the approved data — but the user still needs to see
+     that the rule left it out, and why. */
+  var fullSplit=pfIncludedSets(pfState.data);
+  fullSplit.excluded.forEach(function(x){
+    pfAudit("excluded (PBGC does not honor)",x.set.id+" — "+x.reason+" (from "+x.set.fromForm+" to "+x.set.toForm+"; normal single "+x.set.normalForm+", normal married "+d.planMetadata.normalMarriedForm+")");
+  });
   stats.forEach(function(st){
+    if(st.excluded) return; /* already audited from the full data above */
     var set=d.factorSets.filter(function(x){ return x.id===st.id; })[0]||{};
     var note=st.id+" — table values: "+st.tableCells+", formulas: "+st.formulaCells;
     if(set.type==="BFCF"&&(set.survivorPct===null||set.survivorPct===undefined)) note+=" (survivorPct derived from "+set.toForm+")";
@@ -944,23 +1017,33 @@ function pfRenderReview(){
     '<div class="grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.5rem 1rem">'+
     '<p><label>Plan number<input type="text" data-meta="planNumber" value="'+pfEscHtml(m.planNumber)+'"></label></p>'+
     '<p><label>Case number<input type="text" data-meta="caseNumber" value="'+pfEscHtml(m.caseNumber)+'"></label></p>'+
-    '<p><label>DOPT<input type="text" data-meta="dopt" value="'+pfEscHtml(m.dopt)+'"></label></p></div>'+
-    "<p>"+pfSetDecidedCount()+" of "+pfState.data.factorSets.length+" sets decided.</p>";
+    '<p><label>DOPT<input type="text" data-meta="dopt" value="'+pfEscHtml(m.dopt)+'"></label></p>'+
+    '<p><label>Normal married form <span class="small">(from the plan documents, e.g. JS50)</span><input type="text" data-meta="normalMarriedForm" value="'+pfEscHtml(m.normalMarriedForm||"")+'"></label></p></div>'+
+    "<p>"+pfSetDecidedCount()+" of "+pfDecidableSets().length+" sets decided.</p>";
   var rows=pfState.data.factorSets.map(function(s){
     var dec=pfState.decisions[s.id]||"";
-    var badge=dec?'<span class="badge '+dec+'">'+(dec==="approved"?"Approved":dec==="rejected"?"Rejected":"Edited")+"</span>":'<span class="badge missing">Undecided</span>';
+    var hon=s.type==="BFCF"?pfPbgcHonors(s,m.normalMarriedForm):null;
+    var excluded=hon&&hon.honored===false;
+    var badge=excluded?'<span class="badge notApplicable">Left out</span>':(dec?'<span class="badge '+dec+'">'+(dec==="approved"?"Approved":dec==="rejected"?"Rejected":"Edited")+"</span>":'<span class="badge missing">Undecided</span>');
+    var honLine="";
+    if(hon){
+      if(hon.honored===true) honLine='<p class="small">PBGC honors: Yes — normal single form to normal married form.</p>';
+      else if(hon.honored===false) honLine='<p class="small">PBGC honors: No — left out of the file. '+pfEscHtml(hon.reason)+'.</p>';
+      else honLine='<p class="small">PBGC honors: cannot tell — normal married form not given.</p>';
+    }
     var cit=s.citation?pfEscHtml(s.citation.document+(s.citation.section?" §"+s.citation.section:"")+(s.citation.page?" p"+s.citation.page:"")):"—";
     var range=s.type==="BFCF"?("part "+s.partAgeMin+"–"+s.partAgeMax+" · ben "+s.benAgeMin+"–"+s.benAgeMax):(s.monthMin+"–"+s.monthMax+" mo");
     return '<div class="revrow"><div class="rowhead"><span class="field">'+pfEscHtml(s.id)+'</span><span class="badge '+s.status+'">'+s.status+"</span>"+badge+"</div>"+
       "<p><strong>"+pfEscHtml(s.title)+"</strong></p>"+
       '<div class="grid"><div><span class="small">Tab</span><br>'+pfEscHtml(pfTabName(s))+'</div><div><span class="small">Range</span><br>'+pfEscHtml(range)+'</div><div><span class="small">Basis</span><br>'+pfEscHtml(s.basis||"—")+'</div><div><span class="small">Citation</span><br>'+cit+"</div></div>"+
       (s.ruleText?'<p class="small">Plan words: '+pfEscHtml(s.ruleText)+"</p>":"")+
-      '<p class="small">Source: '+pfEscHtml(pfSetSourceLabel(s))+"</p>"+
+      '<p class="small">Source: '+pfEscHtml(pfSetSourceLabel(s))+"</p>"+honLine+
       (s.note?'<p class="small">Note: '+pfEscHtml(s.note)+"</p>":"")+
       '<p><label>Title <input type="text" data-set-title="'+pfEscHtml(s.id)+'" value="'+pfEscHtml(s.title)+'"></label></p>'+
+      (excluded?'<p class="small">Left out by the PBGC rule. No decision needed.</p>':
       '<div class="actions"><button type="button" class="primary" data-action="approve" data-id="'+pfEscHtml(s.id)+'">Approve</button>'+
       '<button type="button" class="secondary" data-action="edit" data-id="'+pfEscHtml(s.id)+'">Edit title</button>'+
-      '<button type="button" class="danger" data-action="reject" data-id="'+pfEscHtml(s.id)+'">Reject</button></div></div>';
+      '<button type="button" class="danger" data-action="reject" data-id="'+pfEscHtml(s.id)+'">Reject</button></div>')+"</div>";
   }).join("");
   el.innerHTML=head+rows;
 }
@@ -1109,6 +1192,9 @@ globalThis.PF={
   pfBfcfFormCode:pfBfcfFormCode,
   pfTableValue:pfTableValue,
   pfSetSourceLabel:pfSetSourceLabel,
+  pfPbgcHonors:pfPbgcHonors,
+  pfNeedsDecision:pfNeedsDecision,
+  pfIncludedSets:pfIncludedSets,
   pfBuildXlsxBytes:pfBuildXlsxBytes,
   pfSheetForSet:pfSheetForSet,
   pfStylesXml:pfStylesXml,

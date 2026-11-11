@@ -16,6 +16,27 @@ Types to look for:
 - **OTHER** — any other factor the plan uses for benefits: pre-retirement
   death, optional forms past JS50, cash balance, anything else. Name it.
 
+## PBGC honors only normal single form to normal married form
+
+The prior plan administrator may have used benefit conversions that
+PBGC will not apply once the plan is in PBGC administration. PBGC
+honors only conversions between the normal single form and the
+normal married form. Every other conversion is left out of the
+workbook. It is not a tab. It is not dropped silently — the app
+names it and says why.
+
+- Record `normalMarriedForm` in `planMetadata`: the plan's normal
+  married form (for example `JS50`), copied from the plan
+  documents. Cite the provision that names it. Never assume `JS50`.
+  If the documents do not name a normal married form, leave it
+  null and mark the BFCF sets `missing` or `ambiguous`.
+- For each BFCF set, record `appliesInPbgcAdmin`: `true` only when
+  `fromForm` is the plan's normal single form (`normalForm`) AND
+  `toForm` is the normal married form. Otherwise `false`. Cite
+  both halves. The app derives the same decision itself from the
+  forms; if your value disagrees with the rule, the JSON is
+  refused. Do not resolve the disagreement yourself.
+
 ## Translate the rule from words to a formula
 
 For each set, do two things, in order.
@@ -68,6 +89,10 @@ Rules for the table:
   `reduction = 1/15 per year early (linear in months)`.
 - `normalForm`: `SLA` or `3CC`.
 - `fromForm`, `toForm`: BFCF only. Example: `SLA`, `JS50`.
+- `appliesInPbgcAdmin`: BFCF only. `true` only when `fromForm` is
+  the normal single form and `toForm` is the normal married form.
+  Otherwise `false`. See "PBGC honors only" above. The app checks
+  it again itself.
 - `nra`: normal retirement age. Example: `65`.
 - `interest`: annual rate as a decimal. Example: `0.08` for 8%.
 - `mortality1`, `mortality2`: table names. Example: `UP84M2`.
@@ -113,6 +138,9 @@ Rules for the table:
 - `planNumber`: plan number as text.
 - `caseNumber`: case number as text. Keep leading zeros.
 - `dopt`: date of plan termination, ISO form `YYYY-MM-DD`.
+- `normalMarriedForm`: the plan's normal married form, for
+  example `JS50`. From the plan documents, with a citation.
+  Never assume it. Null when the documents do not name one.
 
 ## Rules
 
@@ -135,7 +163,8 @@ Rules for the table:
     "planName": "Riverbend Manufacturing Pension Plan",
     "planNumber": "001",
     "caseNumber": "98765400",
-    "dopt": "2025-06-30"
+    "dopt": "2025-06-30",
+    "normalMarriedForm": "JS50"
   },
   "factorSets": [
     {
@@ -147,6 +176,7 @@ Rules for the table:
       "normalForm": "SLA",
       "fromForm": null,
       "toForm": null,
+      "appliesInPbgcAdmin": null,
       "nra": 65,
       "interest": null,
       "mortality1": null,

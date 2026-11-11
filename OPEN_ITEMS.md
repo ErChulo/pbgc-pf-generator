@@ -1,6 +1,22 @@
-# OPEN ITEMS — PF Generator v0.2.1
+# OPEN ITEMS — PF Generator v0.2.2
 
 The canonical gap list. Read this before proposing next steps.
+
+## Fixed in v0.2.2 (PBGC honors rule)
+
+PBGC honors only conversions from the normal single form to the
+normal married form. Any other BFCF pair is left out of the
+workbook: no tab, no decision needed in review, and the generate
+gate is not blocked by it. The app derives the decision itself
+from `fromForm`, `normalForm`, `toForm`, and
+`planMetadata.normalMarriedForm`; the LLM's `appliesInPbgcAdmin`
+is checked against it and any disagreement fails validation. A
+missing `normalMarriedForm` fails validation when a BFCF set is
+present — never guessed as JS50. The review screen shows "PBGC
+honors: Yes/No" per BFCF set with the reason. The audit log names
+every excluded set and its reason, and records the normal married
+form used. Demo: the JS75 set is excluded; the workbook still has
+exactly 3 tabs. See the "PBGC honors" section in `docs/PF_NOTES.md`.
 
 ## Fixed in v0.2.1 (table shape and cell formatting)
 
@@ -67,7 +83,7 @@ The file shows ROUND to 4 decimals. No written PBGC rounding policy
 was found in the Book of Job yet. If none exists, the file's practice
 is the policy. Search for it.
 
-## 4. No logo in v0.2.1
+## 4. No logo in v0.2.2
 
 The header is text only. The DEL generator embeds the white PBGC logo
 (base64, from the Book of Job "images" folder). PF should reuse that

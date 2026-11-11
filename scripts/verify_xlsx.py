@@ -39,6 +39,19 @@ def main():
     wb = openpyxl.load_workbook(str(OUT))
     check("workbook has 3 tabs", wb.sheetnames == ["ERF-2020", "LRF-2020", "BFCF-2020 SLA->JS50"],
           str(wb.sheetnames))
+    check("workbook has no JS75 tab (PBGC does not honor it)",
+          all("JS75" not in name for name in wb.sheetnames), str(wb.sheetnames))
+
+    # Audit log (written next to the workbook by gen_demo_xlsx.cjs).
+    audit_path = Path(str(OUT).replace(".xlsx", "-audit.txt"))
+    check("audit log exists", audit_path.exists(), str(audit_path))
+    if audit_path.exists():
+        audit = audit_path.read_text(encoding="utf-8")
+        check("audit log names the excluded JS75 set and its reason",
+              "excluded (PBGC does not honor)" in audit and "BFCF-2020-JS75" in audit and
+              "to-form JS75 is not the normal married form JS50" in audit, audit)
+        check("audit log records the normal married form",
+              "normal married form — JS50" in audit, audit)
 
     erf = wb["ERF-2020"]
     check("ERF header: plan name", erf["A1"].value == "Riverbend Manufacturing Pension Plan", repr(erf["A1"].value))

@@ -12,8 +12,9 @@
 // Welcome page loads the demo and switches to the PF view.
 // Part 5 — persistence (http:// origin, storage works): a saved dark
 // choice loads dark; toggling writes the choice back.
-// Part 6 — Review + generate: demo loads 4 sets, decisions gate the
-// generate button, approving 3 and rejecting 1 unlocks it.
+// Part 6 — Review + generate: demo loads 5 sets, decisions gate the
+// generate button, approving 3 and rejecting 1 unlocks it; the JS75
+// set needs no decision (PBGC rule leaves it out).
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -89,16 +90,19 @@ function ruleHas(rule, prop, value) {
   const { document } = window;
   check('Part 1: page loads on an opaque origin with no script errors', errors.length === 0, errors.join('; '));
   check('Part 1: PF global exists', !!window.PF);
-  check('Part 1: PF version is 0.2.1', window.PF && window.PF.VERSION === '0.2.1');
+  check('Part 1: PF version is 0.2.2', window.PF && window.PF.VERSION === '0.2.2');
 
   // Demo from the PF view: use the public loader (same as the button).
   window.pfLoadDemo();
-  check('Part 1: demo loads 4 factor sets', window.PF.state.data && window.PF.state.data.factorSets.length === 4);
+  check('Part 1: demo loads 5 factor sets', window.PF.state.data && window.PF.state.data.factorSets.length === 5);
   check('Part 1: demo step is Review (2)', window.PF.state.step === 2);
   const rev = document.getElementById('review-box');
-  check('Part 1: review renders 4 set rows', rev && rev.querySelectorAll('.revrow').length === 4, rev ? String(rev.querySelectorAll('.revrow').length) : 'no review box');
+  check('Part 1: review renders 5 set rows', rev && rev.querySelectorAll('.revrow').length === 5, rev ? String(rev.querySelectorAll('.revrow').length) : 'no review box');
   check('Part 1: review shows the plan words (ruleText)', rev && rev.textContent.includes('Plan words:'), rev ? rev.textContent.slice(0, 200) : 'no review box');
   check('Part 1: review shows the source label (Table / Formulas)', rev && rev.textContent.includes('Source: Table:') && rev.textContent.includes('Source: Formulas from the rule'));
+  check('Part 1: review says PBGC honors the JS50 set', rev && rev.textContent.includes('PBGC honors: Yes'));
+  check('Part 1: review says PBGC does not honor the JS75 set, with the reason', rev && rev.textContent.includes('PBGC honors: No') && rev.textContent.includes('to-form JS75 is not the normal married form JS50'));
+  check('Part 1: excluded set has no approve button', rev && !rev.querySelector('[data-action="approve"][data-id="BFCF-2020-JS75"]'));
 
   // Theme toggle.
   const toggle = document.getElementById('theme-toggle');
@@ -172,12 +176,13 @@ function ruleHas(rule, prop, value) {
   check('Part 3: Escape closes the menu', !nav.classList.contains('open') && menuBtn.getAttribute('aria-expanded') === 'false');
   check('Part 3: Escape returns focus to the menu button', document.activeElement === menuBtn);
 
-  // Part 6: generate is locked until every set is decided.
+  // Part 6: generate is locked until every decidable set is decided.
+  // The JS75 set needs no decision: the PBGC rule leaves it out.
   const genBtn = document.querySelector('#generate-box [data-action="generate"]');
   check('Part 6: generate button starts disabled', genBtn && genBtn.disabled);
   const approveBtns = Array.from(document.querySelectorAll('#review-box [data-action="approve"]'));
   const rejectBtns = Array.from(document.querySelectorAll('#review-box [data-action="reject"]'));
-  check('Part 6: 4 approve buttons, 4 reject buttons', approveBtns.length === 4 && rejectBtns.length === 4);
+  check('Part 6: 4 approve buttons, 4 reject buttons (excluded set has none)', approveBtns.length === 4 && rejectBtns.length === 4);
   // Re-query before each click: approving re-renders the review list.
   ['ERF-2020', 'LRF-2020', 'BFCF-2020', 'ERF-DIS-2020'].forEach((id) => {
     document.querySelector('#review-box [data-action="approve"][data-id="' + id + '"]').click();
@@ -187,11 +192,11 @@ function ruleHas(rule, prop, value) {
   check('Part 6: approving a missing set keeps generate locked', genBtn2 && genBtn2.disabled);
   const warn = document.querySelector('#generate-box .warn');
   check('Part 6: gate explains the block', warn && warn.textContent.includes('ERF-DIS-2020'), warn ? warn.textContent : 'no warning');
-  // Fix: reject the missing set instead.
+  // Fix: reject the missing set instead. The JS75 set stays undecided.
   const disReject = document.querySelector('#review-box [data-action="reject"][data-id="ERF-DIS-2020"]');
   disReject.click();
   const genBtn3 = document.querySelector('#generate-box [data-action="generate"]');
-  check('Part 6: rejecting the missing set unlocks generate', genBtn3 && !genBtn3.disabled);
+  check('Part 6: rejecting the missing set unlocks generate (excluded set still undecided)', genBtn3 && !genBtn3.disabled);
   genBtn3.click();
   check('Part 6: generate produces 98765400PF.xlsx', window.PF.state.generated && window.PF.state.generated.name === '98765400PF.xlsx');
   check('Part 6: generated workbook has 3 tabs', window.PF.state.generated && window.PF.state.generated.tabs === 3);
