@@ -16,6 +16,37 @@ Types to look for:
 - **OTHER** — any other factor the plan uses for benefits: pre-retirement
   death, optional forms past JS50, cash balance, anything else. Name it.
 
+## Work document by document, then combine
+
+A plan has many documents: the plan document, restatements,
+amendments. Read each one on its own first, and note which sets
+each one gives. Then combine: one set per era, per type, per form
+pair. An amendment that changes a rule starts a new era — it does
+not overwrite the old era. If two documents give the same set with
+different values, keep both as `ambiguous` and say why. Never merge
+two eras into one set, and never drop a set because another document
+looks the same.
+
+## Effective dates
+
+For each set, record when its rule applies: `effectiveFrom` (first
+date, ISO `YYYY-MM-DD`) and `effectiveTo` (last date, or null when
+it is still in effect at DOPT). The dates come from the documents:
+adoption date, amendment effective date, restatement date. A set
+with no dates in the documents gets null for both. A set that starts
+after DOPT cannot apply — say so in `note`.
+
+## Plan form names
+
+Record form names exactly as the documents write them: `SLA`,
+`3CC`, `5CC`, `JS50`, `JS75`, `JS100`. Do not translate them into
+BCV codes yourself — the app maps each name to its BCV function
+code (a 3-year certain-and-life form writes as `SLA` with 36 months
+certain). A form name the documents do not give is null, never
+guessed. If a form name is not `SLA`, a certain-and-continuous form
+(`3CC`, `5CC`, ...), or a joint-and-survivor form (`JS50`, ...),
+say so in `note` and mark the set `ambiguous`.
+
 ## PBGC honors only normal single form to normal married form
 
 The prior plan administrator may have used benefit conversions that
@@ -98,7 +129,12 @@ Rules for the table:
 - `title`: short title. Example: `Early Retirement Factors from NRA of 65 (2020 Plan)`.
 - `basis`: the rule in words, with the numbers. Example:
   `reduction = 1/15 per year early (linear in months)`.
-- `normalForm`: `SLA` or `3CC`.
+- `normalForm`: `SLA` or a certain-and-continuous form (`3CC`,
+  `5CC`, ...). Copy it as written.
+- `effectiveFrom`, `effectiveTo`: ISO dates `YYYY-MM-DD`, or null.
+  See "Effective dates" above.
+- `mortalityConfirmed`: `true` only when you checked the mortality
+  code against the ATPBGC MORTNAME table. Otherwise `false`.
 - `fromForm`, `toForm`: BFCF only. Example: `SLA`, `JS50`.
 - `appliesInPbgcAdmin`: BFCF only. `true` only when `fromForm` is
   the normal single form and `toForm` is the normal married form.
@@ -108,7 +144,10 @@ Rules for the table:
 - `interest`: annual rate as a decimal. Example: `0.08` for 8%.
 - `mortality1`, `mortality2`: table names. Example: `UP84M2`.
   Copy the code exactly as the document writes it. Do not expand
-  it, do not guess a code the document does not name.
+  it, do not guess a code the document does not name. The codes
+  live in the ATPBGC MORTNAME table; if a code is not one you can
+  confirm there, leave `mortalityConfirmed` false and say so in
+  `note`.
 - `calcMethod`: example: `MP`. Copy it as written (`MP`, `QP`,
   `SP`, or what the document says). Never assume `MP`.
 - `deferralMortality`: `Y` or `N`. From the plan's definition of
@@ -170,6 +209,7 @@ Rules for the table:
 
 ```json
 {
+  "schemaVersion": "0.3.0",
   "planMetadata": {
     "planName": "Riverbend Manufacturing Pension Plan",
     "planNumber": "001",
@@ -214,7 +254,10 @@ Rules for the table:
       "rule": {"kind": "linear", "denominator": 180},
       "status": "present",
       "note": null,
-      "citation": {"document": "D1", "section": "2.1", "page": "3"}
+      "citation": {"document": "D1", "section": "2.1", "page": "3"},
+      "effectiveFrom": "2020-01-01",
+      "effectiveTo": null,
+      "mortalityConfirmed": false
     }
   ]
 }

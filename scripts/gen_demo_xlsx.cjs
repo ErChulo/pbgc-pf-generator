@@ -17,10 +17,11 @@ const sandbox = { console, TextEncoder, Blob, URL, File, setTimeout };
 vm.createContext(sandbox);
 vm.runInContext(m[1], sandbox, { filename: "pf-generator.html" });
 const PF = sandbox.PF;
-// Demo: approve the 3 included present sets, reject the missing
+// Demo: import the demo JSON (so the audit log records its hash),
+// approve the 3 included present sets, reject the missing
 // disability set, approve the user-added JS100 conversion. The JS75
 // set needs no decision: the PBGC rule leaves it out.
-sandbox.pfLoadDemo();
+sandbox.pfImportText(JSON.stringify(PF.DEMO_PF_JSON), "demo JSON");
 PF.state.decisions = {
   "ERF-2020": "approved",
   "LRF-2020": "approved",
@@ -31,6 +32,6 @@ PF.state.decisions = {
 const res = sandbox.pfGenerate();
 if (!res.ok) { console.error("demo generate failed: " + res.why); process.exit(1); }
 fs.writeFileSync(out, Buffer.from(PF.state.generated.bytes));
-fs.writeFileSync(auditOut, PF.state.auditText || "(no entries)");
+fs.writeFileSync(auditOut, PF.pfAuditReport());
 console.log("wrote " + out + " (" + PF.state.generated.bytes.length + " bytes, " + PF.state.generated.tabs + " tabs)");
 console.log("wrote " + auditOut);

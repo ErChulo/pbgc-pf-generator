@@ -1,5 +1,5 @@
 "use strict";
-/* PF Generator v0.2.3 — test runner.
+/* PF Generator v0.3.0 — test runner.
    Loads the single <script> block of pf-generator.html into a Node vm
    (no DOM, no localStorage — the pure logic only) and checks schema
    validation, flexible import, partial merge, formula builders, and
@@ -8,6 +8,7 @@
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
+const zlib = require("zlib");
 
 const ROOT = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(ROOT, "pf-generator.html"), "utf-8");
@@ -37,7 +38,7 @@ console.log("PF Generator v" + PF.VERSION + " — tests");
 
 /* --- 1. Schema + demo --- */
 const schema = JSON.parse(fs.readFileSync(path.join(ROOT, "schema", "pf.schema.json"), "utf-8"));
-check("schema is valid JSON with planMetadata + factorSets + additionalConversions", Object.keys(schema.properties).length === 3 && schema.properties.additionalConversions && schema.properties.additionalConversions.items.$ref === "#/properties/factorSets/items");
+check("schema is valid JSON with planMetadata + factorSets + additionalConversions + schemaVersion", Object.keys(schema.properties).length === 4 && schema.properties.additionalConversions && schema.properties.additionalConversions.items.$ref === "#/properties/factorSets/items" && schema.properties.schemaVersion);
 const demo = PF.DEMO_PF_JSON;
 check("demo has 5 factor sets", demo.factorSets.length === 5);
 const demoErrs = PF.validatePfJson(demo);
@@ -113,7 +114,7 @@ check("stepped formula has MIN/MAX shape", fs1.formula === "ROUND(1-(1/180)*MIN(
 check("stepped cached at month 120 is 0.5000", PF.pfMonthFormula(stepped, "I34", 120).cached === "0.5000");
 const lrf = demo.factorSets[1];
 const fl = PF.pfMonthFormula(lrf, "A11", 1);
-check("LRF formula is LRFAEQ", fl.formula === 'ROUND(LRFAEQ(0.05,"M",65,A11,0,"GM83","GF83","MP","Y"),4)', fl.formula);
+check("LRF formula is LRFAEQ with months certain 36 (normal form 3CC)", fl.formula === 'ROUND(LRFAEQ(0.05,"M",65,A11,36,"GM83","GF83","MP","Y"),4)', fl.formula);
 check("BCV formula has no cached value", fl.cached === null);
 const bf = PF.pfBfcfFormula(demo.factorSets[2], "C10", "B11");
 check("BFCF formula is BFCFAEQ", bf.formula === 'ROUND(BFCFAEQ("SLA",0,36,0,"JSC",0.5,0,0,C10,B11,"M","F",0.08,"UP84M2","UP84M2","MP","N"),4)', bf.formula);
@@ -186,9 +187,33 @@ check("workbook XML sets fullCalcOnLoad", wbXml.indexOf("fullCalcOnLoad") >= 0);
 const approved = clone(demo);
 approved.factorSets = approved.factorSets.filter((s) => s.status === "present");
 const bytes = PF.pfBuildXlsxBytes(approved);
-check("xlsx bytes are a stored ZIP (PK header)", bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04);
+check("xlsx bytes are a ZIP (PK header)", bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04);
+/* The workbook is DEFLATE-compressed (v0.3.0), so content checks
+   read the decompressed members, never the raw bytes. */
+function unzipMembers(b) {
+  const buf = Buffer.from(b);
+  const members = {};
+  let off = 0;
+  while (off + 30 <= buf.length && buf.readUInt32LE(off) === 0x04034b50) {
+    const method = buf.readUInt16LE(off + 8);
+    const compSize = buf.readUInt32LE(off + 18);
+    const nameLen = buf.readUInt16LE(off + 26);
+    const extraLen = buf.readUInt16LE(off + 28);
+    const name = buf.toString("utf8", off + 30, off + 30 + nameLen);
+    const start = off + 30 + nameLen + extraLen;
+    const comp = buf.subarray(start, start + compSize);
+    members[name] = { method, text: (method === 8 ? zlib.inflateRawSync(comp) : comp).toString("utf8") };
+    off = start + compSize;
+  }
+  return members;
+}
+const members = unzipMembers(bytes);
+const xlsxText = Object.values(members).map((mm) => mm.text).join("\n");
+check("xlsx members are DEFLATE-compressed (method 8)", Object.values(members).every((mm) => mm.method === 8), JSON.stringify(Object.entries(members).map(([k, v]) => k + ":" + v.method)));
+check("xlsx has docProps with the generator version", members["docProps/core.xml"] && members["docProps/core.xml"].text.indexOf("PF Generator v0.3.0") >= 0);
+check("xlsx members decompress (no corrupt member)", Object.keys(members).length >= 9, String(Object.keys(members).length));
 const buf = Buffer.from(bytes);
-function has(str) { return buf.indexOf(Buffer.from(str, "utf8")) >= 0; }
+function has(str) { return xlsxText.indexOf(str) >= 0; }
 check("xlsx contains the plan name", has("Riverbend Manufacturing Pension Plan"));
 check("xlsx contains the case number", has("98765400"));
 check("xlsx contains the DOPT", has("2025-06-30"));
@@ -264,8 +289,8 @@ const noSex = clone(demo); noSex.factorSets[1].partSex = null;
 check("validator rejects a bcv rule with no partSex", PF.validatePfJson(noSex).errors.some((e) => e.indexOf("partSex") >= 0));
 const noRt = clone(demo); noRt.factorSets[0].ruleText = null;
 check("validator rejects a present set with no ruleText", PF.validatePfJson(noRt).errors.some((e) => e.indexOf("ruleText") >= 0));
-const badTo = clone(demo); badTo.factorSets[2].toForm = "SLA"; badTo.factorSets[2].survivorPct = null;
-check("validator rejects a bcv BFCF set whose toForm is not a JS form", PF.validatePfJson(badTo).errors.some((e) => e.indexOf("toForm") >= 0));
+const badTo = clone(demo); badTo.factorSets[2].toForm = "XYZ"; badTo.factorSets[2].survivorPct = null;
+check("validator rejects a bcv BFCF set whose toForm has no BCV form code", PF.validatePfJson(badTo).errors.some((e) => e.indexOf("toForm") >= 0), PF.validatePfJson(badTo).errors.join("; "));
 const badFac = clone(demo); badFac.factorSets[0].table.rows[0].factor = 2.5;
 check("validator rejects a table factor outside 0-2", PF.validatePfJson(badFac).errors.some((e) => e.indexOf("factor") >= 0));
 const badMo = clone(demo); badMo.factorSets[0].table.rows[0].months = 999;
@@ -329,18 +354,9 @@ check("validator rejects appliesInPbgcAdmin false on a honored set",
   PF.validatePfJson(liar2).errors.some((e) => e.indexOf("appliesInPbgcAdmin") >= 0));
 check("validator accepts appliesInPbgcAdmin null (not stated)",
   PF.validatePfJson((() => { const d = clone(demo); d.factorSets[2].appliesInPbgcAdmin = null; return d; })()).errors.length === 0);
-check("built workbook has no JS75 tab", (() => {
-  const b = Buffer.from(PF.pfBuildXlsxBytes(approved));
-  return b.indexOf(Buffer.from("JS75", "utf8")) < 0;
-})());
-check("built workbook has the user-added JS100 tab", (() => {
-  const b = Buffer.from(PF.pfBuildXlsxBytes(approved));
-  return b.indexOf(Buffer.from("BFCF-2020 SLA->JS100", "utf8")) >= 0;
-})());
-check("user-added JS100 formula derives survivor percent 1 from the to-form", (() => {
-  const b = Buffer.from(PF.pfBuildXlsxBytes(approved)).toString("utf8");
-  return b.indexOf('BFCFAEQ(&quot;SLA&quot;,0,36,0,&quot;JSC&quot;,1,0,0,') >= 0;
-})());
+check("built workbook has no JS75 tab", !has("JS75"));
+check("built workbook has the user-added JS100 tab", has("BFCF-2020 SLA->JS100"));
+check("user-added JS100 formula derives survivor percent 1 from the to-form", has('BFCFAEQ(&quot;SLA&quot;,0,36,0,&quot;JSC&quot;,1,0,0,'));
 const onlyOut = clone(demo);
 onlyOut.factorSets = onlyOut.factorSets.filter((s) => s.id === "BFCF-2020-JS75");
 onlyOut.additionalConversions = [];
@@ -380,6 +396,105 @@ const honDemo = clone(demo); honDemo.additionalConversions = [manHonored];
 check("a user-added honored pair is flagged honored, not excluded",
   PF.pfIncludedSets(honDemo).userAdded[0].honored === true &&
   PF.pfIncludedSets(honDemo).excluded.length === 1);
+
+/* --- 8e. v0.3.0: BCV form-code mapping (plan forms -> BCV codes) --- */
+check("form map: SLA is SLA with 0 certain", JSON.stringify(PF.pfPlanFormToBcv("SLA", null)) === JSON.stringify({ code: "SLA", spc: 0, mths: 0 }));
+check("form map: 3CC is SLA with 36 months certain", JSON.stringify(PF.pfPlanFormToBcv("3CC", null)) === JSON.stringify({ code: "SLA", spc: 0, mths: 36 }));
+check("form map: 5CC is SLA with 60 months certain", PF.pfPlanFormToBcv("5CC", null).mths === 60);
+check("form map: JS50 is JSC with survivor 0.5", JSON.stringify(PF.pfPlanFormToBcv("JS50", null)) === JSON.stringify({ code: "JSC", spc: 0.5, mths: 0 }));
+check("form map: JS100 is JSC with survivor 1", PF.pfPlanFormToBcv("JS100", null).spc === 1);
+check("form map: unknown form has no BCV code", PF.pfPlanFormToBcv("XYZ", null) === null && PF.pfPlanFormToBcv("", null) === null);
+const bf3cc = clone(demo.factorSets[2]);
+bf3cc.fromForm = "3CC"; bf3cc.normalForm = "3CC";
+check("BFCF formula for a 3CC from-form writes SLA with 36 months certain, never 3CC",
+  PF.pfBfcfFormula(bf3cc, "C10", "B11").formula === 'ROUND(BFCFAEQ("SLA",0,36,0,"JSC",0.5,0,0,C10,B11,"M","F",0.08,"UP84M2","UP84M2","MP","N"),4)',
+  PF.pfBfcfFormula(bf3cc, "C10", "B11").formula);
+const bfJsFrom = clone(demo.factorSets[2]);
+bfJsFrom.fromForm = "JS50"; bfJsFrom.toForm = "SLA"; bfJsFrom.survivorPct = null;
+check("BFCF formula for a JS from-form writes its survivor percent (JS50 -> 0.5) and SLA to-form",
+  PF.pfBfcfFormula(bfJsFrom, "C10", "B11").formula.indexOf('BFCFAEQ("JSC",0.5,36,0,"SLA",0,0,0,') >= 0,
+  PF.pfBfcfFormula(bfJsFrom, "C10", "B11").formula);
+check("survivor percent derives 0 for an SLA to-form", PF.pfSurvivorPctForSet(bfJsFrom) === 0);
+const erf3cc = clone(demo.factorSets[1]);
+erf3cc.monthsCertain = null;
+check("months certain derives 36 from a 3CC normal form", PF.pfMonthsCertainForSet(erf3cc) === 36);
+check("months certain derives 0 from an SLA normal form", PF.pfMonthsCertainForSet(demo.factorSets[0]) === 0);
+const ccConflict = clone(demo); ccConflict.factorSets[1].monthsCertain = 0;
+check("validator rejects monthsCertain 0 on a 3CC normal form (36 expected)",
+  PF.validatePfJson(ccConflict).errors.some((e) => e.indexOf("monthsCertain") >= 0 && e.indexOf("3CC") >= 0), PF.validatePfJson(ccConflict).errors.join("; "));
+const badMort = clone(demo); badMort.factorSets[1].mortality1 = "ZZ99";
+check("validator rejects an unknown mortality code",
+  PF.validatePfJson(badMort).errors.some((e) => e.indexOf("ZZ99") >= 0), PF.validatePfJson(badMort).errors.join("; "));
+const confMort = clone(badMort); confMort.factorSets[1].mortalityConfirmed = true;
+check("validator accepts an unknown mortality code once the user confirmed it in MORTNAME",
+  PF.validatePfJson(confMort).errors.length === 0, PF.validatePfJson(confMort).errors.join("; "));
+const lowMort = clone(demo); lowMort.factorSets[1].mortality1 = "up84";
+check("validator rejects a malformed mortality code (lowercase)",
+  PF.validatePfJson(lowMort).errors.some((e) => e.indexOf("up84") >= 0));
+check("known mortality codes include the doc codes and UP84M2 (reference file)",
+  PF.pfKnownMortality("GM83") && PF.pfKnownMortality("UP84M2") && PF.pfKnownMortality("LS00SU2015") && !PF.pfKnownMortality("ZZ99"));
+const badCm = clone(demo); badCm.factorSets[1].calcMethod = "XX";
+check("validator rejects an unknown calc method",
+  PF.validatePfJson(badCm).errors.some((e) => e.indexOf("calcMethod") >= 0), PF.validatePfJson(badCm).errors.join("; "));
+const exactCm = clone(demo); exactCm.factorSets[1].calcMethod = "Exact";
+check("validator accepts calc method Exact (named in the add-in doc)",
+  PF.validatePfJson(exactCm).errors.length === 0, PF.validatePfJson(exactCm).errors.join("; "));
+const int1 = clone(demo); int1.factorSets[1].interest = 1;
+check("validator rejects interest 1.0 (the add-in rejects 1.0 and above)",
+  PF.validatePfJson(int1).errors.some((e) => e.indexOf("interest") >= 0));
+const dupKey = clone(demo); const dupSet = clone(demo.factorSets[2]); dupSet.id = "BFCF-2020-COPY"; dupKey.factorSets.push(dupSet);
+check("validator rejects a duplicate factor set under a different id",
+  PF.validatePfJson(dupKey).errors.some((e) => e.indexOf("duplicate factor set") >= 0), PF.validatePfJson(dupKey).errors.join("; "));
+const dis2 = clone(demo); const disB = clone(demo.factorSets[4]);
+disB.id = "ERF-DIS-2020B"; disB.status = "present";
+disB.basis = "reduction = 1/10 per year early (linear in months)";
+disB.ruleText = "reduction of 1/10 per year early";
+disB.rule = { kind: "linear", denominator: 120 };
+dis2.factorSets.push(disB);
+check("validator accepts a second ERF set in one era when its rule differs (disability vs regular)",
+  PF.validatePfJson(dis2).errors.length === 0, PF.validatePfJson(dis2).errors.join("; "));
+const badEff = clone(demo); badEff.factorSets[0].effectiveFrom = "2021-01-01"; badEff.factorSets[0].effectiveTo = "2020-01-01";
+check("validator rejects effectiveFrom after effectiveTo",
+  PF.validatePfJson(badEff).errors.some((e) => e.indexOf("effectiveFrom") >= 0));
+const lateEff = clone(demo); lateEff.factorSets[0].effectiveFrom = "2026-01-01";
+check("validator rejects a set that starts after DOPT",
+  PF.validatePfJson(lateEff).errors.some((e) => e.indexOf("DOPT") >= 0));
+const badSurv = clone(demo); badSurv.factorSets[2].survivorPct = 0.75;
+check("validator rejects a survivor percent that disagrees with the to-form",
+  PF.validatePfJson(badSurv).errors.some((e) => e.indexOf("survivorPct") >= 0), PF.validatePfJson(badSurv).errors.join("; "));
+const oldSchema = clone(demo); oldSchema.schemaVersion = "0.2.3";
+check("import warns when the JSON schema version differs from the app",
+  PF.importFlexPfJson(oldSchema, {}).schemaVersionNote && PF.importFlexPfJson(oldSchema, {}).schemaVersionNote.indexOf("0.2.3") >= 0);
+
+/* --- 8f. v0.3.0: DEFLATE, determinism, full grid, formula preview --- */
+const defRaw = PF.pfDeflateRaw(new TextEncoder().encode("abcabcabcabcabcabcabcabcabcabc"));
+check("DEFLATE round-trips through zlib", zlib.inflateRawSync(Buffer.from(defRaw)).toString("utf8") === "abcabcabcabcabcabcabcabcabcabc");
+const bytesAgain = PF.pfBuildXlsxBytes(approved);
+check("same approved inputs produce identical bytes (deterministic build)",
+  Buffer.from(bytes).equals(Buffer.from(bytesAgain)));
+check("compressed workbook is far smaller than the stored form", bytes.length < 20000, String(bytes.length));
+const fullSet = clone(demo.factorSets[2]);
+fullSet.partAgeMin = 55; fullSet.partAgeMax = 80; fullSet.benAgeMin = 0; fullSet.benAgeMax = 100;
+const fullData = clone(demo);
+fullData.factorSets = [fullSet];
+const fullBytes = PF.pfBuildXlsxBytes(fullData);
+const fullMembers = unzipMembers(fullBytes);
+check("full 26x101 BFCF grid builds (A1:AB111)", fullMembers["xl/worksheets/sheet1.xml"].text.indexOf('<dimension ref="A1:AB111"/>') >= 0);
+check("full 26x101 BFCF grid has 2,626 formulas", (fullMembers["xl/worksheets/sheet1.xml"].text.match(/<f>ROUND\(BFCFAEQ/g) || []).length === 2626);
+check("full-grid workbook stays small compressed", fullBytes.length < 200000, String(fullBytes.length));
+const collA = clone(demo.factorSets[2]); collA.id = "BFCF-AAAAAAAAAA"; collA.era = "2020-very-long-era-name-aaa-one";
+const collB = clone(demo.factorSets[2]); collB.id = "BFCF-BBBBBBBBBB"; collB.era = "2020-very-long-era-name-aaa-two"; collB.toForm = "JS50";
+const collData = clone(demo);
+collData.factorSets = [collA, collB];
+check("tab names collide after the 31-char cut for two long eras", PF.pfTabName(collA) === PF.pfTabName(collB));
+let threwColl = false;
+try { PF.pfBuildXlsxBytes(collData); } catch (e) { threwColl = /share the tab name/.test(e.message); }
+check("xlsx build refuses two sets that would share a tab name", threwColl);
+check("formula preview shows the exact BFCF formula",
+  PF.pfFormulaPreview(demo.factorSets[2]) === '=ROUND(BFCFAEQ("SLA",0,36,0,"JSC",0.5,0,0,C10,B11,"M","F",0.08,"UP84M2","UP84M2","MP","N"),4)');
+check("formula preview shows the exact linear formula",
+  PF.pfFormulaPreview(demo.factorSets[0]) === "=ROUND(1-(A11/180),4)");
+check("formula preview is null for a set with no rule", PF.pfFormulaPreview(demo.factorSets[4]) === null);
 
 /* --- 9. UI import/generate path (minimal DOM stub) --- */
 {
@@ -432,15 +547,19 @@ check("a user-added honored pair is flagged honored, not excluded",
   check("UI generate unlocks with the excluded set undecided", gen.ok && st().generated !== null, gen.why || "");
   check("UI generate produces the .xlsx once all decidable sets are decided", gen.ok && st().generated && st().generated.name === "98765400PF.xlsx" && st().step === 4, "name=" + (st().generated && st().generated.name));
   check("UI generate wrote 4 tabs (3 honored + 1 user-added)", st().generated && st().generated.tabs === 4);
-  const gbuf = Buffer.from(st().generated.bytes);
-  check("generated bytes contain the BFCF formula", gbuf.indexOf(Buffer.from("BFCFAEQ(", "utf8")) >= 0);
-  check("generated bytes omit the rejected set", gbuf.indexOf(Buffer.from("Disability", "utf8")) < 0);
+  const gtext = Object.values(unzipMembers(st().generated.bytes)).map((mm) => mm.text).join("\n");
+  check("generated bytes contain the BFCF formula", gtext.indexOf("BFCFAEQ(") >= 0);
+  check("generated bytes omit the rejected set", gtext.indexOf("Disability") < 0);
   check("audit log has entries", st().audit.length >= 3);
   check("audit log records per-set table vs formula counts", st().audit.some((a) => a.action === "generate set" && a.detail.indexOf("ERF-2020") === 0 && a.detail.indexOf("table values: 3") >= 0), st().audit.map((a) => a.action + " " + a.detail).join(" | "));
   check("audit log names the excluded set and its reason", st().audit.some((a) => a.action === "excluded (PBGC does not honor)" && a.detail.indexOf("BFCF-2020-JS75") === 0 && a.detail.indexOf("not the normal married form JS50") >= 0), st().audit.map((a) => a.action + " " + a.detail).join(" | "));
   check("audit log records the user-added conversion and that it is included by choice", st().audit.some((a) => a.action === "additional conversion (user-added)" && a.detail.indexOf("BFCF-2020-JS100") === 0 && a.detail.indexOf("included by your choice") >= 0), st().audit.map((a) => a.action + " " + a.detail).join(" | "));
   check("audit log records the normal married form", st().audit.some((a) => a.action === "normal married form" && a.detail === "JS50"));
-  check("generated bytes contain no JS75 tab", gbuf.indexOf(Buffer.from("JS75", "utf8")) < 0);
+  check("generated bytes contain no JS75 tab", gtext.indexOf("JS75") < 0);
+  const report = P2.pfAuditReport();
+  check("audit report names the generator and schema versions", report.indexOf("PF Generator audit report — v0.3.0 (schema v0.3.0)") >= 0);
+  check("audit report records the input JSON hash", report.indexOf("Input JSON: hash") >= 0);
+  check("audit report traces each set (source, dates, rule, formula)", report.indexOf("ERF-2020") >= 0 && report.indexOf("effective 2020-01-01") >= 0 && report.indexOf("formula: =ROUND(1-(A11/180),4)") >= 0);
 }
 
 console.log("\n" + pass + " passed, " + fail + " failed");

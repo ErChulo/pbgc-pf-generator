@@ -1,13 +1,41 @@
 # PF Generator — Plan Factors
 
-![Tests: 234 passing](https://img.shields.io/badge/tests-234%20passing-brightgreen)
-![Unit tests: 175 passing](https://img.shields.io/badge/unit%20tests-175%20passing-brightgreen)
-![Browser tests: 59 passing](https://img.shields.io/badge/browser%20tests-59%20passing-brightgreen)
-![XLSX checks: 71 passing](https://img.shields.io/badge/xlsx%20checks-71%20passing-brightgreen)
+![Tests: 288 passing](https://img.shields.io/badge/tests-288%20passing-brightgreen)
+![Unit tests: 217 passing](https://img.shields.io/badge/unit%20tests-217%20passing-brightgreen)
+![Browser tests: 71 passing](https://img.shields.io/badge/browser%20tests-71%20passing-brightgreen)
+![XLSX checks: 88 passing](https://img.shields.io/badge/xlsx%20checks-88%20passing-brightgreen)
 ![Network calls: 0](https://img.shields.io/badge/network%20calls-0-brightgreen)
-![Version: v0.2.3](https://img.shields.io/badge/version-v0.2.3-blue)
+![Version: v0.3.0](https://img.shields.io/badge/version-v0.3.0-blue)
 
-Badges show grades measured on v0.2.3. Update badges when tests change.
+Badges show grades measured on v0.3.0. Update badges when tests change.
+
+## v0.3.0 — Software correctness and end-to-end readiness
+
+- **BCV form-code mapping fixed.** A `3CC` from-form used to write
+  `BFCFAEQ("3CC",...)`, which the add-in rejects. It now writes
+  `BFCFAEQ("SLA",0,36,...)`, as the reference file does. Every plan
+  form maps to its BCV code (`SLA`, `nCC` → `SLA` + `n*12` months
+  certain, `JSnn` → `JSC` + percent). Unknown forms are refused.
+- **Validation, fail-closed.** Interest under 1.0, NRA and ages
+  0–124, calc method `MP`/`QP`/`SP`/`Exact`, mortality codes on the
+  known MORTNAME list (or user-confirmed), survivor percent matching
+  its to-form, months certain matching a `nCC` form name.
+- **Effective dates and duplicates.** Each set carries
+  `effectiveFrom` / `effectiveTo`; a set starting after DOPT is
+  refused; the same factor key twice is refused as a duplicate.
+- **Edit in the app.** Every set field is editable in Review, with
+  re-validation on save and the exact formula shown before
+  generating. A manually added pair PBGC does not honor needs an
+  explicit "Include it anyway" tick.
+- **Full grids and compression.** A 26 × 101 BFCF grid (2,626
+  formulas) runs end to end. The ZIP writer compresses with DEFLATE
+  (pure JS, offline): the full-grid workbook is 29 KB. Builds are
+  deterministic — the same inputs give the same bytes.
+- **Audit report.** Versions, input JSON hash, and one traceability
+  line per set. The workbook's document properties carry the
+  generator version.
+
+See `docs/RELEASE_NOTES_0.3.0.md` and `docs/OFFICE_TESTING.md`.
 
 ## v0.2.3 — Additional conversions
 
@@ -75,7 +103,15 @@ Open `pf-generator.html` in a browser, straight from disk (`file://`). No server
 
 1. **Download prompt** — scraper prompt for the LLM.
 2. **Upload JSON** — JSON from the LLM, or flat JSON. Partial JSON fills only missing sets.
-3. **Review** — each factor set: Approve / Edit / Reject. Read the plan's words (`ruleText`) and the source (table values or formulas). Unmapped keys listed, never dropped. Conflicts become ambiguous, never merged. Additional conversions: add any from-form to to-form pair the scraper missed; it gets its own tab, even when PBGC does not honor it (the review says so).
+3. **Review** — each factor set: Approve / Edit / Reject. Edit any
+   field in place; save re-validates and a saved edit needs approval
+   again. Read the plan's words (`ruleText`), the source (table
+   values or formulas), the effective dates, and the exact formula
+   that will be written. Unmapped keys listed, never dropped.
+   Conflicts become ambiguous, never merged. Additional conversions:
+   add any from-form to to-form pair the scraper missed; a pair PBGC
+   does not honor needs the "Include it anyway" tick, and the audit
+   log records the override.
 4. **Generate** — locked until header (plan name, case number, DOPT) is filled and each set has a decision. Approved sets must be present.
 5. **Download** — filled `<case>PF.xlsx` + audit log.
 
@@ -98,15 +134,23 @@ Demo case: synthetic. Riverbend Manufacturing Pension Plan, Plan No. 001, case 9
 | `docs/OLD_ATTEMPT_COMPARISON.md` | Old March 2026 attempt vs this version; what was borrowed (v0.1.1 layout parity). |
 | `scripts/build_single_file.py` | Injects the prompt into the HTML; runs safety checks. |
 | `scripts/gen_demo_xlsx.cjs` | Generates the demo .xlsx through the HTML's own code. |
-| `scripts/verify_xlsx.py` | Checks the generated .xlsx with openpyxl + LibreOffice. |
-| `tests/run.cjs` | Unit tests (175). |
-| `tests/browser.cjs` | Browser tests (59, jsdom). |
+| `scripts/gen_full_grid_xlsx.cjs` | Generates a full 26×101 BFCF grid .xlsx through the HTML's own code. |
+| `scripts/verify_xlsx.py` | Checks the generated .xlsx with openpyxl + LibreOffice (88). |
+| `tests/run.cjs` | Unit tests (217). |
+| `tests/browser.cjs` | Browser tests (71, jsdom). |
+| `docs/RELEASE_NOTES_0.3.0.md` | What changed in v0.3.0, what is still open. |
+| `docs/OFFICE_TESTING.md` | Office test instructions for v0.3.0. |
+| `samples/riverbend-pf.json` | Sample synthetic input JSON (regenerates the sample workbook). |
+
+Sample workbooks are generated, not stored in the repo (binary):
+`node scripts/gen_demo_xlsx.cjs` makes the demo workbook;
+`node scripts/gen_full_grid_xlsx.cjs` makes the full grid.
 | `package.json` | Test command (`npm test`), jsdom dev dependency. |
 | `OPEN_ITEMS.md` | Gap list. Read it before next steps. |
 
 ## Design system
 
-PBGC Design System **v1.1.0 DRAFT** (not approved). Tokens from `ErChulo/pbgc-design-system`, commit `84a7149d112ef26fcf1e5656b017b9e54f863cb2` (2026-11-08), blob SHA `49e4c3c9e2a41bbe50bea204ea71a7d427843ac2` (byte-identical). Brand blue #002D72. Helvetica Neue/Arial. WCAG 2.2 AA. Dark theme: toggle in the header. Dark background #000. No logo in v0.2.2 (see OPEN_ITEMS.md). Design-system repo not modified.
+PBGC Design System **v1.1.0 DRAFT** (not approved). Tokens from `ErChulo/pbgc-design-system`, commit `84a7149d112ef26fcf1e5656b017b9e54f863cb2` (2026-11-08), blob SHA `49e4c3c9e2a41bbe50bea204ea71a7d427843ac2` (byte-identical). Brand blue #002D72. Helvetica Neue/Arial. WCAG 2.2 AA. Dark theme: toggle in the header. Dark background #000. No logo in v0.3.0 (see OPEN_ITEMS.md). Design-system repo not modified.
 
 ## Formulas
 
@@ -117,7 +161,7 @@ survivor percent, temporary months. Missing arguments fail
 validation. There are no silent defaults.
 
 - Plain rules: `=ROUND(1-(months/180),4)` and the stepped form. Cached values in the file, computed by the same arithmetic in JS.
-- BCV rules: `ERFAEQ`, `LRFAEQ`, `BFCFAEQ` as cell formulas. They compute only in Excel with the ATPBGC add-in. The workbook sets `fullCalcOnLoad`, so Excel computes on open.
+- BCV rules: `ERFAEQ`, `LRFAEQ`, `BFCFAEQ` as cell formulas. They compute only in Excel with the ATPBGC add-in. The workbook sets `fullCalcOnLoad`, so Excel computes on open. Plan form names map to BCV codes: `SLA` → `SLA`, `nCC` (e.g. `3CC`) → `SLA` with `n*12` months certain, `JSnn` → `JSC` with the survivor percent. A form name with no BCV code is refused.
 - Printed tables: values the documents print are written as values (format `0.0000`); the rest of the range stays formulas.
 - Rounding: `ROUND(...,4)`, format `0.0000`.
 
@@ -128,24 +172,26 @@ Every tab: print area = full table, print titles rows 1:10, landscape, fit 1 wid
 ## Tests
 
 ```sh
-npm test                              # 175 unit + 59 browser checks
-python3 scripts/verify_xlsx.py        # demo .xlsx checks (71)
+npm test                              # 217 unit + 71 browser checks
+python3 scripts/verify_xlsx.py        # demo + full-grid .xlsx checks (88)
 python3 scripts/build_single_file.py  # re-inject prompt, run safety checks
 ```
 
-## Verified — v0.2.3
+## Verified — v0.3.0
 
-- `npm test`: **234 passed, 0 failed** (175 unit + 59 browser).
+- `npm test`: **288 passed, 0 failed** (217 unit + 71 browser).
 - `node --check` on the HTML script: passes.
-- `python3 scripts/verify_xlsx.py`: all 71 checks pass. 4 tabs (ERF-2020, LRF-2020, BFCF-2020 SLA->JS50, BFCF-2020 SLA->JS100). No JS75 tab: the SLA->JS75 pair is left out by the PBGC rule. The user-added JS100 tab carries the BFCFAEQ formula with survivor percent 1, derived from the to-form. The audit log names the excluded set and its reason, records the user-added conversion as included by choice, and records the normal married form JS50. Headers filled. Formulas present. Print setup, merged headers, freeze panes, and column widths present on every tab. BFCF headers in column B, as in the reference file. Demo ERF tab: months fill down each column (C11=25, E11=49, G11=73, I11=97); months 1, 60, 120 are table values (0.9944 at B11, 0.6667 at F22, 0.3333 at J34); the rest are formulas. Header fonts match the reference file (A1=14 bold, A5=12 bold), thin borders on row 10 and table cells, row heights match. BFCF formula carries the plan sexes "M","F". LibreOffice Calc opens the file and shows the month-1 factor (0.9944).
-- Grep: 0 `fetch(`, 0 `<script src`, 0 `<link>`, 0 `import(`, no external URLs. Only `http://` strings: OOXML namespace URIs in the .xlsx builder — identifiers, not fetches.
-- Browser test: page loads in jsdom on an opaque origin (file: URL). Demo button loads the demo case, moves to Review. Generate stays locked until all sets are decided; approving a missing set stays locked.
+- `python3 scripts/verify_xlsx.py`: all 88 checks pass. 4 tabs (ERF-2020, LRF-2020, BFCF-2020 SLA->JS50, BFCF-2020 SLA->JS100). No JS75 tab: the SLA->JS75 pair is left out by the PBGC rule. The user-added JS100 tab carries the BFCFAEQ formula with survivor percent 1, derived from the to-form. The audit log is the full report (versions, input hash, per-set trace). Headers filled. Formulas present. Print setup, merged headers, freeze panes, and column widths present on every tab. BFCF headers in column B, as in the reference file. Demo ERF tab: months fill down each column (C11=25, E11=49, G11=73, I11=97); months 1, 60, 120 are table values (0.9944 at B11, 0.6667 at F22, 0.3333 at J34); the rest are formulas. Header fonts match the reference file (A1=14 bold, A5=12 bold), thin borders on row 10 and table cells, row heights match. BFCF formula carries the plan sexes "M","F". LRF formula carries months certain 36 (normal form 3CC, as in the reference file's LRF-1982 and LRF-2011). LibreOffice Calc opens the file, converts it to PDF, and shows the month-1 factor (0.9944).
+- Full grid: a 26 × 101 BFCF grid (2,626 formulas, A1:AB111) builds and opens, 29 KB compressed.
+- Determinism: the same approved inputs produce identical bytes. `samples/riverbend-pf.json` regenerates `samples/riverbend-pf.xlsx` byte-for-byte.
+- Grep: 0 `fetch(`, 0 `<script src`, 0 `<link>`, 0 `import(`, no external URLs. Only `http://` strings: OOXML namespace URIs in the .xlsx builder and document properties — identifiers, not fetches.
+- Browser test: page loads in jsdom on an opaque origin (file: URL). Demo button loads the demo case, moves to Review. Generate stays locked until all sets are decided; approving a missing set stays locked. Editing a set in place re-validates; a bad save is refused.
 - Theme toggle: flips data-theme, dark page #000, header stays brand blue, choice persists.
 - Header/nav: skip link first, nav links with aria-current, hash links + hashchange, Menu disclosure on small screens with Escape + focus return.
-- No real-case strings in the generated .xlsx (checked by verify script).
+- No real-case strings in the generated .xlsx (checked by verify script, decompressed members included).
 
 ## Not verified
 
-- The full BFCF grid (26 participant ages x 101 beneficiary ages) has not been generated end to end yet — the demo uses a small grid (6 x 6). The builder writes grids of any size from imported JSON; a full-grid run is an open item.
 - The BCV function signatures (ERFAEQ / LRFAEQ / BFCFAEQ) are confirmed against the BCV add-in doc (Jul 2024): argument order matches, codes GM83/GF83/UP84 appear. Still open: the table code UP84M2 has no hit in the doc text; it comes from the reference file only.
 - No written PBGC rounding policy was found yet. The file's practice (ROUND to 4) is the policy for now.
+- Excel with the ATPBGC add-in has not computed the BCV formulas yet — LibreOffice proves the file opens and the plain formulas compute; the BCV cells compute only in Excel with the add-in.

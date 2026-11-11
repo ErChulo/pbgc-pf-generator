@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PF Generator v0.2.3 — Plan Factors</title>
+<title>PF Generator v0.3.0 — Plan Factors</title>
 <style>
 /* PBGC Design System v1.1.0 DRAFT (tokens/tokens.json, commit 84a7149d, 2026-11-08). NOT approved. Dark theme: toggle in header; page background #000 (user override of provisional night-0 #0B1B36); provisional, COLA approval pending. No logo in v0.2.2 (see OPEN_ITEMS.md). */
 :root{
@@ -121,7 +121,7 @@ footer{margin:2rem 0 1rem;border-top:1px solid var(--gray-2);padding-top:1rem}
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to main content</a>
-<header class="topbar"><div class="wrap topbar-row"><div class="topbar-title"><h1>PF Generator</h1><p class="tag">Plan Factors · v0.2.3</p></div><button type="button" id="theme-toggle" class="theme-toggle" data-action="theme" aria-label="Switch to dark theme" aria-pressed="false"><span class="theme-toggle-icon" aria-hidden="true">☾</span> <span class="theme-toggle-label">Dark</span></button></div></header>
+<header class="topbar"><div class="wrap topbar-row"><div class="topbar-title"><h1>PF Generator</h1><p class="tag">Plan Factors · v0.3.0</p></div><button type="button" id="theme-toggle" class="theme-toggle" data-action="theme" aria-label="Switch to dark theme" aria-pressed="false"><span class="theme-toggle-icon" aria-hidden="true">☾</span> <span class="theme-toggle-label">Dark</span></button></div></header>
 <nav id="views-nav" class="views" aria-label="Views">
   <div class="wrap views-row">
     <button type="button" id="menu-toggle" class="menu-toggle" aria-expanded="false" aria-controls="views-list">Menu</button>
@@ -162,26 +162,81 @@ footer{margin:2rem 0 1rem;border-top:1px solid var(--gray-2);padding-top:1rem}
     <h3>What does PBGC honor?</h3>
     <p>PBGC honors only conversions from the normal single form to the normal married form. A conversion the prior administrator used that is not that pair is left out of the workbook. The review screen names it and says why.</p>
     <h3>What if the scraper missed a conversion?</h3>
-    <p>Add it yourself in Review, under Additional conversions. Pick any from-form and to-form, fill in the BCV arguments, and it gets its own tab. If PBGC does not honor that pair, the review says so and the audit log records that you added it by choice.</p>
+    <p>Add it yourself in Review, under Additional conversions. Pick any from-form and to-form, fill in the BCV arguments, and it gets its own tab. If PBGC does not honor that pair, tick “Include it anyway” — that is the override, and the audit log records it.</p>
+    <h3>Can I fix a value without editing the JSON?</h3>
+    <p>Yes. In Review, click Edit on a set and change any field: interest, mortality, method, sexes, ranges, dates, citation. Save checks every value first. A saved edit clears the set’s decision, so approve it again. Each row also shows the exact formula that will be written, so you can check it before you generate.</p>
     <h3>What if a factor set is missing?</h3>
     <p>Reject it in review and it stays out of the workbook. The workbook holds only sets you approved.</p>
   </section>
 </div>
 </main>
-<footer class="wrap"><p class="small">PF Generator v0.2.3. Single file. No server. No data leaves this page. PBGC Design System v1.1.0 DRAFT.</p></footer>
+<footer class="wrap"><p class="small">PF Generator v0.3.0. Single file. No server. No data leaves this page. PBGC Design System v1.1.0 DRAFT.</p></footer>
 <script>
 "use strict";
-/* PF Generator v0.2.3 — plan factors workbook.
+/* PF Generator v0.3.0 — plan factors workbook.
    Single HTML file. No server, no fetch, no CDN.
    Loop: LLM proposes JSON. App checks. You decide. App writes .xlsx. */
-var PF_VERSION="0.2.3";
+var PF_VERSION="0.3.0";
+var PF_SCHEMA_VERSION="0.3.0";
 /* PROMPT-START */
-var PF_SCRAPER_PROMPT = "# PF scraper prompt \u2014 plan factors\n\nYou read plan documents. You return **only** valid JSON. No other text.\n\n## What to find\n\nEvery distinct set of factors the plan uses to work out benefits. One set per\nera, per type, per form pair. A plan with 5 eras has 5 ERF sets, not 1.\n\nTypes to look for:\n\n- **ERF** \u2014 early retirement factors. Each era. Disability ERF too, if any.\n- **LRF** \u2014 late retirement factors. Each era.\n- **BFCF** \u2014 benefit form conversion factors. Each era, each form pair\n  (for example SLA to JS50, 3CC to JS50).\n- **OTHER** \u2014 any other factor the plan uses for benefits: pre-retirement\n  death, optional forms past JS50, cash balance, anything else. Name it.\n\n## PBGC honors only normal single form to normal married form\n\nThe prior plan administrator may have used benefit conversions that\nPBGC will not apply once the plan is in PBGC administration. PBGC\nhonors only conversions between the normal single form and the\nnormal married form. Every other conversion is left out of the\nworkbook. It is not a tab. It is not dropped silently \u2014 the app\nnames it and says why.\n\n- Record `normalMarriedForm` in `planMetadata`: the plan's normal\n  married form (for example `JS50`), copied from the plan\n  documents. Cite the provision that names it. Never assume `JS50`.\n  If the documents do not name a normal married form, leave it\n  null and mark the BFCF sets `missing` or `ambiguous`.\n- For each BFCF set, record `appliesInPbgcAdmin`: `true` only when\n  `fromForm` is the plan's normal single form (`normalForm`) AND\n  `toForm` is the normal married form. Otherwise `false`. Cite\n  both halves. The app derives the same decision itself from the\n  forms; if your value disagrees with the rule, the JSON is\n  refused. Do not resolve the disagreement yourself.\n\n## If a conversion is missing from the file\n\nYou do not need to invent a conversion the documents do not\nname. If a form pair is in the documents but you cannot work\nout its factors, report the set as `missing` or `ambiguous`\nand say why. The app has an \"Additional conversions\" section\nin Review: the user types any from-form to to-form pair and\nits BCV arguments by hand, and it gets its own tab. That is\nthe user's job, not yours. Never fill a missing pair from\nanother plan or from a guess.\n\n## Translate the rule from words to a formula\n\nFor each set, do two things, in order.\n\n1. Quote the plan's rule sentence into `ruleText`, short, with\n   its citation. Example: `reduction of 1/15 per year early`.\n2. State the matching `rule` \u2014 the same rule, as a formula kind:\n   - `{\"kind\": \"linear\", \"denominator\": 180}` \u2014 factor = 1 - months / 180.\n   - `{\"kind\": \"stepped\", \"firstMonths\": 60, \"firstDenominator\": 180, \"secondDenominator\": 360}` \u2014 first rate, then second rate.\n   - `{\"kind\": \"bcv\", \"function\": \"ERFAEQ\"}` \u2014 actuarial equivalence.\n     Use `LRFAEQ` for late factors, `BFCFAEQ` for conversion factors.\n     A bcv rule needs every argument filled in: interest, both\n     mortality tables, calc method, deferral mortality, months\n     certain, normal age, participant sex, and for BFCF also\n     beneficiary sex, survivor percent, and temporary months.\n     If any argument is not in the documents, leave it null and\n     set the set to `missing` or `ambiguous`. Never fill it in\n     from another plan or from a guess.\n\nThe `rule` must say the same thing as the `ruleText`. If the words\nand the formula disagree, the set is `ambiguous`. Say why in `note`.\n\n## Scrape the factor table, if the document prints one\n\nSome plan documents print a table of factors: months early and the\nfactor, or participant age and beneficiary age and the factor. If\nthe document prints one for a set, copy it into `table`:\n\n- Months table: `{\"kind\": \"months\", \"rows\": [{\"months\": 1, \"factor\": 0.9944, \"citation\": {...}}, ...]}`.\n- Age grid: `{\"kind\": \"grid\", \"rows\": [{\"partAge\": 65, \"benAge\": 61, \"factor\": 0.8123, \"citation\": {...}}, ...]}`.\n\nRules for the table:\n\n- Copy each row as printed: the month or the age pair, and the\n  factor as printed (4 decimals as printed).\n- State what each column means: months early, participant age,\n  beneficiary age. Never reorder rows. Never interpolate between\n  rows. Never fill in a row from the formula.\n- Copy only rows the document prints. A row the document does not\n  print stays out. The app writes formulas for the rest.\n- If the document prints no table for a set, set `table` to null.\n\n## What to record per set (field list)\n\n- `id`: short, unique. Example: `ERF-2020`, `BFCF-2020`.\n- `type`: `ERF`, `LRF`, `BFCF`, or `OTHER`.\n- `era`: plan year or era. Example: `2020`.\n- `title`: short title. Example: `Early Retirement Factors from NRA of 65 (2020 Plan)`.\n- `basis`: the rule in words, with the numbers. Example:\n  `reduction = 1/15 per year early (linear in months)`.\n- `normalForm`: `SLA` or `3CC`.\n- `fromForm`, `toForm`: BFCF only. Example: `SLA`, `JS50`.\n- `appliesInPbgcAdmin`: BFCF only. `true` only when `fromForm` is\n  the normal single form and `toForm` is the normal married form.\n  Otherwise `false`. See \"PBGC honors only\" above. The app checks\n  it again itself.\n- `nra`: normal retirement age. Example: `65`.\n- `interest`: annual rate as a decimal. Example: `0.08` for 8%.\n- `mortality1`, `mortality2`: table names. Example: `UP84M2`.\n  Copy the code exactly as the document writes it. Do not expand\n  it, do not guess a code the document does not name.\n- `calcMethod`: example: `MP`. Copy it as written (`MP`, `QP`,\n  `SP`, or what the document says). Never assume `MP`.\n- `deferralMortality`: `Y` or `N`. From the plan's definition of\n  the deferral period. Never assume `Y`.\n- `monthsCertain`: number, or `0`.\n- `partSex`: `M` or `F`. Whose mortality the plan uses for the\n  participant. From the plan's definition, not assumed.\n- `benSex`: BFCF only. `M` or `F`. Whose mortality the plan uses\n  for the beneficiary (contingent annuitant). From the plan's\n  definition, not assumed. The two sexes can differ.\n- `survivorPct`: BFCF only. The survivor percent of the to-form.\n  Example: `JS50` means 0.5. Copy it from the document when the\n  document states it. Leave null when it is only in the form name.\n- `monthsTemp`: BFCF only. Temporary period in months. Leave null\n  when the document has none (means 0).\n- `ruleText`: the plan's own words for the rule, quoted short.\n  Example: `reduction of 1/15 per year early`. With a citation.\n  The formula is translated from this sentence. Every present set\n  needs one.\n- `table`: a factor table printed in the plan documents, if any.\n  See \"Scrape the factor table\" below. Null when the documents\n  print no table for this set.\n- `monthMin`, `monthMax`: ERF, LRF, OTHER only. The range the documents\n  imply. Do not assume 1 to 120. Use what the documents say.\n- `partAgeMin`, `partAgeMax`, `benAgeMin`, `benAgeMax`: BFCF only. The\n  age ranges the documents imply. Do not assume 55 to 80 or 0 to 100.\n- `status`: `present`, `notApplicable`, `missing`, `ambiguous`, or\n  `conditional`. `missing` means the documents do not have it.\n  `ambiguous` means the documents disagree. Say why in `note`.\n- `note`: short note. Needed for `ambiguous` and `conditional`.\n- `citation`: `{\"document\": \"D1\", \"section\": \"2.1\", \"page\": \"3\"}`.\n  Every value needs a citation. Use the short code. Full document\n  name once per set, never in a cell.\n\n## Header\n\n- `planName`: full plan name.\n- `planNumber`: plan number as text.\n- `caseNumber`: case number as text. Keep leading zeros.\n- `dopt`: date of plan termination, ISO form `YYYY-MM-DD`.\n- `normalMarriedForm`: the plan's normal married form, for\n  example `JS50`. From the plan documents, with a citation.\n  Never assume it. Null when the documents do not name one.\n\n## Rules\n\n- Return **only** valid JSON. No markdown. No comment text.\n- Do not guess. If a value is not in the documents, set `status`\n  to `missing` and leave the value null.\n- If two documents disagree, set `status` to `ambiguous`. Do not pick one.\n- If a set does not apply to this plan, set `status` to `notApplicable`.\n- Values short. Smallest string that keeps the meaning.\n- Keep every distinct set. Do not merge eras. Do not drop a set\n  because it looks like another one.\n- The plan name, case number, and DOPT are in the header. Do not\n  repeat them in each set.\n\n## Shape\n\n```json\n{\n  \"planMetadata\": {\n    \"planName\": \"Riverbend Manufacturing Pension Plan\",\n    \"planNumber\": \"001\",\n    \"caseNumber\": \"98765400\",\n    \"dopt\": \"2025-06-30\",\n    \"normalMarriedForm\": \"JS50\"\n  },\n  \"factorSets\": [\n    {\n      \"id\": \"ERF-2020\",\n      \"type\": \"ERF\",\n      \"era\": \"2020\",\n      \"title\": \"Early Retirement Factors from NRA of 65 (2020 Plan)\",\n      \"basis\": \"reduction = 1/15 per year early (linear in months)\",\n      \"normalForm\": \"SLA\",\n      \"fromForm\": null,\n      \"toForm\": null,\n      \"appliesInPbgcAdmin\": null,\n      \"nra\": 65,\n      \"interest\": null,\n      \"mortality1\": null,\n      \"mortality2\": null,\n      \"calcMethod\": null,\n      \"deferralMortality\": null,\n      \"monthsCertain\": null,\n      \"partSex\": null,\n      \"benSex\": null,\n      \"survivorPct\": null,\n      \"monthsTemp\": null,\n      \"ruleText\": \"reduction of 1/15 per year early\",\n      \"table\": {\"kind\": \"months\", \"rows\": [\n        {\"months\": 1, \"factor\": 0.9944, \"citation\": {\"document\": \"D1\", \"section\": \"2.1\", \"page\": \"3\"}},\n        {\"months\": 60, \"factor\": 0.6667, \"citation\": {\"document\": \"D1\", \"section\": \"2.1\", \"page\": \"3\"}},\n        {\"months\": 120, \"factor\": 0.3333, \"citation\": {\"document\": \"D1\", \"section\": \"2.1\", \"page\": \"3\"}}\n      ]},\n      \"monthMin\": 1,\n      \"monthMax\": 120,\n      \"partAgeMin\": null,\n      \"partAgeMax\": null,\n      \"benAgeMin\": null,\n      \"benAgeMax\": null,\n      \"rule\": {\"kind\": \"linear\", \"denominator\": 180},\n      \"status\": \"present\",\n      \"note\": null,\n      \"citation\": {\"document\": \"D1\", \"section\": \"2.1\", \"page\": \"3\"}\n    }\n  ]\n}\n```\n";
+var PF_SCRAPER_PROMPT = "# PF scraper prompt \u2014 plan factors\n\nYou read plan documents. You return **only** valid JSON. No other text.\n\n## What to find\n\nEvery distinct set of factors the plan uses to work out benefits. One set per\nera, per type, per form pair. A plan with 5 eras has 5 ERF sets, not 1.\n\nTypes to look for:\n\n- **ERF** \u2014 early retirement factors. Each era. Disability ERF too, if any.\n- **LRF** \u2014 late retirement factors. Each era.\n- **BFCF** \u2014 benefit form conversion factors. Each era, each form pair\n  (for example SLA to JS50, 3CC to JS50).\n- **OTHER** \u2014 any other factor the plan uses for benefits: pre-retirement\n  death, optional forms past JS50, cash balance, anything else. Name it.\n\n## Work document by document, then combine\n\nA plan has many documents: the plan document, restatements,\namendments. Read each one on its own first, and note which sets\neach one gives. Then combine: one set per era, per type, per form\npair. An amendment that changes a rule starts a new era \u2014 it does\nnot overwrite the old era. If two documents give the same set with\ndifferent values, keep both as `ambiguous` and say why. Never merge\ntwo eras into one set, and never drop a set because another document\nlooks the same.\n\n## Effective dates\n\nFor each set, record when its rule applies: `effectiveFrom` (first\ndate, ISO `YYYY-MM-DD`) and `effectiveTo` (last date, or null when\nit is still in effect at DOPT). The dates come from the documents:\nadoption date, amendment effective date, restatement date. A set\nwith no dates in the documents gets null for both. A set that starts\nafter DOPT cannot apply \u2014 say so in `note`.\n\n## Plan form names\n\nRecord form names exactly as the documents write them: `SLA`,\n`3CC`, `5CC`, `JS50`, `JS75`, `JS100`. Do not translate them into\nBCV codes yourself \u2014 the app maps each name to its BCV function\ncode (a 3-year certain-and-life form writes as `SLA` with 36 months\ncertain). A form name the documents do not give is null, never\nguessed. If a form name is not `SLA`, a certain-and-continuous form\n(`3CC`, `5CC`, ...), or a joint-and-survivor form (`JS50`, ...),\nsay so in `note` and mark the set `ambiguous`.\n\n## PBGC honors only normal single form to normal married form\n\nThe prior plan administrator may have used benefit conversions that\nPBGC will not apply once the plan is in PBGC administration. PBGC\nhonors only conversions between the normal single form and the\nnormal married form. Every other conversion is left out of the\nworkbook. It is not a tab. It is not dropped silently \u2014 the app\nnames it and says why.\n\n- Record `normalMarriedForm` in `planMetadata`: the plan's normal\n  married form (for example `JS50`), copied from the plan\n  documents. Cite the provision that names it. Never assume `JS50`.\n  If the documents do not name a normal married form, leave it\n  null and mark the BFCF sets `missing` or `ambiguous`.\n- For each BFCF set, record `appliesInPbgcAdmin`: `true` only when\n  `fromForm` is the plan's normal single form (`normalForm`) AND\n  `toForm` is the normal married form. Otherwise `false`. Cite\n  both halves. The app derives the same decision itself from the\n  forms; if your value disagrees with the rule, the JSON is\n  refused. Do not resolve the disagreement yourself.\n\n## If a conversion is missing from the file\n\nYou do not need to invent a conversion the documents do not\nname. If a form pair is in the documents but you cannot work\nout its factors, report the set as `missing` or `ambiguous`\nand say why. The app has an \"Additional conversions\" section\nin Review: the user types any from-form to to-form pair and\nits BCV arguments by hand, and it gets its own tab. That is\nthe user's job, not yours. Never fill a missing pair from\nanother plan or from a guess.\n\n## Translate the rule from words to a formula\n\nFor each set, do two things, in order.\n\n1. Quote the plan's rule sentence into `ruleText`, short, with\n   its citation. Example: `reduction of 1/15 per year early`.\n2. State the matching `rule` \u2014 the same rule, as a formula kind:\n   - `{\"kind\": \"linear\", \"denominator\": 180}` \u2014 factor = 1 - months / 180.\n   - `{\"kind\": \"stepped\", \"firstMonths\": 60, \"firstDenominator\": 180, \"secondDenominator\": 360}` \u2014 first rate, then second rate.\n   - `{\"kind\": \"bcv\", \"function\": \"ERFAEQ\"}` \u2014 actuarial equivalence.\n     Use `LRFAEQ` for late factors, `BFCFAEQ` for conversion factors.\n     A bcv rule needs every argument filled in: interest, both\n     mortality tables, calc method, deferral mortality, months\n     certain, normal age, participant sex, and for BFCF also\n     beneficiary sex, survivor percent, and temporary months.\n     If any argument is not in the documents, leave it null and\n     set the set to `missing` or `ambiguous`. Never fill it in\n     from another plan or from a guess.\n\nThe `rule` must say the same thing as the `ruleText`. If the words\nand the formula disagree, the set is `ambiguous`. Say why in `note`.\n\n## Scrape the factor table, if the document prints one\n\nSome plan documents print a table of factors: months early and the\nfactor, or participant age and beneficiary age and the factor. If\nthe document prints one for a set, copy it into `table`:\n\n- Months table: `{\"kind\": \"months\", \"rows\": [{\"months\": 1, \"factor\": 0.9944, \"citation\": {...}}, ...]}`.\n- Age grid: `{\"kind\": \"grid\", \"rows\": [{\"partAge\": 65, \"benAge\": 61, \"factor\": 0.8123, \"citation\": {...}}, ...]}`.\n\nRules for the table:\n\n- Copy each row as printed: the month or the age pair, and the\n  factor as printed (4 decimals as printed).\n- State what each column means: months early, participant age,\n  beneficiary age. Never reorder rows. Never interpolate between\n  rows. Never fill in a row from the formula.\n- Copy only rows the document prints. A row the document does not\n  print stays out. The app writes formulas for the rest.\n- If the document prints no table for a set, set `table` to null.\n\n## What to record per set (field list)\n\n- `id`: short, unique. Example: `ERF-2020`, `BFCF-2020`.\n- `type`: `ERF`, `LRF`, `BFCF`, or `OTHER`.\n- `era`: plan year or era. Example: `2020`.\n- `title`: short title. Example: `Early Retirement Factors from NRA of 65 (2020 Plan)`.\n- `basis`: the rule in words, with the numbers. Example:\n  `reduction = 1/15 per year early (linear in months)`.\n- `normalForm`: `SLA` or a certain-and-continuous form (`3CC`,\n  `5CC`, ...). Copy it as written.\n- `effectiveFrom`, `effectiveTo`: ISO dates `YYYY-MM-DD`, or null.\n  See \"Effective dates\" above.\n- `mortalityConfirmed`: `true` only when you checked the mortality\n  code against the ATPBGC MORTNAME table. Otherwise `false`.\n- `fromForm`, `toForm`: BFCF only. Example: `SLA`, `JS50`.\n- `appliesInPbgcAdmin`: BFCF only. `true` only when `fromForm` is\n  the normal single form and `toForm` is the normal married form.\n  Otherwise `false`. See \"PBGC honors only\" above. The app checks\n  it again itself.\n- `nra`: normal retirement age. Example: `65`.\n- `interest`: annual rate as a decimal. Example: `0.08` for 8%.\n- `mortality1`, `mortality2`: table names. Example: `UP84M2`.\n  Copy the code exactly as the document writes it. Do not expand\n  it, do not guess a code the document does not name. The codes\n  live in the ATPBGC MORTNAME table; if a code is not one you can\n  confirm there, leave `mortalityConfirmed` false and say so in\n  `note`.\n- `calcMethod`: example: `MP`. Copy it as written (`MP`, `QP`,\n  `SP`, or what the document says). Never assume `MP`.\n- `deferralMortality`: `Y` or `N`. From the plan's definition of\n  the deferral period. Never assume `Y`.\n- `monthsCertain`: number, or `0`.\n- `partSex`: `M` or `F`. Whose mortality the plan uses for the\n  participant. From the plan's definition, not assumed.\n- `benSex`: BFCF only. `M` or `F`. Whose mortality the plan uses\n  for the beneficiary (contingent annuitant). From the plan's\n  definition, not assumed. The two sexes can differ.\n- `survivorPct`: BFCF only. The survivor percent of the to-form.\n  Example: `JS50` means 0.5. Copy it from the document when the\n  document states it. Leave null when it is only in the form name.\n- `monthsTemp`: BFCF only. Temporary period in months. Leave null\n  when the document has none (means 0).\n- `ruleText`: the plan's own words for the rule, quoted short.\n  Example: `reduction of 1/15 per year early`. With a citation.\n  The formula is translated from this sentence. Every present set\n  needs one.\n- `table`: a factor table printed in the plan documents, if any.\n  See \"Scrape the factor table\" below. Null when the documents\n  print no table for this set.\n- `monthMin`, `monthMax`: ERF, LRF, OTHER only. The range the documents\n  imply. Do not assume 1 to 120. Use what the documents say.\n- `partAgeMin`, `partAgeMax`, `benAgeMin`, `benAgeMax`: BFCF only. The\n  age ranges the documents imply. Do not assume 55 to 80 or 0 to 100.\n- `status`: `present`, `notApplicable`, `missing`, `ambiguous`, or\n  `conditional`. `missing` means the documents do not have it.\n  `ambiguous` means the documents disagree. Say why in `note`.\n- `note`: short note. Needed for `ambiguous` and `conditional`.\n- `citation`: `{\"document\": \"D1\", \"section\": \"2.1\", \"page\": \"3\"}`.\n  Every value needs a citation. Use the short code. Full document\n  name once per set, never in a cell.\n\n## Header\n\n- `planName`: full plan name.\n- `planNumber`: plan number as text.\n- `caseNumber`: case number as text. Keep leading zeros.\n- `dopt`: date of plan termination, ISO form `YYYY-MM-DD`.\n- `normalMarriedForm`: the plan's normal married form, for\n  example `JS50`. From the plan documents, with a citation.\n  Never assume it. Null when the documents do not name one.\n\n## Rules\n\n- Return **only** valid JSON. No markdown. No comment text.\n- Do not guess. If a value is not in the documents, set `status`\n  to `missing` and leave the value null.\n- If two documents disagree, set `status` to `ambiguous`. Do not pick one.\n- If a set does not apply to this plan, set `status` to `notApplicable`.\n- Values short. Smallest string that keeps the meaning.\n- Keep every distinct set. Do not merge eras. Do not drop a set\n  because it looks like another one.\n- The plan name, case number, and DOPT are in the header. Do not\n  repeat them in each set.\n\n## Shape\n\n```json\n{\n  \"schemaVersion\": \"0.3.0\",\n  \"planMetadata\": {\n    \"planName\": \"Riverbend Manufacturing Pension Plan\",\n    \"planNumber\": \"001\",\n    \"caseNumber\": \"98765400\",\n    \"dopt\": \"2025-06-30\",\n    \"normalMarriedForm\": \"JS50\"\n  },\n  \"factorSets\": [\n    {\n      \"id\": \"ERF-2020\",\n      \"type\": \"ERF\",\n      \"era\": \"2020\",\n      \"title\": \"Early Retirement Factors from NRA of 65 (2020 Plan)\",\n      \"basis\": \"reduction = 1/15 per year early (linear in months)\",\n      \"normalForm\": \"SLA\",\n      \"fromForm\": null,\n      \"toForm\": null,\n      \"appliesInPbgcAdmin\": null,\n      \"nra\": 65,\n      \"interest\": null,\n      \"mortality1\": null,\n      \"mortality2\": null,\n      \"calcMethod\": null,\n      \"deferralMortality\": null,\n      \"monthsCertain\": null,\n      \"partSex\": null,\n      \"benSex\": null,\n      \"survivorPct\": null,\n      \"monthsTemp\": null,\n      \"ruleText\": \"reduction of 1/15 per year early\",\n      \"table\": {\"kind\": \"months\", \"rows\": [\n        {\"months\": 1, \"factor\": 0.9944, \"citation\": {\"document\": \"D1\", \"section\": \"2.1\", \"page\": \"3\"}},\n        {\"months\": 60, \"factor\": 0.6667, \"citation\": {\"document\": \"D1\", \"section\": \"2.1\", \"page\": \"3\"}},\n        {\"months\": 120, \"factor\": 0.3333, \"citation\": {\"document\": \"D1\", \"section\": \"2.1\", \"page\": \"3\"}}\n      ]},\n      \"monthMin\": 1,\n      \"monthMax\": 120,\n      \"partAgeMin\": null,\n      \"partAgeMax\": null,\n      \"benAgeMin\": null,\n      \"benAgeMax\": null,\n      \"rule\": {\"kind\": \"linear\", \"denominator\": 180},\n      \"status\": \"present\",\n      \"note\": null,\n      \"citation\": {\"document\": \"D1\", \"section\": \"2.1\", \"page\": \"3\"},\n      \"effectiveFrom\": \"2020-01-01\",\n      \"effectiveTo\": null,\n      \"mortalityConfirmed\": false\n    }\n  ]\n}\n```\n";
 /* PROMPT-END */
 var PF_TYPES=["ERF","LRF","BFCF","OTHER"];
 var PF_STATUSES=["present","notApplicable","missing","ambiguous","conditional"];
 var PF_RULE_KINDS=["linear","stepped","bcv"];
 var PF_BCV_FUNCTIONS=["ERFAEQ","LRFAEQ","BFCFAEQ"];
+/* Calc methods the add-in doc names: Woolhouse MP/QP/SP, or Exact.
+   ("Exact" is the family name in the doc; the literal is as written.) */
+var PF_CALC_METHODS=["MP","QP","SP","Exact"];
+/* Mortality table codes seen in the add-in doc (BCV_ATPBGC_Add-ins.pdf,
+   Jul 2024) or the reference file. Codes live in the ATPBGC MORTNAME
+   table; the doc lists no full list. UP84M2 comes from the reference
+   file only — no hit in the doc text. LS00SU/LS06SU/LS12SU codes take
+   a year (LS00SU2015). A code not on this list fails validation
+   unless the set carries mortalityConfirmed (the user checked
+   MORTNAME). See pfKnownMortality. */
+var PF_KNOWN_MORTALITY=["GM83","GF83","GM83M6","UP84","UP84M2","UP84M3","UP84M4","UP84P1","AA20","FP14","PIA32","DM89","DM2002","GM83M6DF89","GM83M6DF93","LS00SU2015","LS00SU2009","LS06SU2018"];
+function pfKnownMortality(code){
+  if(!code||typeof code!=="string") return false;
+  if(PF_KNOWN_MORTALITY.indexOf(code)>=0) return true;
+  return /^LS(00|06|12)SU[0-9]{4}$/.test(code);
+}
+/* Plan benefit form -> BCV function code, per the add-in doc
+   (PBGCBFCF2 "Suggested Input", same codes BFCFAEQ accepts):
+   SLA -> SLA, spc 0, mths 0; n-year certain-and-continuous (3CC,
+   5CC, 10CC, 15CC) -> SLA, spc 0, mths n*12; joint-and-survivor
+   (JS50, JS75, JS100, ...) -> JSC, spc = pct, mths 0. That is why
+   the reference file's 3CC->JS50 tabs read BFCFAEQ("SLA",0,36,...):
+   the first argument is the BCV code, not the plan form name.
+   Writing "3CC" there is an invalid argument (BFCFAEQ accepts only
+   SLA, CTN, JSC, JSJ, JSN, JSP). Unknown plan forms return null:
+   the validator refuses them instead of guessing a code. */
+function pfPlanFormToBcv(form,survivorPct){
+  var f=String(form||"").trim().toUpperCase();
+  if(!f) return null;
+  if(f==="SLA") return {code:"SLA",spc:0,mths:0};
+  var cc=/^([0-9]+)CC$/.exec(f);
+  if(cc) return {code:"SLA",spc:0,mths:parseInt(cc[1],10)*12};
+  var js=/^JS([0-9]+(?:\.[0-9]+)?)$/.exec(f);
+  if(js){
+    var pct=(survivorPct!==null&&survivorPct!==undefined&&pfNum(survivorPct)!==null)?pfNum(survivorPct):pfNum(js[1])/100;
+    return {code:"JSC",spc:pct,mths:0};
+  }
+  return null;
+}
+function pfCertainMonthsFor(form,monthsCertain){
+  if(pfNum(monthsCertain)!==null) return pfNum(monthsCertain);
+  var m=pfPlanFormToBcv(form,null);
+  return m?m.mths:0;
+}
+/* Months certain in the normal single form (ERFAEQ/LRFAEQ
+   TheCPeriod; BFCFAEQ FromMthsCert). Explicit monthsCertain wins.
+   Else a certain-and-continuous normal form (3CC) means n*12.
+   Else 0. The validator errors when an explicit value disagrees
+   with the normal form. */
+function pfMonthsCertainForSet(set){
+  return pfCertainMonthsFor(set.normalForm,set.monthsCertain);
+}
 
 /* ---- safe storage: localStorage can throw on access alone
    (opaque origin, blocked storage). Never let that kill the script. ---- */
@@ -254,18 +309,18 @@ function pfNum(v){
 var PF_DEMO_JSON={
   planMetadata:{planName:"Riverbend Manufacturing Pension Plan",planNumber:"001",caseNumber:"98765400",dopt:"2025-06-30",normalMarriedForm:"JS50"},
   factorSets:[
-    {id:"ERF-2020",type:"ERF",era:"2020",title:"Early Retirement Factors from NRA of 65 (2020 Plan)",basis:"reduction = 1/15 per year early (linear in months)",normalForm:"SLA",fromForm:null,toForm:null,appliesInPbgcAdmin:null,nra:65,interest:null,mortality1:null,mortality2:null,calcMethod:null,deferralMortality:null,monthsCertain:null,partSex:null,benSex:null,survivorPct:null,monthsTemp:null,ruleText:"reduction of 1/15 per year early",table:{kind:"months",rows:[{months:1,factor:0.9944,citation:{document:"D1",section:"2.1",page:"3"}},{months:60,factor:0.6667,citation:{document:"D1",section:"2.1",page:"3"}},{months:120,factor:0.3333,citation:{document:"D1",section:"2.1",page:"3"}}]},monthMin:1,monthMax:120,partAgeMin:null,partAgeMax:null,benAgeMin:null,benAgeMax:null,rule:{kind:"linear",denominator:180},status:"present",note:null,citation:{document:"D1",section:"2.1",page:"3"}},
-    {id:"LRF-2020",type:"LRF",era:"2020",title:"Late Retirement Factors from NRA of 65 (2020 Plan)",basis:"LRFAEQ with interest=5%; mortality=GM83/GF83; calc method=MP; deferral mortality=Y; months certain=0",normalForm:"3CC",fromForm:null,toForm:null,appliesInPbgcAdmin:null,nra:65,interest:0.05,mortality1:"GM83",mortality2:"GF83",calcMethod:"MP",deferralMortality:"Y",monthsCertain:0,partSex:"M",benSex:null,survivorPct:null,monthsTemp:null,ruleText:"late retirement factor by actuarial equivalence",table:null,monthMin:1,monthMax:120,partAgeMin:null,partAgeMax:null,benAgeMin:null,benAgeMax:null,rule:{kind:"bcv",function:"LRFAEQ"},status:"present",note:null,citation:{document:"D1",section:"4.2",page:"7"}},
-    {id:"BFCF-2020",type:"BFCF",era:"2020",title:"Benefit Form Conversion Factors (2020 Plan)",basis:"BFCFAEQ with interest=8%; mortality=UP84M2/UP84M2; calc method=MP; deferral mortality=N; months certain=36",normalForm:"SLA",fromForm:"SLA",toForm:"JS50",appliesInPbgcAdmin:true,nra:65,interest:0.08,mortality1:"UP84M2",mortality2:"UP84M2",calcMethod:"MP",deferralMortality:"N",monthsCertain:36,partSex:"M",benSex:"F",survivorPct:0.5,monthsTemp:0,ruleText:"joint and 50% survivor conversion by actuarial equivalence",table:null,monthMin:null,monthMax:null,partAgeMin:55,partAgeMax:60,benAgeMin:0,benAgeMax:5,rule:{kind:"bcv",function:"BFCFAEQ"},status:"present",note:null,citation:{document:"D1",section:"6.1",page:"11"}},
-    {id:"BFCF-2020-JS75",type:"BFCF",era:"2020",title:"Benefit Form Conversion Factors — JS75 (2020 Plan)",basis:"BFCFAEQ with interest=8%; mortality=UP84M2/UP84M2; calc method=MP; deferral mortality=N; months certain=36",normalForm:"SLA",fromForm:"SLA",toForm:"JS75",appliesInPbgcAdmin:false,nra:65,interest:0.08,mortality1:"UP84M2",mortality2:"UP84M2",calcMethod:"MP",deferralMortality:"N",monthsCertain:36,partSex:"M",benSex:"F",survivorPct:0.75,monthsTemp:0,ruleText:"joint and 75% survivor conversion by actuarial equivalence",table:null,monthMin:null,monthMax:null,partAgeMin:55,partAgeMax:60,benAgeMin:0,benAgeMax:5,rule:{kind:"bcv",function:"BFCFAEQ"},status:"present",note:null,citation:{document:"D1",section:"6.2",page:"12"}},
-    {id:"ERF-DIS-2020",type:"ERF",era:"2020",title:"Early Retirement Factors — Disability (2020 Plan)",basis:"",normalForm:"3CC",fromForm:null,toForm:null,appliesInPbgcAdmin:null,nra:65,interest:null,mortality1:null,mortality2:null,calcMethod:null,deferralMortality:null,monthsCertain:null,partSex:null,benSex:null,survivorPct:null,monthsTemp:null,ruleText:null,table:null,monthMin:1,monthMax:120,partAgeMin:null,partAgeMax:null,benAgeMin:null,benAgeMax:null,rule:null,status:"missing",note:"Disability factors not found in the documents given",citation:null}
+    {id:"ERF-2020",type:"ERF",era:"2020",title:"Early Retirement Factors from NRA of 65 (2020 Plan)",basis:"reduction = 1/15 per year early (linear in months)",normalForm:"SLA",fromForm:null,toForm:null,appliesInPbgcAdmin:null,nra:65,interest:null,mortality1:null,mortality2:null,calcMethod:null,deferralMortality:null,monthsCertain:null,partSex:null,benSex:null,survivorPct:null,monthsTemp:null,ruleText:"reduction of 1/15 per year early",table:{kind:"months",rows:[{months:1,factor:0.9944,citation:{document:"D1",section:"2.1",page:"3"}},{months:60,factor:0.6667,citation:{document:"D1",section:"2.1",page:"3"}},{months:120,factor:0.3333,citation:{document:"D1",section:"2.1",page:"3"}}]},monthMin:1,monthMax:120,partAgeMin:null,partAgeMax:null,benAgeMin:null,benAgeMax:null,rule:{kind:"linear",denominator:180},status:"present",note:null,citation:{document:"D1",section:"2.1",page:"3"},effectiveFrom:"2020-01-01",effectiveTo:null,mortalityConfirmed:false},
+    {id:"LRF-2020",type:"LRF",era:"2020",title:"Late Retirement Factors from NRA of 65 (2020 Plan)",basis:"LRFAEQ with interest=5%; mortality=GM83/GF83; calc method=MP; deferral mortality=Y; months certain=36",normalForm:"3CC",fromForm:null,toForm:null,appliesInPbgcAdmin:null,nra:65,interest:0.05,mortality1:"GM83",mortality2:"GF83",calcMethod:"MP",deferralMortality:"Y",monthsCertain:36,partSex:"M",benSex:null,survivorPct:null,monthsTemp:null,ruleText:"late retirement factor by actuarial equivalence",table:null,monthMin:1,monthMax:120,partAgeMin:null,partAgeMax:null,benAgeMin:null,benAgeMax:null,rule:{kind:"bcv",function:"LRFAEQ"},status:"present",note:null,citation:{document:"D1",section:"4.2",page:"7"},effectiveFrom:"2020-01-01",effectiveTo:null,mortalityConfirmed:false},
+    {id:"BFCF-2020",type:"BFCF",era:"2020",title:"Benefit Form Conversion Factors (2020 Plan)",basis:"BFCFAEQ with interest=8%; mortality=UP84M2/UP84M2; calc method=MP; deferral mortality=N; months certain=36",normalForm:"SLA",fromForm:"SLA",toForm:"JS50",appliesInPbgcAdmin:true,nra:65,interest:0.08,mortality1:"UP84M2",mortality2:"UP84M2",calcMethod:"MP",deferralMortality:"N",monthsCertain:36,partSex:"M",benSex:"F",survivorPct:0.5,monthsTemp:0,ruleText:"joint and 50% survivor conversion by actuarial equivalence",table:null,monthMin:null,monthMax:null,partAgeMin:55,partAgeMax:60,benAgeMin:0,benAgeMax:5,rule:{kind:"bcv",function:"BFCFAEQ"},status:"present",note:null,citation:{document:"D1",section:"6.1",page:"11"},effectiveFrom:"2020-01-01",effectiveTo:null,mortalityConfirmed:false},
+    {id:"BFCF-2020-JS75",type:"BFCF",era:"2020",title:"Benefit Form Conversion Factors — JS75 (2020 Plan)",basis:"BFCFAEQ with interest=8%; mortality=UP84M2/UP84M2; calc method=MP; deferral mortality=N; months certain=36",normalForm:"SLA",fromForm:"SLA",toForm:"JS75",appliesInPbgcAdmin:false,nra:65,interest:0.08,mortality1:"UP84M2",mortality2:"UP84M2",calcMethod:"MP",deferralMortality:"N",monthsCertain:36,partSex:"M",benSex:"F",survivorPct:0.75,monthsTemp:0,ruleText:"joint and 75% survivor conversion by actuarial equivalence",table:null,monthMin:null,monthMax:null,partAgeMin:55,partAgeMax:60,benAgeMin:0,benAgeMax:5,rule:{kind:"bcv",function:"BFCFAEQ"},status:"present",note:null,citation:{document:"D1",section:"6.2",page:"12"},effectiveFrom:"2020-01-01",effectiveTo:null,mortalityConfirmed:false},
+    {id:"ERF-DIS-2020",type:"ERF",era:"2020",title:"Early Retirement Factors — Disability (2020 Plan)",basis:"",normalForm:"3CC",fromForm:null,toForm:null,appliesInPbgcAdmin:null,nra:65,interest:null,mortality1:null,mortality2:null,calcMethod:null,deferralMortality:null,monthsCertain:null,partSex:null,benSex:null,survivorPct:null,monthsTemp:null,ruleText:null,table:null,monthMin:1,monthMax:120,partAgeMin:null,partAgeMax:null,benAgeMin:null,benAgeMax:null,rule:null,status:"missing",note:"Disability factors not found in the documents given",citation:null,effectiveFrom:null,effectiveTo:null,mortalityConfirmed:false}
   ],
   /* User-added, by hand in the app: a JS100 pair the scraper did not
      propose. PBGC does not honor it (to-form JS100 is not the normal
      married form JS50), but the user chose to include it, so it gets
      a tab. Same BCV arguments as the honored BFCF-2020 set. */
   additionalConversions:[
-    {id:"BFCF-2020-JS100",type:"BFCF",era:"2020",title:"Benefit Form Conversion Factors — JS100 (2020 Plan)",basis:"BFCFAEQ with interest=8%; mortality=UP84M2/UP84M2; calc method=MP; deferral mortality=N; months certain=36",normalForm:"SLA",fromForm:"SLA",toForm:"JS100",appliesInPbgcAdmin:false,nra:65,interest:0.08,mortality1:"UP84M2",mortality2:"UP84M2",calcMethod:"MP",deferralMortality:"N",monthsCertain:36,partSex:"M",benSex:"F",survivorPct:null,monthsTemp:0,ruleText:"joint and 100% survivor conversion by actuarial equivalence",table:null,monthMin:null,monthMax:null,partAgeMin:55,partAgeMax:60,benAgeMin:0,benAgeMax:5,rule:{kind:"bcv",function:"BFCFAEQ"},status:"present",note:null,citation:{document:"D1",section:"6.3",page:"13"}}
+    {id:"BFCF-2020-JS100",type:"BFCF",era:"2020",title:"Benefit Form Conversion Factors — JS100 (2020 Plan)",basis:"BFCFAEQ with interest=8%; mortality=UP84M2/UP84M2; calc method=MP; deferral mortality=N; months certain=36",normalForm:"SLA",fromForm:"SLA",toForm:"JS100",appliesInPbgcAdmin:false,nra:65,interest:0.08,mortality1:"UP84M2",mortality2:"UP84M2",calcMethod:"MP",deferralMortality:"N",monthsCertain:36,partSex:"M",benSex:"F",survivorPct:null,monthsTemp:0,ruleText:"joint and 100% survivor conversion by actuarial equivalence",table:null,monthMin:null,monthMax:null,partAgeMin:55,partAgeMax:60,benAgeMin:0,benAgeMax:5,rule:{kind:"bcv",function:"BFCFAEQ"},status:"present",note:null,citation:{document:"D1",section:"6.3",page:"13"},effectiveFrom:"2020-01-01",effectiveTo:null,mortalityConfirmed:false}
   ]
 };
 
@@ -316,6 +371,11 @@ function pfValidatePfJson(d){
     if(PF_STATUSES.indexOf(s.status)<0) err(tag+".status is not a known status");
     if(s.status==="conditional"&&!s.note) err(tag+".status conditional needs a note");
     if(s.status==="ambiguous"&&!s.note) err(tag+".status ambiguous needs a note");
+    if(s.effectiveFrom!==null&&s.effectiveFrom!==undefined&&!pfIsIsoDate(s.effectiveFrom)) err(tag+".effectiveFrom must be ISO date YYYY-MM-DD");
+    if(s.effectiveTo!==null&&s.effectiveTo!==undefined&&!pfIsIsoDate(s.effectiveTo)) err(tag+".effectiveTo must be ISO date YYYY-MM-DD");
+    if(pfIsIsoDate(s.effectiveFrom)&&pfIsIsoDate(s.effectiveTo)&&s.effectiveFrom>s.effectiveTo) err(tag+".effectiveFrom is after effectiveTo");
+    if(pfIsIsoDate(s.effectiveFrom)&&m&&pfIsIsoDate(m.dopt)&&s.effectiveFrom>m.dopt) err(tag+".effectiveFrom is after DOPT ("+m.dopt+"): a provision that starts after termination cannot apply");
+    if(s.mortalityConfirmed!==null&&s.mortalityConfirmed!==undefined&&typeof s.mortalityConfirmed!=="boolean") err(tag+".mortalityConfirmed must be true or false");
     if(s.status==="present"){
       if(!s.basis) err(tag+".basis missing for a present set");
       if(!s.normalForm) err(tag+".normalForm missing for a present set");
@@ -347,16 +407,41 @@ function pfValidatePfJson(d){
       else if(s.rule.kind==="stepped"&&(!(pfIsInt(s.rule.firstMonths)||pfNum(s.rule.firstMonths)>0)||!(pfNum(s.rule.firstDenominator)>0)||!(pfNum(s.rule.secondDenominator)>0))) err(tag+".rule.stepped needs firstMonths, firstDenominator, secondDenominator");
       else if(s.rule.kind==="bcv"&&PF_BCV_FUNCTIONS.indexOf(s.rule.function)<0) err(tag+".rule.function must be ERFAEQ, LRFAEQ or BFCFAEQ");
       if(s.rule.kind==="bcv"){
-        if(pfNum(s.interest)===null||pfNum(s.interest)<0||pfNum(s.interest)>1) err(tag+".interest must be a decimal 0 to 1 for a bcv rule");
+        if(pfNum(s.interest)===null||pfNum(s.interest)<0||pfNum(s.interest)>=1) err(tag+".interest must be a decimal 0 to under 1 for a bcv rule (the add-in rejects 1.0 and above)");
         if(!s.mortality1||!s.mortality2) err(tag+".mortality1/mortality2 missing for a bcv rule");
+        else{
+          [s.mortality1,s.mortality2].forEach(function(mc){
+            if(typeof mc!=="string"||!/^[A-Z][A-Z0-9]{1,19}$/.test(mc)) err(tag+".mortality code "+mc+" is malformed (codes are uppercase letters and digits, from the ATPBGC MORTNAME table)");
+            else if(!pfKnownMortality(mc)&&!s.mortalityConfirmed) err(tag+".mortality code "+mc+" is not in the known MORTNAME list (GM83, GF83, UP84, UP84M2, ...); confirm it in the ATPBGC MORTNAME table and set mortalityConfirmed true");
+          });
+        }
         if(!pfIsInt(s.nra)) err(tag+".nra missing for a bcv rule");
+        else if(s.nra<0||s.nra>124) err(tag+".nra must be 0 to 124 (the add-in rejects 125 and above)");
         if(s.partSex!=="M"&&s.partSex!=="F") err(tag+".partSex must be M or F for a bcv rule (from the plan documents)");
         if(!s.calcMethod||typeof s.calcMethod!=="string") err(tag+".calcMethod missing for a bcv rule (from the plan documents)");
+        else if(PF_CALC_METHODS.indexOf(s.calcMethod)<0) err(tag+".calcMethod must be MP, QP, SP or Exact (the add-in doc names Woolhouse MP/QP/SP or Exact)");
         if(s.deferralMortality!=="Y"&&s.deferralMortality!=="N") err(tag+".deferralMortality must be Y or N for a bcv rule (never assumed)");
+        if(pfNum(s.monthsCertain)!==null&&(!pfIsInt(s.monthsCertain)||pfNum(s.monthsCertain)<0)) err(tag+".monthsCertain must be a whole number of months, 0 or more");
+        if(pfNum(s.monthsTemp)!==null&&(!pfIsInt(s.monthsTemp)||pfNum(s.monthsTemp)<0)) err(tag+".monthsTemp must be a whole number of months, 0 or more");
+        if(pfIsInt(s.nra)&&pfNum(s.monthsCertain)!==null&&s.calcMethod&&PF_CALC_METHODS.indexOf(s.calcMethod)>=0&&s.calcMethod!=="Exact"&&s.nra+pfNum(s.monthsCertain)>124) err(tag+".nra plus monthsCertain is over 124 (the add-in rejects it for Woolhouse methods)");
+        /* A certain-and-continuous form name carries its own months:
+           3CC means 36. An explicit monthsCertain that disagrees is a
+           conflict, not a value to guess from. */
+        [s.normalForm,(s.type==="BFCF"?s.fromForm:null)].forEach(function(fm){
+          var mm=/^([0-9]+)CC$/.exec(String(fm||"").trim().toUpperCase());
+          if(mm&&pfNum(s.monthsCertain)!==null&&pfNum(s.monthsCertain)!==parseInt(mm[1],10)*12) err(tag+".monthsCertain "+s.monthsCertain+" disagrees with the form "+fm+" ("+(parseInt(mm[1],10)*12)+" months certain)");
+        });
         if(s.type==="BFCF"){
           if(s.benSex!=="M"&&s.benSex!=="F") err(tag+".benSex must be M or F for a bcv BFCF rule (from the plan documents)");
-          if(pfSurvivorPctForSet(s)===null) err(tag+".survivorPct missing for a bcv BFCF rule (state it, or use a JS form so it derives from toForm)");
-          if(!pfBfcfFormCode(s.toForm)) err(tag+".toForm must be a JS form (JS50, JS75, JS100) for a bcv BFCF rule");
+          if(pfSurvivorPctForSet(s)===null) err(tag+".survivorPct missing for a bcv BFCF rule (state it, or use a to-form it derives from: JSnn, SLA, or nCC)");
+          if(s.toForm&&!pfPlanFormToBcv(s.toForm,pfSurvivorPctForSet(s))) err(tag+".toForm "+s.toForm+" has no BCV form code (use SLA, nCC like 3CC, or JSnn like JS50)");
+          if(s.fromForm&&!pfPlanFormToBcv(s.fromForm,pfSurvivorPctForSet(s))) err(tag+".fromForm "+s.fromForm+" has no BCV form code (use SLA, nCC like 3CC, or JSnn like JS50)");
+          /* An explicit survivor percent must match the to-form it names. */
+          var toJs=/^JS([0-9]+(?:\.[0-9]+)?)$/.exec(String(s.toForm||""));
+          if(toJs&&pfNum(s.survivorPct)!==null&&pfNum(s.survivorPct)!==pfNum(toJs[1])/100) err(tag+".survivorPct "+s.survivorPct+" disagrees with toForm "+s.toForm+" ("+(pfNum(toJs[1])/100)+")");
+          if(pfNum(s.survivorPct)!==null&&(pfNum(s.survivorPct)<0||pfNum(s.survivorPct)>1)) err(tag+".survivorPct must be 0 to 1");
+          if(pfIsInt(s.partAgeMin)&&pfIsInt(s.partAgeMax)&&(s.partAgeMin<0||s.partAgeMax>124)) err(tag+".part ages must be 0 to 124 (the add-in rejects ages above 124)");
+          if(pfIsInt(s.benAgeMin)&&pfIsInt(s.benAgeMax)&&(s.benAgeMin<0||s.benAgeMax>124)) err(tag+".ben ages must be 0 to 124 (the add-in rejects ages above 124)");
         }
       }
     }
@@ -384,6 +469,18 @@ function pfValidatePfJson(d){
   addl.forEach(function(s,i){
     if(s&&s.type&&s.type!=="BFCF") err("additionalConversions["+i+"].type must be BFCF (Additional conversions are benefit form conversions only)");
     checkSet(s,i,"additionalConversions");
+  });
+  /* Same factor key twice (same type, era, form pair, rule, and
+     ranges) is a duplicate set, even under different ids. One era
+     has one rule per type and pair; a second copy means the
+     documents were read twice. Different rules in one era are fine
+     — a disability ERF next to a regular ERF, for example. */
+  var byKey={};
+  sets.concat(addl).forEach(function(s){
+    if(!s||typeof s!=="object"||!s.id||!s.type||!s.era) return;
+    var key=s.type+"|"+s.era+"|"+(s.fromForm||"")+"|"+(s.toForm||"")+"|"+JSON.stringify(s.rule||null)+"|"+(s.monthMin===null||s.monthMin===undefined?"":s.monthMin)+"-"+(s.monthMax===null||s.monthMax===undefined?"":s.monthMax)+"|"+(s.partAgeMin===null||s.partAgeMin===undefined?"":s.partAgeMin)+"-"+(s.partAgeMax===null||s.partAgeMax===undefined?"":s.partAgeMax)+"|"+(s.benAgeMin===null||s.benAgeMin===undefined?"":s.benAgeMin)+"-"+(s.benAgeMax===null||s.benAgeMax===undefined?"":s.benAgeMax);
+    if(byKey[key]) err("duplicate factor set: "+s.id+" repeats "+byKey[key]+" ("+s.type+" "+s.era+(s.fromForm?" "+s.fromForm+"->"+s.toForm:"")+", same rule and ranges; one copy only)");
+    else byKey[key]=s.id;
   });
   return {errors:errors};
 }
@@ -414,6 +511,7 @@ function pfImportFlexPfJson(obj,opts){
     var v=pfValidatePfJson(obj);
     if(v.errors.length){ out.errors=v.errors; return out; }
     out.kind="pf"; out.data=pfClone(obj);
+    if(obj.schemaVersion&&obj.schemaVersion!==PF_SCHEMA_VERSION) out.schemaVersionNote="JSON schema v"+obj.schemaVersion+" (this app writes v"+PF_SCHEMA_VERSION+")";
     if(!Array.isArray(out.data.additionalConversions)) out.data.additionalConversions=[];
     out.mapped=["planMetadata","factorSets"];
     return out;
@@ -475,6 +573,7 @@ function pfImportFlexPfJson(obj,opts){
     return out;
   }
   out.kind="flex"; out.data=data;
+  if(obj.schemaVersion&&obj.schemaVersion!==PF_SCHEMA_VERSION) out.schemaVersionNote="JSON schema v"+obj.schemaVersion+" (this app writes v"+PF_SCHEMA_VERSION+")";
   return out;
 }
 
@@ -520,9 +619,8 @@ function pfSteppedValue(m,rule,monthMax){
    to-form. Derived from toForm; not a scraped value. */
 function pfSurvivorPctForSet(set){
   if(pfNum(set.survivorPct)!==null) return pfNum(set.survivorPct);
-  var m=/^JS([0-9]+(?:\.[0-9]+)?)$/.exec(String(set.toForm||""));
-  if(m) return pfNum(m[1])/100;
-  return null;
+  var m=pfPlanFormToBcv(set.toForm,null);
+  return m?m.spc:null;
 }
 function pfBfcfFormCode(toForm){
   if(/^JS[0-9]+(?:\.[0-9]+)?$/.test(String(toForm||""))) return "JSC";
@@ -606,7 +704,7 @@ function pfMonthFormula(set,mRef,m){
     return {formula:"ROUND(1-(1/"+r.firstDenominator+")*MIN("+mRef+","+r.firstMonths+")-(1/"+r.secondDenominator+")*MAX(MIN("+mRef+"-"+r.firstMonths+","+cap+"),0),4)",cached:pfFmt4(pfSteppedValue(m,r,set.monthMax||120))};
   }
   if(r.kind==="bcv"){
-    var fn=r.function, it=pfNum(set.interest), nra=set.nra, cert=(set.monthsCertain===null||set.monthsCertain===undefined)?0:set.monthsCertain;
+    var fn=r.function, it=pfNum(set.interest), nra=set.nra, cert=pfMonthsCertainForSet(set);
     var dm=set.deferralMortality, cm=set.calcMethod, ps=set.partSex;
     if(fn==="ERFAEQ") return {formula:'ROUND(ERFAEQ('+it+',"'+ps+'",'+nra+','+mRef+','+cert+',"'+set.mortality1+'","'+set.mortality2+'","'+cm+'","'+dm+'"),4)',cached:null};
     if(fn==="LRFAEQ") return {formula:'ROUND(LRFAEQ('+it+',"'+ps+'",'+nra+','+mRef+','+cert+',"'+set.mortality1+'","'+set.mortality2+'","'+cm+'","'+dm+'"),4)',cached:null};
@@ -614,10 +712,33 @@ function pfMonthFormula(set,mRef,m){
   return null;
 }
 function pfBfcfFormula(set,partRef,benRef){
-  var it=pfNum(set.interest), cert=(set.monthsCertain===null||set.monthsCertain===undefined)?0:set.monthsCertain;
+  /* Plan forms map to BCV codes (see pfPlanFormToBcv): a 3CC
+     from-form writes "SLA" with 36 months certain, as the
+     reference file does — never "3CC", which the add-in rejects.
+     FromSurvPct comes from the from-form (JSnn -> pct, else 0);
+     ToMthsCert comes from the to-form name (nCC -> n*12, else 0). */
+  var from=pfPlanFormToBcv(set.fromForm,null);
+  var to=pfPlanFormToBcv(set.toForm,null);
+  var it=pfNum(set.interest);
+  var cert=pfCertainMonthsFor(set.fromForm,set.monthsCertain);
   var temp=(set.monthsTemp===null||set.monthsTemp===undefined)?0:set.monthsTemp;
-  var sp=pfSurvivorPctForSet(set), code=pfBfcfFormCode(set.toForm);
-  return {formula:'ROUND(BFCFAEQ("'+set.fromForm+'",0,'+cert+','+temp+',"'+code+'",'+sp+',0,0,'+partRef+','+benRef+',"'+set.partSex+'","'+set.benSex+'",'+it+',"'+set.mortality1+'","'+set.mortality2+'","'+set.calcMethod+'","'+set.deferralMortality+'"),4)',cached:null};
+  var sp=pfSurvivorPctForSet(set);
+  var fromSpc=from?from.spc:0;
+  var toCert=to?to.mths:0;
+  return {formula:'ROUND(BFCFAEQ("'+(from?from.code:set.fromForm)+'",'+fromSpc+','+cert+','+temp+',"'+(to?to.code:set.toForm)+'",'+sp+','+toCert+',0,'+partRef+','+benRef+',"'+set.partSex+'","'+set.benSex+'",'+it+',"'+set.mortality1+'","'+set.mortality2+'","'+set.calcMethod+'","'+set.deferralMortality+'"),4)',cached:null};
+}
+/* The exact first-cell formula the workbook will carry for this
+   set, as it will appear in Excel (with the leading =). Shown in
+   Review so the reviewer sees what will be generated, before it
+   is generated. Null when the set has no rule. */
+function pfFormulaPreview(set){
+  if(!set||!set.rule) return null;
+  if(set.type==="BFCF"){
+    var bf=pfBfcfFormula(set,"C10","B11");
+    return bf?"="+bf.formula:null;
+  }
+  var mf=pfMonthFormula(set,"A11",set.monthMin===null||set.monthMin===undefined?1:set.monthMin);
+  return mf?"="+mf.formula:null;
 }
 
 /* ---- .xlsx (OOXML) builder: direct XML + stored ZIP ----
@@ -636,20 +757,112 @@ function pfPushBytes(out,arr){
   var CH=8192,i;
   for(i=0;i<arr.length;i+=CH) out.push.apply(out,Array.prototype.slice.call(arr,i,i+CH));
 }
+/* ---- DEFLATE (fixed Huffman) + deterministic ZIP ----
+   The workbook is a ZIP. v0.2.x stored entries uncompressed (~1 MB
+   per full BFCF tab). v0.3.0 compresses every entry with raw
+   DEFLATE, fixed Huffman codes, LZ77 matches — pure JS, no library,
+   no network, same code in the browser and in Node. Timestamps are
+   fixed (1980-01-01) so the same approved inputs always produce the
+   same bytes: the workbook is reproducible from the same inputs. */
+var PF_LEN_BASE=[3,4,5,6,7,8,9,10,11,13,15,17,19,23,27,31,35,43,51,59,67,83,99,115,131,163,195,227,258];
+var PF_LEN_EXTRA=[0,0,0,0,0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,0];
+var PF_DIST_BASE=[1,2,3,4,5,7,9,13,17,25,33,49,65,97,129,193,257,385,513,769,1025,1537,2049,3073,4097,6145,8193,12289,16385,24577];
+var PF_DIST_EXTRA=[0,0,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13];
+function pfRevBits(code,len){
+  var r=0,i;
+  for(i=0;i<len;i++){ r=(r<<1)|(code&1); code>>=1; }
+  return r;
+}
+function pfFixedHuffCodes(){
+  var litLen=[], distLen=[], i;
+  for(i=0;i<288;i++) litLen.push(i<144?8:(i<256?9:(i<280?7:8)));
+  for(i=0;i<32;i++) distLen.push(5);
+  function canon(lengths){
+    var blCount={}, max=0, code=0, next={}, out=[], b;
+    lengths.forEach(function(l){ if(l){ blCount[l]=(blCount[l]||0)+1; if(l>max) max=l; } });
+    for(b=1;b<=max;b++){ code=(code+(blCount[b-1]||0))<<1; next[b]=code; }
+    lengths.forEach(function(l){ if(!l){ out.push({code:0,len:0}); return; } var c=next[l]; next[l]++; out.push({code:pfRevBits(c,l),len:l}); });
+    return out;
+  }
+  return {lit:canon(litLen),dist:canon(distLen)};
+}
+var PF_FIXED_HUFF=pfFixedHuffCodes();
+function pfLenSym(len){
+  if(len===258) return {sym:285,extra:0,extraVal:0};
+  for(var i=0;i<28;i++){
+    var base=PF_LEN_BASE[i], max=base+((1<<PF_LEN_EXTRA[i])-1);
+    if(len>=base&&len<=max) return {sym:257+i,extra:PF_LEN_EXTRA[i],extraVal:len-base};
+  }
+  return null;
+}
+function pfDistSym(d){
+  for(var i=0;i<30;i++){
+    var base=PF_DIST_BASE[i], max=base+((1<<PF_DIST_EXTRA[i])-1);
+    if(d>=base&&d<=max) return {sym:i,extra:PF_DIST_EXTRA[i],extraVal:d-base};
+  }
+  return null;
+}
+function pfDeflateRaw(data){
+  var n=data.length, out=[], bitBuf=0, bitLen=0;
+  function putBits(v,nbits){
+    bitBuf|=v<<bitLen; bitLen+=nbits;
+    while(bitLen>=8){ out.push(bitBuf&0xFF); bitBuf>>>=8; bitLen-=8; }
+  }
+  function putCode(entry){ putBits(entry.code,entry.len); }
+  var H=PF_FIXED_HUFF;
+  /* One fixed-Huffman block (BFINAL=1, BTYPE=01). */
+  putBits(1,1); putBits(1,2);
+  /* LZ77: hash on 3 bytes, keep the last few positions per hash. */
+  var head={}, pos=0;
+  function hashAt(p){ return ((data[p]<<16)^(data[p+1]<<8)^data[p+2])&0xFFFF; }
+  function insertAt(p){
+    if(p+2>=n) return;
+    var h=hashAt(p), list=head[h]||(head[h]=[]);
+    list.push(p); if(list.length>8) list.shift();
+  }
+  while(pos<n){
+    var bestLen=0, bestDist=0;
+    if(pos+2<n){
+      var list=head[hashAt(pos)]||[];
+      for(var li=list.length-1;li>=0;li--){
+        var cand=list[li], dist=pos-cand;
+        if(dist>32768) continue;
+        var l=0;
+        while(l<258&&pos+l<n&&data[cand+l]===data[pos+l]) l++;
+        if(l>bestLen){ bestLen=l; bestDist=dist; if(l>=258) break; }
+      }
+    }
+    if(bestLen>=3){
+      var ls=pfLenSym(bestLen), ds=pfDistSym(bestDist);
+      putCode(H.lit[ls.sym]); if(ls.extra) putBits(ls.extraVal,ls.extra);
+      putCode(H.dist[ds.sym]); if(ds.extra) putBits(ds.extraVal,ds.extra);
+      for(var k=0;k<bestLen;k++) insertAt(pos+k);
+      pos+=bestLen;
+    }else{
+      putCode(H.lit[data[pos]]);
+      insertAt(pos);
+      pos++;
+    }
+  }
+  putCode(H.lit[256]);
+  if(bitLen>0){ out.push(bitBuf&0xFF); bitBuf=0; bitLen=0; }
+  return new Uint8Array(out);
+}
 function pfBuildZip(files){
-  var out=[],central=[],offset=0,now=new Date();
-  var dosTime=((now.getHours()<<11)|(now.getMinutes()<<5)|(now.getSeconds()>>1))&0xFFFF;
-  var dosDate=(((now.getFullYear()-1980)<<9)|((now.getMonth()+1)<<5)|now.getDate())&0xFFFF;
+  var out=[],central=[],offset=0;
+  /* Fixed DOS date 1980-01-01 00:00:00: same inputs, same bytes. */
+  var dosTime=0, dosDate=33;
   files.forEach(function(f){
     var name=new TextEncoder().encode(f.name), data=(typeof f.data==="string")?new TextEncoder().encode(f.data):f.data, crc=pfCrc32(data);
-    out.push.apply(out,[0x50,0x4B,0x03,0x04].concat(pfU16(20),pfU16(0),pfU16(0),pfU16(dosTime),pfU16(dosDate),pfU32(crc),pfU32(data.length),pfU32(data.length),pfU16(name.length),pfU16(0)));
-    pfPushBytes(out,name); pfPushBytes(out,data);
-    central.push({name:name,crc:crc,size:data.length,offset:offset});
-    offset+=30+name.length+data.length;
+    var comp=pfDeflateRaw(data);
+    out.push.apply(out,[0x50,0x4B,0x03,0x04].concat(pfU16(20),pfU16(0),pfU16(8),pfU16(dosTime),pfU16(dosDate),pfU32(crc),pfU32(comp.length),pfU32(data.length),pfU16(name.length),pfU16(0)));
+    pfPushBytes(out,name); pfPushBytes(out,comp);
+    central.push({name:name,crc:crc,comp:comp.length,size:data.length,offset:offset});
+    offset+=30+name.length+comp.length;
   });
   var cdStart=offset;
   central.forEach(function(c){
-    out.push.apply(out,[0x50,0x4B,0x01,0x02].concat(pfU16(20),pfU16(20),pfU16(0),pfU16(0),pfU16(dosTime),pfU16(dosDate),pfU32(c.crc),pfU32(c.size),pfU32(c.size),pfU16(c.name.length),pfU16(0),pfU16(0),pfU16(0),pfU16(0),pfU32(0),pfU32(c.offset)));
+    out.push.apply(out,[0x50,0x4B,0x01,0x02].concat(pfU16(20),pfU16(20),pfU16(0),pfU16(8),pfU16(dosTime),pfU16(dosDate),pfU32(c.crc),pfU32(c.comp),pfU32(c.size),pfU16(c.name.length),pfU16(0),pfU16(0),pfU16(0),pfU16(0),pfU32(0),pfU32(c.offset)));
     pfPushBytes(out,c.name);
     offset+=46+c.name.length;
   });
@@ -866,16 +1079,30 @@ function pfBuildXlsxBytes(data,statsOut){
     throw new Error("no factor sets to write");
   }
   if(Array.isArray(statsOut)) split.excluded.forEach(function(x){ statsOut.push({id:x.set.id,excluded:true,reason:x.reason}); });
-  var sheets=sets.map(function(s){ var sh=pfSheetForSet(s,meta); if(Array.isArray(statsOut)) statsOut.push({id:s.id,tableCells:sh.stats?sh.stats.tableCells:0,formulaCells:sh.stats?sh.stats.formulaCells:0}); return {name:pfTabName(s),lastRow:sh.lastRow,lastCol:sh.lastCol,xml:sh.xml}; });
+  var sheets=sets.map(function(s){ var sh=pfSheetForSet(s,meta); if(Array.isArray(statsOut)) statsOut.push({id:s.id,tableCells:sh.stats?sh.stats.tableCells:0,formulaCells:sh.stats?sh.stats.formulaCells:0}); return {name:pfTabName(s),lastRow:sh.lastRow,lastCol:sh.lastCol,xml:sh.xml,setId:s.id}; });
+  /* Two sets must never share a tab name: Excel refuses duplicate
+     sheet names, and the 31-char cut can collide two long names. */
+  var seenTabs={};
+  sheets.forEach(function(s){
+    if(seenTabs[s.name]) throw new Error("two factor sets would share the tab name "+s.name+": "+seenTabs[s.name]+" and "+s.setId+" (shorten an era or a form name)");
+    seenTabs[s.name]=s.setId;
+  });
   var rels=sheets.map(function(s,i){ return '<Relationship Id="rId'+(i+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>'; }).join("")+
-    '<Relationship Id="rId'+(sheets.length+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>';
+    '<Relationship Id="rId'+(sheets.length+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'+
+    '<Relationship Id="rId'+(sheets.length+2)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>';
   var overrides=sheets.map(function(s,i){ return '<Override PartName="/xl/worksheets/sheet'+(i+1)+'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'; }).join("");
+  /* Document properties carry the generator and schema versions, so
+     a workbook can always be traced back to the app that wrote it. */
+  var coreXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>'+pfEscXml(meta.caseNumber+" PF")+'</dc:title><dc:creator>PF Generator v'+PF_VERSION+'</dc:creator><dc:description>Generated by PF Generator v'+PF_VERSION+' (schema v'+PF_SCHEMA_VERSION+') from approved PF JSON only.</dc:description></cp:coreProperties>';
+  var appXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"><Application>PF Generator</Application><AppVersion>'+PF_VERSION+'</AppVersion></Properties>';
   var files=[
-    {name:"[Content_Types].xml",data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'+overrides+'<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'},
-    {name:"_rels/.rels",data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'},
+    {name:"[Content_Types].xml",data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'+overrides+'<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/></Types>'},
+    {name:"_rels/.rels",data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/></Relationships>'},
     {name:"xl/workbook.xml",data:pfWorkbookXml(sheets)},
     {name:"xl/_rels/workbook.xml.rels",data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+rels+'</Relationships>'},
-    {name:"xl/styles.xml",data:pfStylesXml()}
+    {name:"xl/styles.xml",data:pfStylesXml()},
+    {name:"docProps/core.xml",data:coreXml},
+    {name:"docProps/app.xml",data:appXml}
   ];
   sheets.forEach(function(s,i){ files.push({name:"xl/worksheets/sheet"+(i+1)+".xml",data:s.xml}); });
   return pfBuildZip(files);
@@ -886,13 +1113,47 @@ var PF_VIEW_HASH={pf:"#pf",welcome:"#welcome",help:"#help"};
 var pfState={
   theme:"light", view:"pf", step:0,
   data:null, decisions:{}, importReport:null,
-  generated:null, audit:[], auditText:""
+  generated:null, audit:[], auditText:"",
+  originalJson:null, originalJsonHash:null, inputSchemaVersion:null,
+  editingId:null
 };
+function pfFnv1a(s){
+  var h=0x811C9DC5,i;
+  for(i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,0x01000193)>>>0; }
+  var out=""; var hex="0123456789abcdef";
+  for(i=7;i>=0;i--) out+=hex[(h>>>(i*4))&0xF];
+  return out;
+}
 function pfAudit(action,detail){
   var e={time:new Date().toISOString(),action:action,detail:detail||""};
   pfState.audit.push(e);
   pfState.auditText=pfState.audit.map(function(a){ return a.time+" "+a.action+(a.detail?" — "+a.detail:""); }).join("\n");
   return e;
+}
+/* The downloadable audit report: header (versions, plan, input),
+   one traceability line per factor set (source, dates, rule,
+   decision), then the event log. This is the record of what went
+   into the workbook and why. */
+function pfAuditReport(){
+  var lines=[];
+  lines.push("PF Generator audit report — v"+PF_VERSION+" (schema v"+PF_SCHEMA_VERSION+")");
+  lines.push("Plan: "+(pfState.data&&pfState.data.planMetadata?pfState.data.planMetadata.planName+" | Plan No. "+pfState.data.planMetadata.planNumber+" | Case "+pfState.data.planMetadata.caseNumber+" | DOPT "+pfState.data.planMetadata.dopt:"(no data loaded)"));
+  if(pfState.data&&pfState.data.planMetadata) lines.push("Normal married form: "+(pfState.data.planMetadata.normalMarriedForm||"(not given)"));
+  lines.push("Input JSON: "+(pfState.originalJsonHash?("hash "+pfState.originalJsonHash+" ("+(pfState.originalJson?pfState.originalJson.length:0)+" chars)"+(pfState.inputSchemaVersion?" schema v"+pfState.inputSchemaVersion:"")):"(demo or no import)"));
+  lines.push("");
+  lines.push("Factor sets:");
+  pfAllSets(pfState.data).forEach(function(s){
+    var dec=pfState.decisions[s.id]||"undecided";
+    var hon=s.type==="BFCF"?pfPbgcHonors(s,pfState.data.planMetadata.normalMarriedForm):null;
+    var cit=s.citation?(s.citation.document||"")+(s.citation.section?" §"+s.citation.section:"")+(s.citation.page?" p"+s.citation.page:""):"—";
+    var eff=(s.effectiveFrom||s.effectiveTo)?("effective "+(s.effectiveFrom||"?")+" to "+(s.effectiveTo||"open")):"effective dates not given";
+    var fp=pfFormulaPreview(s);
+    lines.push("- "+s.id+" ["+s.type+" "+s.era+"] "+s.status+", decision: "+dec+(hon?(hon.honored===true?", PBGC honors":hon.honored===false?", PBGC does not honor: "+hon.reason:", honors unknown"):"")+", source: "+cit+", "+eff+", rule: "+(s.rule?s.rule.kind+(s.rule.function?" "+s.rule.function:""):"none")+", "+pfSetSourceLabel(s)+(fp?(", formula: "+fp):""));
+  });
+  lines.push("");
+  lines.push("Events:");
+  lines.push(pfState.auditText||"(no entries)");
+  return lines.join("\n");
 }
 function pfDecidableSets(){
   if(!pfState.data) return [];
@@ -946,13 +1207,20 @@ function pfImportText(text,label){
     pfState.importReport=report; pfState.step=2;
     pfAudit("partial import",merged.filled.join(", "));
   }else{
-    pfState.data=res.data; pfState.decisions={}; pfState.generated=null;
+    pfState.data=res.data; pfState.decisions={}; pfState.generated=null; pfState.editingId=null;
+    /* Keep the exact input text and its hash: the audit report
+       records what was imported, so the workbook can be traced
+       back to the approved inputs and regenerated from them. */
+    pfState.originalJson=text; pfState.originalJsonHash=pfFnv1a(text);
+    pfState.inputSchemaVersion=(obj&&obj.schemaVersion)||null;
     report.kind=res.kind; report.mapped=res.mapped; report.unmapped=res.unmapped; report.conflicts=res.conflicts;
     report.report=[];
+    if(res.schemaVersionNote) report.report.push(res.schemaVersionNote);
     if(res.unmapped.length) report.report.push("Unmapped keys (kept, not dropped): "+res.unmapped.join(", "));
     if(res.conflicts.length) report.report.push("Conflicts (kept neither value): "+res.conflicts.join("; "));
     pfState.importReport=report; pfState.step=2;
     pfAudit("import",label||"");
+    pfAudit("input JSON", "hash "+pfState.originalJsonHash+(pfState.inputSchemaVersion?" (schema v"+pfState.inputSchemaVersion+")":""));
   }
   if(typeof document!=="undefined") pfRender();
   return report;
@@ -960,6 +1228,8 @@ function pfImportText(text,label){
 function pfLoadDemo(){
   pfState.data=pfClone(PF_DEMO_JSON);
   pfState.decisions={}; pfState.generated=null;
+  pfState.originalJson=null; pfState.originalJsonHash=null; pfState.inputSchemaVersion=null;
+  pfState.editingId=null;
   pfState.importReport={kind:"demo",report:["Demo case loaded: synthetic Riverbend plan."]};
   pfState.step=2;
   pfAudit("demo loaded","");
@@ -976,6 +1246,8 @@ function pfGenerate(){
   pfState.generated={name:pfXlsxFileName(d.planMetadata.caseNumber),bytes:bytes,tabs:split.included.length};
   pfState.step=4;
   pfAudit("generate",pfState.generated.name+" ("+split.included.length+" tabs)");
+  pfAudit("generator version","PF Generator v"+PF_VERSION+" (schema v"+PF_SCHEMA_VERSION+")");
+  if(pfState.originalJsonHash) pfAudit("generated from input JSON","hash "+pfState.originalJsonHash);
   if(d.planMetadata.normalMarriedForm) pfAudit("normal married form",d.planMetadata.normalMarriedForm);
   /* Exclusions are audited from the full loaded data, not the
      approved subset: an excluded set has no Approve button, so it
@@ -1018,7 +1290,7 @@ function pfDownloadPrompt(){
   return pfDownload(new TextEncoder().encode(PF_SCRAPER_PROMPT),"pf-scraper-prompt.md","text/markdown");
 }
 function pfDownloadAudit(){
-  var text=pfState.auditText||"(no entries)";
+  var text=pfAuditReport();
   return pfDownload(new TextEncoder().encode(text),"pf-audit-log.txt","text/plain");
 }
 
@@ -1063,6 +1335,13 @@ function pfAdditionalSetFromForm(){
   var ruleText=pfAddFormVal("pf-add-ruletext").trim();
   var basis=pfAddFormVal("pf-add-basis").trim();
   var normalForm=pfAddFormVal("pf-add-normal").trim();
+  var effFrom=pfAddFormVal("pf-add-efffrom").trim();
+  var effTo=pfAddFormVal("pf-add-effto").trim();
+  var doc=pfAddFormVal("pf-add-doc").trim();
+  var section=pfAddFormVal("pf-add-section").trim();
+  var page=pfAddFormVal("pf-add-page").trim();
+  var mortConf=false;
+  if(typeof document!=="undefined"){ var mcEl=document.getElementById("pf-add-mortconf"); if(mcEl) mortConf=!!mcEl.checked; }
   var set={
     id:"BFCF-"+era+"-"+from+"-"+to,
     type:"BFCF", era:era,
@@ -1080,7 +1359,8 @@ function pfAdditionalSetFromForm(){
     partAgeMin:(pMin===null?null:Math.floor(pMin)), partAgeMax:(pMax===null?null:Math.floor(pMax)),
     benAgeMin:(bMin===null?null:Math.floor(bMin)), benAgeMax:(bMax===null?null:Math.floor(bMax)),
     rule:{kind:"bcv",function:"BFCFAEQ"},
-    status:"present", note:null, citation:null
+    status:"present", note:null, citation:(doc||section||page)?{document:doc||null,section:section||null,page:page||null}:null,
+    effectiveFrom:effFrom||null, effectiveTo:effTo||null, mortalityConfirmed:mortConf
   };
   var nmf=pfState.data&&pfState.data.planMetadata?pfState.data.planMetadata.normalMarriedForm:null;
   var h=pfPbgcHonors(set,nmf);
@@ -1098,14 +1378,27 @@ function pfAddConversion(){
     if(box) box.innerHTML='<div class="alert">'+pfEscHtml(v.errors.join("; "))+"</div>";
     return {ok:false,errors:v.errors};
   }
+  /* A pair PBGC does not honor is an override of the inclusion
+     rule: it needs the user's explicit confirmation, not just the
+     add itself. Adding still approves the pair — the confirmation
+     is the approval of the override. */
+  var h0=pfPbgcHonors(set,pfState.data.planMetadata.normalMarriedForm);
+  if(h0.honored===false){
+    var conf=(typeof document!=="undefined")?document.getElementById("pf-add-confirm"):null;
+    if(!conf||!conf.checked){
+      var box2=(typeof document!=="undefined")?document.getElementById("pf-add-error"):null;
+      if(box2) box2.innerHTML='<div class="alert">'+pfEscHtml("PBGC does not honor this pair ("+h0.reason+"). Tick \u201cInclude it anyway\u201d to put it in the file by your choice.")+"</div>";
+      return {ok:false,errors:["PBGC does not honor this pair: "+h0.reason]};
+    }
+  }
   pfState.data.additionalConversions=(pfState.data.additionalConversions||[]).concat([set]);
   pfState.decisions[set.id]="approved";
   var h=pfPbgcHonors(set,pfState.data.planMetadata.normalMarriedForm);
-  pfAudit("additional conversion added",set.id+" — from "+set.fromForm+" to "+set.toForm+(h.honored===false?" (PBGC does not honor: "+h.reason+"; included by your choice)":h.honored===true?" (PBGC honors)":" (honors unknown: normal married form not given)"));
+  pfAudit("additional conversion added",set.id+" — from "+set.fromForm+" to "+set.toForm+(h.honored===false?" (PBGC does not honor: "+h.reason+"; included by your choice — override confirmed by the user)":h.honored===true?" (PBGC honors)":" (honors unknown: normal married form not given)"));
   /* Keep the BCV arguments in the form for the next pair; clear only
      the pair itself and the title. */
   var keep={};
-  ["pf-add-era","pf-add-normal","pf-add-nra","pf-add-interest","pf-add-mort1","pf-add-mort2","pf-add-calcmethod","pf-add-deferral","pf-add-monthscertain","pf-add-partsex","pf-add-bensex","pf-add-survivorpct","pf-add-monthstemp","pf-add-partmin","pf-add-partmax","pf-add-benmin","pf-add-benmax","pf-add-ruletext","pf-add-basis"].forEach(function(id){ keep[id]=pfAddFormVal(id); });
+  ["pf-add-era","pf-add-normal","pf-add-nra","pf-add-interest","pf-add-mort1","pf-add-mort2","pf-add-calcmethod","pf-add-deferral","pf-add-monthscertain","pf-add-partsex","pf-add-bensex","pf-add-survivorpct","pf-add-monthstemp","pf-add-partmin","pf-add-partmax","pf-add-benmin","pf-add-benmax","pf-add-ruletext","pf-add-basis","pf-add-efffrom","pf-add-effto","pf-add-doc","pf-add-section","pf-add-page"].forEach(function(id){ keep[id]=pfAddFormVal(id); });
   if(typeof document!=="undefined") pfRender();
   Object.keys(keep).forEach(function(id){
     var el=(typeof document!=="undefined")?document.getElementById(id):null;
@@ -1137,6 +1430,10 @@ function pfCopyConversionArgs(){
   setVal("pf-add-partmax",s.partAgeMax);
   setVal("pf-add-benmin",s.benAgeMin);
   setVal("pf-add-benmax",s.benAgeMax);
+  setVal("pf-add-efffrom",s.effectiveFrom);
+  setVal("pf-add-effto",s.effectiveTo);
+  if(s.citation){ setVal("pf-add-doc",s.citation.document); setVal("pf-add-section",s.citation.section); setVal("pf-add-page",s.citation.page); }
+  var mc=document.getElementById("pf-add-mortconf"); if(mc) mc.checked=!!s.mortalityConfirmed;
   return true;
 }
 function pfRemoveConversion(id){
@@ -1148,6 +1445,124 @@ function pfRemoveConversion(id){
   pfAudit("additional conversion removed",id);
   if(typeof document!=="undefined") pfRender();
   return true;
+}
+
+/* ---- in-app editing: every factor-set field, in Review ----
+   The reviewer fixes a bad value here instead of editing JSON and
+   re-uploading. Save re-validates the whole document first: a bad
+   value is refused and the error names the field; nothing
+   half-edited is written. A saved edit clears the set's decision —
+   the edited set needs approval again. The audit log records the
+   fields that changed. The printed factor table is not editable
+   here: it stays in the JSON. */
+function pfEditReq(s,f){
+  var req=["title","basis","ruleText","normalForm"];
+  if(s.rule&&s.rule.kind==="bcv") req=req.concat(["nra","interest","mortality1","mortality2","calcMethod","deferralMortality","partSex"]);
+  if(s.rule&&s.rule.kind==="bcv"&&s.type==="BFCF") req.push("benSex");
+  return req.indexOf(f)>=0?" *":"";
+}
+function pfEditInput(s,f,label,override){
+  var val=(override!==undefined)?override:((s[f]===null||s[f]===undefined)?"":String(s[f]));
+  return '<p><label>'+pfEscHtml(label)+'<span class="small">'+pfEditReq(s,f)+'</span><input type="text" data-edit-set="'+pfEscHtml(s.id)+'" data-edit-field="'+pfEscHtml(f)+'" value="'+pfEscHtml(val)+'"></label></p>';
+}
+function pfEditSelect(s,f,label,options){
+  var v=s[f];
+  var opts=options.map(function(o){
+    return '<option value="'+pfEscHtml(o)+'"'+((v===o)?" selected":"")+'>'+pfEscHtml(o||"—")+"</option>";
+  }).join("");
+  return '<p><label>'+pfEscHtml(label)+'<span class="small">'+pfEditReq(s,f)+'</span><select data-edit-set="'+pfEscHtml(s.id)+'" data-edit-field="'+pfEscHtml(f)+'">'+opts+"</select></label></p>";
+}
+function pfEditFormHtml(s){
+  var isBfcf=s.type==="BFCF", isBcv=s.rule&&s.rule.kind==="bcv";
+  var h='<div class="card"><h3>Edit '+pfEscHtml(s.id)+'</h3>'+
+    '<p class="small">* required. Save checks every value first — a bad value is refused and the error names the field. Saving clears the set\u2019s decision: approve it again to include it.</p>'+
+    '<div id="pf-edit-error-'+pfEscHtml(s.id)+'"></div>'+
+    '<div class="grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.5rem 1rem">'+
+    pfEditInput(s,"title","Title")+
+    pfEditInput(s,"basis","Basis")+
+    pfEditInput(s,"ruleText","Plan words (ruleText)")+
+    pfEditInput(s,"note","Note")+
+    pfEditInput(s,"era","Era")+
+    pfEditInput(s,"normalForm","Normal single form")+
+    pfEditInput(s,"effectiveFrom","Effective from (YYYY-MM-DD)")+
+    pfEditInput(s,"effectiveTo","Effective to (YYYY-MM-DD, blank = still in effect)")+
+    (isBcv?pfEditInput(s,"nra","Normal retirement age"):"")+
+    (isBcv?pfEditInput(s,"interest","Interest (decimal, e.g. 0.08)"):"")+
+    (isBcv?pfEditInput(s,"mortality1","Mortality table 1"):"")+
+    (isBcv?pfEditInput(s,"mortality2","Mortality table 2"):"")+
+    (isBcv?pfEditInput(s,"calcMethod","Calc method (MP, QP, SP, Exact)"):"")+
+    (isBcv?pfEditSelect(s,"deferralMortality","Deferral mortality",["","Y","N"]):"")+
+    pfEditInput(s,"monthsCertain","Months certain")+
+    (isBfcf?pfEditInput(s,"monthsTemp","Temporary months"):"")+
+    (isBcv?pfEditSelect(s,"partSex","Participant sex",["","M","F"]):"")+
+    (isBfcf&&isBcv?pfEditSelect(s,"benSex","Beneficiary sex",["","M","F"]):"")+
+    (isBfcf?pfEditInput(s,"survivorPct","Survivor percent (blank = from the to-form)"):"")+
+    (isBfcf?pfEditInput(s,"fromForm","From form"):"")+
+    (isBfcf?pfEditInput(s,"toForm","To form"):"")+
+    (!isBfcf?pfEditInput(s,"monthMin","First month"):"")+
+    (!isBfcf?pfEditInput(s,"monthMax","Last month"):"")+
+    (isBfcf?pfEditInput(s,"partAgeMin","Participant ages, first"):"")+
+    (isBfcf?pfEditInput(s,"partAgeMax","Participant ages, last"):"")+
+    (isBfcf?pfEditInput(s,"benAgeMin","Beneficiary ages, first"):"")+
+    (isBfcf?pfEditInput(s,"benAgeMax","Beneficiary ages, last"):"")+
+    pfEditInput(s,"citDoc","Citation document",s.citation?s.citation.document||"":"")+
+    pfEditInput(s,"citSection","Citation section",s.citation?s.citation.section||"":"")+
+    pfEditInput(s,"citPage","Citation page",s.citation?s.citation.page||"":"")+
+    (isBcv?'<p><label><input type="checkbox" style="width:auto" data-edit-set="'+pfEscHtml(s.id)+'" data-edit-field="mortalityConfirmed"'+(s.mortalityConfirmed?" checked":"")+'> Mortality code confirmed in the ATPBGC MORTNAME table <span class="small">(only when the code is not in the app\u2019s known list)</span></label></p>':"")+
+    '</div>'+
+    '<p><button type="button" class="primary" data-action="save-edit" data-id="'+pfEscHtml(s.id)+'">Save changes</button> '+
+    '<button type="button" class="secondary" data-action="cancel-edit" data-id="'+pfEscHtml(s.id)+'">Cancel</button></p>'+
+    '<p class="small">Printed factor table: edit in the JSON, not here.</p></div>';
+  return h;
+}
+function pfSaveSetEdit(id){
+  if(typeof document==="undefined") return {ok:false,errors:["no document"]};
+  var set=pfFindSet(id);
+  if(!set) return {ok:false,errors:["set not found"]};
+  var next=pfClone(set);
+  var strFields=["title","basis","ruleText","note","era","normalForm","mortality1","mortality2","calcMethod","deferralMortality","partSex","benSex","fromForm","toForm","effectiveFrom","effectiveTo"];
+  var numFields=["nra","monthsCertain","monthsTemp","monthMin","monthMax","partAgeMin","partAgeMax","benAgeMin","benAgeMax"];
+  function val(f){
+    var el=document.querySelector('[data-edit-set="'+id+'"][data-edit-field="'+f+'"]');
+    return el?el.value:"";
+  }
+  /* Citation lives in three inputs, not in the set's fields. */
+  next.citation={document:val("citDoc").trim()||null,section:val("citSection").trim()||null,page:val("citPage").trim()||null};
+  if(!next.citation.document&&!next.citation.section&&!next.citation.page) next.citation=null;
+  /* Seed the citation inputs from the set when the form first
+     opens: the form builder writes them from set.citation. */
+  strFields.forEach(function(f){
+    var v=val(f).trim();
+    next[f]=v===""?null:v;
+  });
+  numFields.forEach(function(f){
+    var v=pfNum(val(f));
+    next[f]=(v===null?null:Math.floor(v));
+  });
+  ["interest","survivorPct"].forEach(function(f){ next[f]=pfNum(val(f)); });
+  var mcEl=document.querySelector('[data-edit-set="'+id+'"][data-edit-field="mortalityConfirmed"]');
+  next.mortalityConfirmed=mcEl?!!mcEl.checked:!!set.mortalityConfirmed;
+  var probe=pfClone(pfState.data);
+  function replaceIn(list){ return (list||[]).map(function(x){ return x.id===id?pfClone(next):x; }); }
+  probe.factorSets=replaceIn(probe.factorSets);
+  probe.additionalConversions=replaceIn(probe.additionalConversions);
+  var v=pfValidatePfJson(probe);
+  var errBox=document.getElementById("pf-edit-error-"+id);
+  if(v.errors.length){
+    if(errBox) errBox.innerHTML='<div class="alert">'+pfEscHtml(v.errors.join("; "))+"</div>";
+    return {ok:false,errors:v.errors};
+  }
+  var changed=[];
+  strFields.concat(numFields).concat(["interest","survivorPct","mortalityConfirmed"]).forEach(function(f){
+    if(JSON.stringify(set[f])!==JSON.stringify(next[f])) changed.push(f);
+  });
+  if(JSON.stringify(set.citation)!==JSON.stringify(next.citation)) changed.push("citation");
+  pfState.data=probe;
+  delete pfState.decisions[id];
+  pfState.editingId=null;
+  pfAudit("edit set",id+" — changed: "+(changed.length?changed.join(", "):"nothing")+" (needs approval again)");
+  pfRender();
+  return {ok:true,changed:changed};
 }
 
 /* ---- render ---- */
@@ -1199,14 +1614,21 @@ function pfRenderReview(){
   var el=pfEl("review-box"); if(!el) return;
   if(!pfState.data){ el.innerHTML="<h2>Step 3 — Review</h2><p>Load JSON first.</p>"; return; }
   var m=pfState.data.planMetadata;
+  /* Live banner: sets that need attention, and anything the
+     current data fails (a header edit can break validation). */
+  var need=pfAllSets(pfState.data).filter(function(s){ return s.status==="missing"||s.status==="ambiguous"; });
+  var vAll=pfValidatePfJson(pfState.data);
+  var banner="";
+  if(need.length) banner+='<div class="warn">Needs attention: '+need.map(function(s){ return pfEscHtml(s.id)+" ("+s.status+(s.note?": "+pfEscHtml(s.note):"")+")"; }).join("; ")+"</div>";
+  if(vAll.errors.length) banner+='<div class="alert">Fix before Generate: '+pfEscHtml(vAll.errors.join("; "))+"</div>";
   var head='<h2>Step 3 — Review</h2>'+
+    '<p class="small">PF Generator v'+PF_VERSION+' · Step 3 of 5 · '+pfSetDecidedCount()+" of "+pfDecidableSets().length+" sets decided.</p>"+banner+
     '<p><label>Plan name <span class="small">(edit if wrong)</span><input type="text" data-meta="planName" value="'+pfEscHtml(m.planName)+'"></label></p>'+
     '<div class="grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.5rem 1rem">'+
     '<p><label>Plan number<input type="text" data-meta="planNumber" value="'+pfEscHtml(m.planNumber)+'"></label></p>'+
     '<p><label>Case number<input type="text" data-meta="caseNumber" value="'+pfEscHtml(m.caseNumber)+'"></label></p>'+
     '<p><label>DOPT<input type="text" data-meta="dopt" value="'+pfEscHtml(m.dopt)+'"></label></p>'+
-    '<p><label>Normal married form <span class="small">(from the plan documents, e.g. JS50)</span><input type="text" data-meta="normalMarriedForm" value="'+pfEscHtml(m.normalMarriedForm||"")+'"></label></p></div>'+
-    "<p>"+pfSetDecidedCount()+" of "+pfDecidableSets().length+" sets decided.</p>";
+    '<p><label>Normal married form <span class="small">(from the plan documents, e.g. JS50)</span><input type="text" data-meta="normalMarriedForm" value="'+pfEscHtml(m.normalMarriedForm||"")+'"></label></p></div>';
   var rows=pfState.data.factorSets.map(function(s){ return pfReviewRow(s,false,m); }).join("");
   el.innerHTML=head+rows+pfAdditionalBlock();
 }
@@ -1224,18 +1646,22 @@ function pfReviewRow(s,isManual,m){
   }
   var cit=s.citation?pfEscHtml(s.citation.document+(s.citation.section?" §"+s.citation.section:"")+(s.citation.page?" p"+s.citation.page:"")):"—";
   var range=s.type==="BFCF"?("part "+s.partAgeMin+"–"+s.partAgeMax+" · ben "+s.benAgeMin+"–"+s.benAgeMax):(s.monthMin+"–"+s.monthMax+" mo");
+  var eff=(s.effectiveFrom||s.effectiveTo)?((s.effectiveFrom||"?")+" to "+(s.effectiveTo||"open")):"—";
+  var fp=pfFormulaPreview(s);
   return '<div class="revrow"><div class="rowhead"><span class="field">'+pfEscHtml(s.id)+'</span><span class="badge '+s.status+'">'+s.status+"</span>"+badge+"</div>"+
     "<p><strong>"+pfEscHtml(s.title)+"</strong></p>"+
-    '<div class="grid"><div><span class="small">Tab</span><br>'+pfEscHtml(pfTabName(s))+'</div><div><span class="small">Range</span><br>'+pfEscHtml(range)+'</div><div><span class="small">Basis</span><br>'+pfEscHtml(s.basis||"—")+'</div><div><span class="small">Citation</span><br>'+cit+"</div></div>"+
+    '<div class="grid"><div><span class="small">Tab</span><br>'+pfEscHtml(pfTabName(s))+'</div><div><span class="small">Range</span><br>'+pfEscHtml(range)+'</div><div><span class="small">Basis</span><br>'+pfEscHtml(s.basis||"—")+'</div><div><span class="small">Citation</span><br>'+cit+'</div><div><span class="small">Effective</span><br>'+pfEscHtml(eff)+"</div></div>"+
     (s.ruleText?'<p class="small">Plan words: '+pfEscHtml(s.ruleText)+"</p>":"")+
     '<p class="small">Source: '+pfEscHtml(pfSetSourceLabel(s))+"</p>"+honLine+
+    (fp?'<p class="small">Formula: <code>'+pfEscHtml(fp)+"</code></p>":'<p class="small">Formula: — (no rule yet)</p>')+
     (s.note?'<p class="small">Note: '+pfEscHtml(s.note)+"</p>":"")+
     '<p><label>Title <input type="text" data-set-title="'+pfEscHtml(s.id)+'" value="'+pfEscHtml(s.title)+'"></label></p>'+
     (excluded?'<p class="small">Left out by the PBGC rule. No decision needed.</p>':
     '<div class="actions"><button type="button" class="primary" data-action="approve" data-id="'+pfEscHtml(s.id)+'">Approve</button>'+
-    '<button type="button" class="secondary" data-action="edit" data-id="'+pfEscHtml(s.id)+'">Edit title</button>'+
+    '<button type="button" class="secondary" data-action="edit" data-id="'+pfEscHtml(s.id)+'">Edit</button>'+
     '<button type="button" class="danger" data-action="reject" data-id="'+pfEscHtml(s.id)+'">Reject</button>'+
-    (isManual?'<button type="button" class="danger" data-action="remove-conversion" data-id="'+pfEscHtml(s.id)+'">Remove</button>':"")+"</div>")+"</div>";
+    (isManual?'<button type="button" class="danger" data-action="remove-conversion" data-id="'+pfEscHtml(s.id)+'">Remove</button>':"")+"</div>")+
+    (pfState.editingId===s.id?pfEditFormHtml(s):"")+"</div>";
 }
 function pfAdditionalBlock(){
   var data=pfState.data;
@@ -1243,7 +1669,7 @@ function pfAdditionalBlock(){
   var copyOpts=bfcf.map(function(s){ return '<option value="'+pfEscHtml(s.id)+'">'+pfEscHtml(s.id)+" — "+pfEscHtml(s.fromForm||"")+" to "+pfEscHtml(s.toForm||"")+"</option>"; }).join("");
   var manual=(data.additionalConversions||[]).map(function(s){ return pfReviewRow(s,true,data.planMetadata); }).join("");
   return '<div class="revrow"><h3>Additional conversions</h3>'+
-    '<p class="small">A conversion the scraper missed? Add any from-form to to-form pair here. It gets its own tab. If PBGC does not honor the pair, the review says so and the audit log records that you added it by choice.</p>'+
+    '<p class="small">A conversion the scraper missed? Add any from-form to to-form pair here. It gets its own tab. If PBGC does not honor the pair, tick “Include it anyway” — that is the override, and the audit log records it.</p>'+
     '<div id="pf-add-error"></div>'+
     '<p><label>Copy BCV arguments from <span class="small">(an existing BFCF set — same interest, mortality, method; you still fill in the pair)</span><select id="pf-add-copy"><option value="">— pick a set —</option>'+copyOpts+'</select></label> '+
     '<button type="button" class="secondary" data-action="copy-conversion-args">Copy arguments</button></p>'+
@@ -1269,7 +1695,14 @@ function pfAdditionalBlock(){
     '<p><label>Beneficiary ages, first<input type="text" id="pf-add-benmin" placeholder="0"></label></p>'+
     '<p><label>Beneficiary ages, last<input type="text" id="pf-add-benmax" placeholder="100"></label></p>'+
     '<p><label>Plan words <span class="small">(the plan’s own words for the rule)</span><input type="text" id="pf-add-ruletext"></label></p>'+
-    '<p><label>Basis <span class="small">(blank = made from the arguments)</span><input type="text" id="pf-add-basis"></label></p></div>'+
+    '<p><label>Basis <span class="small">(blank = made from the arguments)</span><input type="text" id="pf-add-basis"></label></p>'+
+    '<p><label>Effective from <span class="small">(YYYY-MM-DD, blank = not given)</span><input type="text" id="pf-add-efffrom" placeholder="2020-01-01"></label></p>'+
+    '<p><label>Effective to <span class="small">(blank = still in effect)</span><input type="text" id="pf-add-effto"></label></p>'+
+    '<p><label>Source document <span class="small">(short code, e.g. D1)</span><input type="text" id="pf-add-doc"></label></p>'+
+    '<p><label>Section<input type="text" id="pf-add-section"></label></p>'+
+    '<p><label>Page<input type="text" id="pf-add-page"></label></p>'+
+    '<p><label><input type="checkbox" id="pf-add-mortconf" style="width:auto"> Mortality code confirmed in the ATPBGC MORTNAME table <span class="small">(only when the code is not in the app’s known list)</span></label></p></div>'+
+    '<p><label><input type="checkbox" id="pf-add-confirm" style="width:auto"> Include it anyway <span class="small">(only when PBGC does not honor this pair — this is the override)</span></label></p>'+
     '<p><button type="button" class="primary" data-action="add-conversion">Add this conversion</button></p>'+
     (manual?manual:'<p class="small">No additional conversions yet.</p>')+
     '</div>';
@@ -1312,15 +1745,29 @@ function pfHandleAction(action,t){
     var id=t.getAttribute("data-id");
     if(!id) return;
     if(action==="edit"){
+      pfState.editingId=(pfState.editingId===id)?null:id;
+      pfRender();
+      return;
+    }
+    if(action==="approve"){
+      /* A title typed in the row applies with the approval. */
       var inp=document.querySelector('[data-set-title="'+id+'"]');
       var set=pfFindSet(id);
-      if(inp&&set){ set.title=inp.value; pfAudit("edit title",id); }
-      pfState.decisions[id]="edited";
-    }else{
-      pfState.decisions[id]=action==="approve"?"approved":"rejected";
-      pfAudit(action,id);
+      if(inp&&set&&inp.value!==set.title){ set.title=inp.value; pfAudit("edit title",id); }
     }
+    pfState.decisions[id]=action==="approve"?"approved":"rejected";
+    pfAudit(action,id);
     pfRender();
+    return;
+  }
+  if(action==="save-edit"){
+    var sid=t.getAttribute("data-id");
+    if(sid) pfSaveSetEdit(sid);
+    return;
+  }
+  if(action==="cancel-edit"){
+    var cid=t.getAttribute("data-id");
+    if(cid){ pfState.editingId=null; pfRender(); }
     return;
   }
   if(action==="add-conversion"){ pfAddConversion(); return; }
@@ -1369,6 +1816,12 @@ function pfInit(){
   });
   document.addEventListener("change",function(ev){
     var t=ev.target;
+    if(t&&t.getAttribute&&t.getAttribute("data-meta")&&pfState.data){
+      pfAudit("edit header",t.getAttribute("data-meta")+" changed");
+    }
+  });
+  document.addEventListener("change",function(ev){
+    var t=ev.target;
     if(t&&t.id==="pf-file"&&t.files&&t.files[0]&&typeof FileReader!=="undefined"){
       var r=new FileReader();
       r.onload=function(){ pfImportText(String(r.result||""),t.files[0].name); };
@@ -1413,6 +1866,7 @@ if(typeof document!=="undefined"){
 /* ---- public surface for tests and reuse ---- */
 globalThis.PF={
   VERSION:PF_VERSION,
+  SCHEMA_VERSION:PF_SCHEMA_VERSION,
   validatePfJson:pfValidatePfJson,
   importFlexPfJson:pfImportFlexPfJson,
   mergePartialPfJson:pfMergePartialPfJson,
@@ -1424,6 +1878,13 @@ globalThis.PF={
   pfBfcfFormula:pfBfcfFormula,
   pfSurvivorPctForSet:pfSurvivorPctForSet,
   pfBfcfFormCode:pfBfcfFormCode,
+  pfPlanFormToBcv:pfPlanFormToBcv,
+  pfKnownMortality:pfKnownMortality,
+  pfMonthsCertainForSet:pfMonthsCertainForSet,
+  pfFormulaPreview:pfFormulaPreview,
+  pfAuditReport:pfAuditReport,
+  pfSaveSetEdit:pfSaveSetEdit,
+  pfDeflateRaw:pfDeflateRaw,
   pfTableValue:pfTableValue,
   pfSetSourceLabel:pfSetSourceLabel,
   pfPbgcHonors:pfPbgcHonors,

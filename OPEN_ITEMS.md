@@ -1,6 +1,41 @@
-# OPEN ITEMS — PF Generator v0.2.3
+# OPEN ITEMS — PF Generator v0.3.0
 
 The canonical gap list. Read this before proposing next steps.
+
+## Fixed in v0.3.0 (Software correctness and end-to-end readiness)
+
+- **BCV form-code mapping.** A `3CC` from-form wrote
+  `BFCFAEQ("3CC",...)` — invalid, the add-in accepts only `SLA`,
+  `CTN`, `JSC`, `JSJ`, `JSN`, `JSP`. It now writes
+  `BFCFAEQ("SLA",0,36,...)`, as the reference file does. Plan forms
+  map to BCV codes (`SLA`, `nCC` → `SLA` + `n*12`, `JSnn` →
+  `JSC` + percent); unknown forms are refused. Months certain
+  derives from a `nCC` form name and conflicts fail validation.
+  Demo LRF fixed: `3CC` with 0 → 36.
+- **Validation, fail-closed.** Interest under 1.0, NRA and ages
+  0–124, calc method `MP`/`QP`/`SP`/`Exact`, mortality codes on the
+  known MORTNAME list (or user-confirmed), survivor percent matching
+  its to-form, NRA plus months certain over 124 refused for
+  Woolhouse methods.
+- **Effective dates and duplicates.** `effectiveFrom` /
+  `effectiveTo` per set; a set starting after DOPT is refused; the
+  same factor key twice is refused as a duplicate.
+- **Edit in the app.** Every set field is editable in Review, with
+  re-validation on save; a saved edit clears the decision. Each row
+  shows the exact formula that will be written. A manually added
+  pair PBGC does not honor needs the "Include it anyway" tick.
+- **Full grid.** A 26 × 101 BFCF grid (2,626 formulas) runs end to
+  end: `samples/riverbend-full-grid.xlsx`, 29 KB.
+- **Compression and determinism.** DEFLATE (pure JS, offline) for
+  every ZIP entry; fixed ZIP timestamps, so the same approved
+  inputs give the same bytes. Sample JSON regenerates the sample
+  workbook byte-for-byte.
+- **Audit report and versions.** Full report (versions, input JSON
+  hash, per-set traceability); workbook document properties carry
+  the generator version. Two sets sharing a tab name are refused.
+- **Scraper prompt.** Per-document instruction (read each document
+  on its own, then combine), effective dates, form-name guidance,
+  MORTNAME note, `schemaVersion` in the shape.
 
 ## Fixed in v0.2.3 (Additional conversions)
 
@@ -73,14 +108,12 @@ tests. Schema tightened (`additionalProperties: false` on the fixed
 objects). See `docs/OLD_ATTEMPT_COMPARISON.md` and the layout-parity
 section in `docs/PF_NOTES.md`.
 
-## 1. Full BFCF grid not yet generated end to end
+## 1. Full BFCF grid — fixed in v0.3.0
 
-The demo uses a small grid (part 55–60, ben 0–5: 36 formulas). A full
-grid (26 x 101 = 2,626 formulas per tab) has not been run through the
-app yet. The builder writes grids of any size from imported JSON.
-Run a full-grid import and check the file size, the write time, and
-that Excel opens it. Stored ZIP (no compression) makes about 1 MB per
-full tab. Compression is a later step, not a fix for v0.1.1.
+A full grid (26 x 101 = 2,626 formulas per tab) now runs end to
+end through the app: `scripts/gen_full_grid_xlsx.cjs` and
+`samples/riverbend-full-grid.xlsx` (29 KB compressed). DEFLATE
+replaced stored ZIP; see "Fixed in v0.3.0" above.
 
 ## 2. Mortality table code UP84M2 not confirmed in the add-in doc
 
@@ -92,7 +125,9 @@ match our formulas. Still open: "UP84M2" has no hit in the doc
 text; it comes from the reference file only. The doc lists no full
 table-code list — codes live in the ATPBGC database MORTNAME table,
 looked up with MORTCODE/MORTDESC. Confirm UP84M2 is a valid
-MORTNAME code.
+MORTNAME code. Until then: UP84M2 is on the app's known list (from
+the reference file), and any other unlisted code needs
+`mortalityConfirmed` — the user checked it in MORTNAME.
 
 ## 3. Rounding policy source not found
 
@@ -100,7 +135,7 @@ The file shows ROUND to 4 decimals. No written PBGC rounding policy
 was found in the Book of Job yet. If none exists, the file's practice
 is the policy. Search for it.
 
-## 4. No logo in v0.2.2
+## 4. No logo in v0.3.0
 
 The header is text only. The DEL generator embeds the white PBGC logo
 (base64, from the Book of Job "images" folder). PF should reuse that
@@ -109,16 +144,17 @@ blue header in both themes. Do not invent a logo.
 
 ## 5. Scraper prompt is one prompt, not per-group prompts
 
-The prompt asks for all factor sets at once. If a plan has many eras,
-the LLM may miss sets. A per-era or per-type prompt split (like the
-DEL full-universe plan) may be needed. Not decided.
+The prompt asks for all factor sets at once, but v0.3.0 adds a
+per-document instruction (read each document on its own, then
+combine). A per-era or per-type prompt split (like the DEL
+full-universe plan) may still be needed. Not decided.
 
-## 6. Edit is title-only in review
+## 6. Edit is title-only in review — fixed in v0.3.0
 
-Review lets the user edit a set title and the header. It does not yet
-edit basis, interest, mortality, or ranges in place. A bad value must
-be fixed in the JSON and re-uploaded (partial import fills only
-missing sets). In-place editing of rule values is a later step.
+Review now edits every set field in place (interest, mortality,
+method, sexes, ranges, dates, citation), with re-validation on
+save. The printed factor table is still JSON-only: it cannot be
+edited in the app.
 
 ## 7. No print preview in the app
 

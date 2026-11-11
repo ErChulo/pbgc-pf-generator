@@ -1,4 +1,4 @@
-# PF Notes — PF Generator v0.2.3
+# PF Notes — PF Generator v0.3.0
 
 ## What PF is
 
@@ -97,14 +97,17 @@ percent: it derives from the new to-form (JS100 -> 1).
   checks it. A bad argument fails the add and the form says what is
   missing; nothing half-filled is written.
 - A user-added pair is included in the workbook by the user's
-  choice, even when PBGC does not honor it. The PBGC rule never
-  leaves it out. The review shows "PBGC honors: No — included by
-  your choice" with the reason, and the audit log records it as
-  "additional conversion (user-added)" with the honored status.
-- Adding approves the pair at once: the user's own entry is the
-  approval. An imported user-added pair (from JSON) still needs an
-  Approve in review, like any scraped set. A user-added pair can be
-  removed in review; the audit log records the removal.
+  choice, even when PBGC does not honor it. Adding it needs the
+  explicit "Include it anyway" tick (v0.3.0): the tick is the
+  approval of the override. The review shows "PBGC honors: No —
+  included by your choice" with the reason, and the audit log
+  records it as "additional conversion (user-added)" with the
+  honored status and the override confirmation.
+- Adding approves the pair at once: the user's own entry, plus the
+  tick when the pair is not honored, is the approval. An imported
+  user-added pair (from JSON) still needs an Approve in review, like
+  any scraped set. A user-added pair can be removed in review; the
+  audit log records the removal.
 - A user-added conversion is formula-only: it cannot carry a
   printed factor table through the form (see OPEN_ITEMS.md item 8).
 
@@ -149,7 +152,7 @@ it. The review screen shows it under the set.
 - **stepped:** `=ROUND(1-(1/D1)*MIN(m,N)-(1/D2)*MAX(MIN(m-N,CAP),0),4)`. First rate for N months, then second rate.
 - **bcv ERF:** `=ROUND(ERFAEQ(interest,partSex,nra,months,certain,"mort1","mort2",calcMethod,deferralMortality),4)`.
 - **bcv LRF:** `=ROUND(LRFAEQ(interest,partSex,nra,months,certain,"mort1","mort2",calcMethod,deferralMortality),4)`.
-- **bcv BFCF:** `=ROUND(BFCFAEQ("from",0,certain,temp,"JSC",survivorPct,0,0,partAge,benAge,partSex,benSex,interest,"mort1","mort2",calcMethod,deferralMortality),4)`.
+- **bcv BFCF:** `=ROUND(BFCFAEQ("fromCode",fromSpc,certain,temp,"toCode",survivorPct,toCertain,0,partAge,benAge,partSex,benSex,interest,"mort1","mort2",calcMethod,deferralMortality),4)`. `fromCode` / `toCode` are the BCV codes for the plan forms (see "Plan form names map to BCV codes" above), not the plan names. `toCertain` comes from the to-form name (`nCC` → `n*12`, else 0).
 
 Derived, not scraped:
 
@@ -185,6 +188,61 @@ inside the set's ranges; anything else fails validation. Rows are
 never reordered, interpolated, or filled in from the formula.
 
 BCV add-in functions: ERFAEQ, LRFAEQ, BFCFAEQ. They run only in Excel with the ATPBGC add-in. The workbook sets `fullCalcOnLoad`, so Excel computes on open. Plain formulas carry a cached value. BCV cells carry none.
+
+### Plan form names map to BCV codes (v0.3.0)
+
+The plan form name is not a BCV argument. The app maps it:
+
+| Plan form | BCV code | Survivor percent | Months certain |
+| --- | --- | --- | --- |
+| `SLA` | `SLA` | 0 | 0 |
+| `nCC` (`3CC`, `5CC`, ...) | `SLA` | 0 | `n*12` |
+| `JSnn` (`JS50`, `JS75`, `JS100`) | `JSC` | `nn/100` | 0 |
+
+Source: the add-in doc, PBGCBFCF2 "Suggested Input" (same codes
+`BFCFAEQ` accepts: `SLA`, `CTN`, `JSC`, `JSJ`, `JSN`, `JSP`). The
+reference file proves it: its `3CC->JS50` tabs read
+`BFCFAEQ("SLA",0,36,...)`. Before v0.3.0 the app wrote the plan
+name (`"3CC"`) as the first argument — invalid, the add-in rejects
+it. An unknown form name is refused, never guessed. An explicit
+survivor percent must match the form name (`JS50` → 0.5).
+
+### Months certain
+
+`monthsCertain` is the months certain in the form the formula
+converts from (BFCF) or in the normal single form (ERF/LRF,
+`TheCPeriod`). When it is not stated, a certain-and-continuous
+form name supplies it (`3CC` → 36). A stated value that disagrees
+with the form name is a conflict and fails validation. The
+reference file's pattern: `SLA` → 0 (`LRF-1978`), `3CC` → 36
+(`ERF-Disability`, `LRF-1982`, `LRF-2011`).
+
+### Effective dates and duplicates (v0.3.0)
+
+Each set carries `effectiveFrom` / `effectiveTo` (ISO dates, or
+null). A set that starts after DOPT is refused. The same factor
+key twice (same type, era, form pair, rule, and ranges) under
+different ids is refused as a duplicate. Different rules in one
+era are fine — a disability ERF next to a regular ERF.
+
+### Audit report (v0.3.0)
+
+The downloadable audit log is a report: generator and schema
+versions, plan and case, input JSON hash, one traceability line
+per set (source citation, effective dates, rule, decision,
+PBGC-honors result, formula), then the event log — every import,
+edit, approval, rejection, addition, removal, exclusion, and
+generation. The workbook's document properties (`docProps/core.xml`,
+`docProps/app.xml`) carry the generator version too, so a workbook
+can be traced back to the app that wrote it.
+
+### Compression and determinism (v0.3.0)
+
+The ZIP writer compresses every entry with raw DEFLATE (fixed
+Huffman, LZ77), pure JS, offline. A full 26 × 101 BFCF grid is
+29 KB. ZIP timestamps are fixed (1980-01-01), so the same approved
+inputs always produce the same bytes: `samples/riverbend-pf.json`
+regenerates `samples/riverbend-pf.xlsx` byte-for-byte.
 
 ## Rounding
 

@@ -2,8 +2,10 @@
 """Verify the demo PF.xlsx produced by the HTML's own code.
 
 Generates /tmp/pf-demo.xlsx via scripts/gen_demo_xlsx.cjs, then checks
-it with openpyxl: 3 tabs, headers, formulas, ROUND to 4, print setup,
-number formats, no real-case strings. Then, if LibreOffice is present,
+it with openpyxl: 4 tabs, headers, formulas, ROUND to 4, print setup,
+number formats, DEFLATE compression, document properties, no real-case
+strings. Then a full 26x101 BFCF grid is generated and checked the
+same way. Then, if LibreOffice is present,
 converts it to PDF to prove Calc opens it and computes the plain formulas.
 
 Usage: python3 scripts/verify_xlsx.py [/tmp/pf-demo.xlsx]
@@ -108,7 +110,7 @@ def main():
           (erf.page_margins.left, erf.page_margins.right, erf.page_margins.top, erf.page_margins.bottom) == (0.4, 0.4, 0.5, 0.5))
 
     lrf = wb["LRF-2020"]
-    check("LRF B11 formula is LRFAEQ", lrf["B11"].value == '=ROUND(LRFAEQ(0.05,"M",65,A11,0,"GM83","GF83","MP","Y"),4)', repr(lrf["B11"].value))
+    check("LRF B11 formula is LRFAEQ with months certain 36 (normal form 3CC)", lrf["B11"].value == '=ROUND(LRFAEQ(0.05,"M",65,A11,36,"GM83","GF83","MP","Y"),4)', repr(lrf["B11"].value))
     check("LRF print area", lrf.print_area == "'LRF-2020'!$A$1:$J$34", lrf.print_area)
     check("LRF landscape + fit", lrf.page_setup.orientation == "landscape" and lrf.page_setup.fitToWidth == 1 and lrf.page_setup.fitToHeight == 2)
     check("LRF merges and freeze match ERF", {str(r) for r in lrf.merged_cells.ranges} == {f"A{i}:J{i}" for i in range(1, 9)} and lrf.freeze_panes == "A11")
@@ -168,12 +170,62 @@ def main():
           bf.column_dimensions["A"].width == 4.0 and
           all(bf.column_dimensions[c].width == 8.5 for c in "BCDEFGH"))
 
-    # No real-case strings anywhere in the file.
+    # No real-case strings anywhere in the file (decompressed members).
     raw = OUT.read_bytes()
-    check("no real-case strings in the file", b"24884900" not in raw and b"Saint Rose" not in raw and b"St. Rose" not in raw)
+    check("no real-case strings in the raw file", b"24884900" not in raw and b"Saint Rose" not in raw and b"St. Rose" not in raw)
     z = zipfile.ZipFile(str(OUT))
     check("zip is sound", z.testzip() is None)
     check("workbook sets fullCalcOnLoad", b"fullCalcOnLoad" in z.read("xl/workbook.xml"))
+    check("all zip members are DEFLATE-compressed (method 8)",
+          all(i.compress_type == zipfile.ZIP_DEFLATED for i in z.infolist()),
+          str([(i.filename, i.compress_type) for i in z.infolist()]))
+    check("compressed workbook is small (under 40 KB for the demo)",
+          OUT.stat().st_size < 40000, str(OUT.stat().st_size))
+    core = z.read("docProps/core.xml").decode("utf-8")
+    check("document properties name the generator version (v0.3.0)",
+          "PF Generator v0.3.0" in core and "schema v0.3.0" in core, core[:200])
+    check("document properties carry the case title",
+          "98765400 PF" in core, core[:200])
+    all_text = b"\n".join(z.read(n) for n in z.namelist()).decode("utf-8", "replace")
+    check("no real-case strings in the decompressed workbook",
+          "24884900" not in all_text and "Saint Rose" not in all_text and "St. Rose" not in all_text)
+    if audit_path.exists():
+        audit = audit_path.read_text(encoding="utf-8")
+        check("audit log is the full report (versions, input hash, per-set trace)",
+              "PF Generator audit report — v0.3.0 (schema v0.3.0)" in audit and
+              "Input JSON: hash" in audit and "generator version" in audit, audit[:300])
+        check("audit log traces each set with source and formula",
+              "effective 2020-01-01" in audit and "formula: =ROUND(BFCFAEQ" in audit, audit[:500])
+
+    # Full 26x101 BFCF grid, end to end.
+    full_out = Path("/tmp/pf-full-grid.xlsx")
+    r2 = subprocess.run(
+        ["node", str(ROOT / "scripts" / "gen_full_grid_xlsx.cjs"), str(full_out)],
+        capture_output=True, text=True,
+    )
+    check("full-grid workbook generates", r2.returncode == 0, r2.stderr.strip())
+    if r2.returncode == 0:
+        print(r2.stdout.strip())
+        check("full-grid workbook is small compressed (under 200 KB)",
+              full_out.stat().st_size < 200000, str(full_out.stat().st_size))
+        zf = zipfile.ZipFile(str(full_out))
+        check("full-grid zip is sound", zf.testzip() is None)
+        wbf = openpyxl.load_workbook(str(full_out))
+        check("full-grid workbook has 1 tab (BFCF-2020 SLA->JS50)",
+              wbf.sheetnames == ["BFCF-2020 SLA->JS50"], str(wbf.sheetnames))
+        g = wbf["BFCF-2020 SLA->JS50"]
+        check("full-grid dimensions are A1:AB111", g.dimensions == "A1:AB111", g.dimensions)
+        check("full-grid C11 formula is BFCFAEQ",
+              g["C11"].value == '=ROUND(BFCFAEQ("SLA",0,36,0,"JSC",0.5,0,0,C10,B11,"M","F",0.08,"UP84M2","UP84M2","MP","N"),4)',
+              repr(g["C11"].value))
+        check("full-grid last cell AB111 is a BFCFAEQ formula",
+              isinstance(g["AB111"].value, str) and g["AB111"].value.startswith("=ROUND(BFCFAEQ("),
+              repr(g["AB111"].value))
+        n_formulas = sum(1 for row in g.iter_rows() for c in row if isinstance(c.value, str) and c.value.startswith("=ROUND(BFCFAEQ("))
+        check("full-grid has 2,626 BFCFAEQ formulas", n_formulas == 2626, str(n_formulas))
+        check("full-grid print area is the full grid",
+              g.print_area == "'BFCF-2020 SLA->JS50'!$A$1:$AB$111", g.print_area)
+        check("full-grid freeze panes at C11", g.freeze_panes == "C11", str(g.freeze_panes))
 
     # LibreOffice: prove Calc opens it and computes the plain formulas.
     lo = subprocess.run(["which", "soffice"], capture_output=True, text=True)

@@ -93,7 +93,7 @@ function ruleHas(rule, prop, value) {
   const { document } = window;
   check('Part 1: page loads on an opaque origin with no script errors', errors.length === 0, errors.join('; '));
   check('Part 1: PF global exists', !!window.PF);
-  check('Part 1: PF version is 0.2.3', window.PF && window.PF.VERSION === '0.2.3');
+  check('Part 1: PF version is 0.3.0', window.PF && window.PF.VERSION === '0.3.0');
 
   // Demo from the PF view: use the public loader (same as the button).
   window.pfLoadDemo();
@@ -104,7 +104,24 @@ function ruleHas(rule, prop, value) {
   check('Part 1: review renders 7 rows (5 scraped + 1 user-added + the Additional conversions block)', rev && rev.querySelectorAll('.revrow').length === 7, rev ? String(rev.querySelectorAll('.revrow').length) : 'no review box');
   check('Part 1: review shows the Additional conversions form', rev && !!document.getElementById('pf-add-from') && !!document.getElementById('pf-add-to'));
   check('Part 1: review says the user-added JS100 set is included by choice', rev && rev.textContent.includes('included by your choice'));
-  check('Part 1: review shows the plan words (ruleText)', rev && rev.textContent.includes('Plan words:'), rev ? rev.textContent.slice(0, 200) : 'no review box');
+  check('Part 1: review shows the formula preview', rev && rev.textContent.includes('Formula: =ROUND(BFCFAEQ'));
+  check('Part 1: review shows the effective dates', rev && rev.textContent.includes('Effective'));
+  check('Part 1: review shows the version and progress', rev && rev.textContent.includes('PF Generator v0.3.0') && rev.textContent.includes('Step 3 of 5'));
+  check('Part 1: review flags the missing set', rev && rev.textContent.includes('Needs attention') && rev.textContent.includes('ERF-DIS-2020 (missing'));
+  // Edit panel: open it, save a bad value (refused), save a good one.
+  document.querySelector('#review-box [data-action="edit"][data-id="ERF-2020"]').click();
+  check('Part 1: Edit opens the edit panel for the set', !!document.querySelector('[data-edit-set="ERF-2020"][data-edit-field="interest"]') || !!document.querySelector('[data-edit-set="ERF-2020"][data-edit-field="title"]'));
+  const titleInput = document.querySelector('[data-edit-set="ERF-2020"][data-edit-field="title"]');
+  titleInput.value = '';
+  document.querySelector('#review-box [data-action="save-edit"][data-id="ERF-2020"]').click();
+  const editErr = document.getElementById('pf-edit-error-ERF-2020');
+  check('Part 1: saving an empty title is refused and names the field', editErr && editErr.textContent.includes('title'), editErr ? editErr.textContent : 'no error box');
+  check('Part 1: refused save writes nothing', window.PF.state.data.factorSets.find((s) => s.id === 'ERF-2020').title === 'Early Retirement Factors from NRA of 65 (2020 Plan)');
+  titleInput.value = 'Early Retirement Factors from NRA of 65 (2020 Plan, edited)';
+  document.querySelector('#review-box [data-action="save-edit"][data-id="ERF-2020"]').click();
+  check('Part 1: saving a good edit applies it', window.PF.state.data.factorSets.find((s) => s.id === 'ERF-2020').title === 'Early Retirement Factors from NRA of 65 (2020 Plan, edited)');
+  check('Part 1: a saved edit clears the decision (approve again)', !window.PF.state.decisions['ERF-2020']);
+  check('Part 1: audit log records the edit and the changed field', window.PF.state.audit.some((a) => a.action === 'edit set' && a.detail.indexOf('ERF-2020') === 0 && a.detail.includes('title')));
   check('Part 1: review shows the source label (Table / Formulas)', rev && rev.textContent.includes('Source: Table:') && rev.textContent.includes('Source: Formulas from the rule'));
   check('Part 1: review says PBGC honors the JS50 set', rev && rev.textContent.includes('PBGC honors: Yes'));
   check('Part 1: review says PBGC does not honor the JS75 set, with the reason', rev && rev.textContent.includes('PBGC honors: No') && rev.textContent.includes('to-form JS75 is not the normal married form JS50'));
@@ -221,14 +238,22 @@ function ruleHas(rule, prop, value) {
   document.querySelector('#review-box [data-action="copy-conversion-args"]').click();
   check('Part 7: copying arguments fills interest and mortality', document.getElementById('pf-add-interest').value === '0.08' && document.getElementById('pf-add-mort1').value === 'UP84M2' && document.getElementById('pf-add-calcmethod').value === 'MP');
   check('Part 7: copying arguments does not copy the survivor percent', document.getElementById('pf-add-survivorpct').value === '');
-  // A pair the scraper did not propose: 3CC to JS75.
+  // A pair the scraper did not propose: 3CC to JS75. PBGC does not
+  // honor it (from-form 3CC is not the normal single form SLA), so
+  // adding needs the explicit override confirmation first.
   document.getElementById('pf-add-era').value = '2020';
   document.getElementById('pf-add-from').value = '3CC';
   document.getElementById('pf-add-to').value = 'JS75';
   document.getElementById('pf-add-ruletext').value = 'joint and 75% survivor conversion by actuarial equivalence';
   document.querySelector('#review-box [data-action="add-conversion"]').click();
+  const confErr = document.getElementById('pf-add-error');
+  check('Part 7: adding a non-honored pair without the override tick is refused', window.PF.state.data.additionalConversions.length === 1 && confErr && confErr.textContent.includes('Include it anyway'), confErr ? confErr.textContent : 'no error box');
+  document.getElementById('pf-add-confirm').checked = true;
+  document.querySelector('#review-box [data-action="add-conversion"]').click();
   check('Part 7: adding the pair appends it to additionalConversions', window.PF.state.data.additionalConversions.length === 2 && window.PF.state.data.additionalConversions.some((s) => s.id === 'BFCF-2020-3CC-JS75'));
+  check('Part 7: the 3CC from-form is kept as written (the app maps it to SLA + 36 in the formula)', window.PF.state.data.additionalConversions.find((s) => s.id === 'BFCF-2020-3CC-JS75').fromForm === '3CC');
   check('Part 7: adding approves the pair at once', window.PF.state.decisions['BFCF-2020-3CC-JS75'] === 'approved');
+  check('Part 7: audit log records the override confirmation', window.PF.state.audit.some((a) => a.action === 'additional conversion added' && a.detail.indexOf('BFCF-2020-3CC-JS75') === 0 && a.detail.includes('override confirmed')));
   check('Part 7: the new row has a Remove button', !!document.querySelector('#review-box [data-action="remove-conversion"][data-id="BFCF-2020-3CC-JS75"]'));
   check('Part 7: the new row says it is included by choice (PBGC does not honor 3CC->JS75)', document.getElementById('review-box').textContent.includes('included by your choice'));
   check('Part 7: audit log records the added conversion', window.PF.state.audit.some((a) => a.action === 'additional conversion added' && a.detail.indexOf('BFCF-2020-3CC-JS75') === 0));

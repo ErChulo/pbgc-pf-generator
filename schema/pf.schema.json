@@ -93,6 +93,22 @@
             "minLength": 1,
             "type": "string"
           },
+          "effectiveFrom": {
+            "description": "First date this rule applies, ISO YYYY-MM-DD, or null when the documents give none.",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "effectiveTo": {
+            "description": "Last date this rule applies, ISO YYYY-MM-DD, or null when still in effect at DOPT.",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "fromForm": {
             "description": "BFCF only: form converted from, e.g. SLA.",
             "type": [
@@ -145,6 +161,13 @@
               "null"
             ]
           },
+          "mortalityConfirmed": {
+            "description": "True only when the mortality codes were checked against the ATPBGC MORTNAME table. A code not in the app's known list fails validation unless this is true.",
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
           "mortality2": {
             "type": [
               "string",
@@ -152,11 +175,7 @@
             ]
           },
           "normalForm": {
-            "enum": [
-              "SLA",
-              "3CC",
-              ""
-            ],
+            "description": "Normal single form as the documents write it: SLA, or a certain-and-continuous form (3CC, 5CC, ...). The app maps it to its BCV code.",
             "type": "string"
           },
           "note": {
@@ -423,13 +442,20 @@
       ],
       "type": "object",
       "additionalProperties": false
+    },
+    "schemaVersion": {
+      "description": "Version of this schema, e.g. 0.3.0. The app records it in the audit report and warns when an imported JSON was written for another version.",
+      "type": [
+        "string",
+        "null"
+      ]
     }
   },
   "required": [
     "planMetadata",
     "factorSets"
   ],
-  "title": "PF Generator JSON (draft v0.2.3)",
+  "title": "PF Generator JSON (draft v0.3.0)",
   "type": "object",
   "additionalProperties": false
 }

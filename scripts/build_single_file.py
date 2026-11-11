@@ -73,7 +73,7 @@ def main():
     if "import(" in script:
         fail("import( found in script")
     urls = re.findall(r"https?://[^\s\"'<>]+", html)
-    bad = [u for u in urls if "schemas.openxmlformats.org" not in u and "www.w3.org" not in u]
+    bad = [u for u in urls if "schemas.openxmlformats.org" not in u and "www.w3.org" not in u and "purl.org" not in u]
     if bad:
         fail(f"external URLs found: {bad[:3]}")
 

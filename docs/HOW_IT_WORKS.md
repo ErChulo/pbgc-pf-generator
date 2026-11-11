@@ -18,6 +18,9 @@ ASD STE 100. One idea per line. User action, then app behavior.
 - You: feed the prompt and the plan documents to an LLM. Copilot in the office, any LLM at home.
 - LLM: returns JSON. It only proposes.
 - LLM: finds every distinct factor set. Each era. Each type. Each form pair. No merging. No dropping.
+- LLM: reads each document on its own first (plan, restatement, amendments), then combines. An amendment that changes a rule starts a new era.
+- LLM: records when each rule applies (`effectiveFrom` / `effectiveTo`).
+- LLM: records form names as written (`SLA`, `3CC`, `JS50`). The app maps each name to its BCV code.
 - LLM: quotes the plan's rule sentence into `ruleText`, then states the matching `rule`. Words first, formula second.
 - LLM: copies every BCV argument from the plan's definition: interest, mortality tables, calc method, deferral mortality, months certain, sexes, survivor percent, temporary months. Nothing assumed.
 - LLM: copies any factor table the documents print, row by row, as printed. No reordering. No interpolating. No filling in from the formula.
@@ -37,10 +40,12 @@ ASD STE 100. One idea per line. User action, then app behavior.
 
 - You: approve, reject, or edit each factor set.
 - You: edit the header (plan name, plan number, case number, DOPT).
-- You: edit a set title in place.
+- You: edit any field of a set in place (Edit). Save checks every value first; a bad value is refused and the error names the field. A saved edit clears the set's decision — approve it again.
 - You: read the plan's words (`ruleText`) under each set, and the source: table values or formulas.
+- You: read the exact formula that will be written, on each row, before generating.
+- You: read the effective dates of each set, and which sets need attention (missing, ambiguous, or failing validation).
 - You: read, for each BFCF set, whether PBGC honors it. Honored pairs only. A pair PBGC does not honor is left out of the file — it needs no decision, and it does not block Generate.
-- You: add a conversion the scraper missed, under "Additional conversions". Pick any from-form and to-form, fill in the BCV arguments (or copy them from an existing BFCF set — the survivor percent is never copied, it derives from the new to-form). Adding approves it at once. A pair PBGC does not honor is still included, by your choice: the review says so, and the audit log records it. Remove takes it back out.
+- You: add a conversion the scraper missed, under "Additional conversions". Pick any from-form and to-form, fill in the BCV arguments (or copy them from an existing BFCF set — the survivor percent is never copied, it derives from the new to-form). A pair PBGC does not honor needs the "Include it anyway" tick: that is the override, and the audit log records it. Adding approves it at once. Remove takes it back out.
 - Missing sets: approve is refused. Reject them, or fill them first.
 - Rejected sets stay out of the workbook.
 
@@ -48,13 +53,14 @@ ASD STE 100. One idea per line. User action, then app behavior.
 
 - You: click "Generate the workbook".
 - App: locked until the header is filled and each set has a decision.
-- App: writes one tab per approved set: honored scraped sets, and user-added sets.
+- App: writes one tab per approved set: honored scraped sets, and user-added sets. Two sets that would share a tab name are refused.
 - App: sets print area, print titles, landscape, fit, margins on each tab.
-- App: writes the audit log, per set: table values and formulas counted. It names every set left out by the PBGC rule and why, names every user-added set and that it is included by choice, and records the normal married form used.
+- App: writes the audit report: generator and schema versions, plan and case, input JSON hash, one traceability line per set (source, effective dates, rule, decision, PBGC-honors result, formula), then every addition, edit, approval, rejection, and exclusion. The workbook's document properties carry the generator version too.
+- App: builds deterministically — the same approved inputs always give the same bytes.
 
 ## 6. Download
 
 - You: click "Download".
 - App: downloads `<case>PF.xlsx`.
-- You: click "Download audit log" for the log.
+- You: click "Download audit log" for the report.
 - Open the file in Excel with the ATPBGC add-in. The BCV formulas compute there.
