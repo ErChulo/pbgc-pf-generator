@@ -51,13 +51,38 @@ def main():
     check("ERF B11 is a table value, not a formula (month 1 = 0.9944)",
           erf["B11"].value == 0.9944 and not isinstance(erf["B11"].value, str), repr(erf["B11"].value))
     check("ERF B11 format is 0.0000", erf["B11"].number_format == "0.0000", erf["B11"].number_format)
-    check("ERF J22 is a table value (month 60 = 0.6667)",
-          erf["J22"].value == 0.6667 and not isinstance(erf["J22"].value, str), repr(erf["J22"].value))
-    check("ERF D11 is still a formula (month 2, off the table)",
-          erf["D11"].value == "=ROUND(1-(C11/180),4)", repr(erf["D11"].value))
+    check("ERF months fill down each column (C11=25, E11=49, G11=73, I11=97)",
+          (erf["C11"].value, erf["E11"].value, erf["G11"].value, erf["I11"].value) == (25, 49, 73, 97),
+          f"C11={erf['C11'].value} E11={erf['E11'].value} G11={erf['G11'].value} I11={erf['I11'].value}")
+    check("ERF months end down the last column (A34=24, I34=120)",
+          erf["A34"].value == 24 and erf["I34"].value == 120,
+          f"A34={erf['A34'].value} I34={erf['I34'].value}")
+    check("ERF F22 is a table value (month 60 = 0.6667)",
+          erf["F22"].value == 0.6667 and not isinstance(erf["F22"].value, str), repr(erf["F22"].value))
+    check("ERF B12 is still a formula (month 2, off the table)",
+          erf["B12"].value == "=ROUND(1-(A12/180),4)", repr(erf["B12"].value))
     check("ERF last month is 120", erf["I34"].value == 120, repr(erf["I34"].value))
     check("ERF J34 is a table value (month 120 = 0.3333)",
           erf["J34"].value == 0.3333 and not isinstance(erf["J34"].value, str), repr(erf["J34"].value))
+    check("ERF header fonts (A1=14 bold, A2=12 bold, A5=12 bold, A6=11)",
+          erf["A1"].font.sz == 14.0 and erf["A1"].font.b is True and
+          erf["A2"].font.sz == 12.0 and erf["A2"].font.b is True and
+          erf["A5"].font.sz == 12.0 and erf["A5"].font.b is True and
+          erf["A6"].font.sz == 11.0 and not erf["A6"].font.b,
+          f"A1={erf['A1'].font.sz}/{erf['A1'].font.b} A5={erf['A5'].font.sz}/{erf['A5'].font.b} A6={erf['A6'].font.sz}/{erf['A6'].font.b}")
+    check("ERF header row heights (1=20, 5=28, 6=18)",
+          erf.row_dimensions[1].height == 20.0 and erf.row_dimensions[5].height == 28.0 and
+          erf.row_dimensions[6].height == 18.0,
+          f"1={erf.row_dimensions[1].height} 5={erf.row_dimensions[5].height} 6={erf.row_dimensions[6].height}")
+
+    def thin(cell):
+        b = cell.border
+        return (b.left.style, b.right.style, b.top.style, b.bottom.style) == ("thin", "thin", "thin", "thin")
+
+    check("ERF row-10 headers have thin borders", thin(erf["A10"]) and thin(erf["B10"]))
+    check("ERF table cells have thin borders", thin(erf["A11"]) and thin(erf["B11"]) and thin(erf["J34"]))
+    check("ERF row-10 headers are centred bold", erf["A10"].alignment.horizontal == "center" and erf["A10"].font.b is True)
+    check("ERF table cells are centred", erf["A11"].alignment.horizontal == "center" and erf["B11"].alignment.horizontal == "center")
     check("ERF print area is full table", erf.print_area == "'ERF-2020'!$A$1:$J$34", erf.print_area)
     check("ERF print titles rows 1:10", str(erf.print_title_rows) == "$1:$10", str(erf.print_title_rows))
     check("ERF landscape", erf.page_setup.orientation == "landscape")
@@ -89,6 +114,16 @@ def main():
           bf["C11"].value == '=ROUND(BFCFAEQ("SLA",0,36,0,"JSC",0.5,0,0,C10,B11,"M","F",0.08,"UP84M2","UP84M2","MP","N"),4)',
           repr(bf["C11"].value))
     check("BFCF C11 format is 0.0000", bf["C11"].number_format == "0.0000")
+    check("BFCF header fonts (B1=14 bold, B5=12 bold, B6=11)",
+          bf["B1"].font.sz == 14.0 and bf["B1"].font.b is True and
+          bf["B5"].font.sz == 12.0 and bf["B5"].font.b is True and
+          bf["B6"].font.sz == 11.0 and not bf["B6"].font.b)
+    check("BFCF A11 label is bold and rotated 90",
+          bf["A11"].font.b is True and bf["A11"].alignment.textRotation == 90,
+          f"rot={bf['A11'].alignment.textRotation}")
+    check("BFCF table cells have thin borders", thin(bf["C9"]) and thin(bf["B10"]) and thin(bf["C11"]) and thin(bf["B11"]))
+    check("BFCF merge count is 10 (8 headers + C9 + A11)", len(bf.merged_cells.ranges) == 10,
+          str(sorted(str(r) for r in bf.merged_cells.ranges)))
     check("BFCF print area is full grid", bf.print_area == "'BFCF-2020 SLA->JS50'!$A$1:$H$16", bf.print_area)
     check("BFCF print titles rows 1:10", str(bf.print_title_rows) == "$1:$10")
     check("BFCF landscape + fit", bf.page_setup.orientation == "landscape" and bf.page_setup.fitToWidth == 1)

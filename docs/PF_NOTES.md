@@ -1,4 +1,4 @@
-# PF Notes — PF Generator v0.2.0
+# PF Notes — PF Generator v0.2.1
 
 ## What PF is
 
@@ -32,7 +32,12 @@ Header rows 1–9, row 10 headers. Follows the reference file.
 ### ERF / LRF / OTHER tabs
 
 - Row 10: `Months | Factor` x 5 pairs, columns A–J.
-- Rows 11+: months in order, 5 per row. Month range comes from the data, not from the app. The demo uses 1–120.
+- Rows 11+: months fill DOWN each column, as in the reference file:
+  A holds the first ceil(n/5) months, C the next, and so on. For
+  1–120 that is A 1–24, C 25–48, E 49–72, G 73–96, I 97–120. The
+  last column may be short. Never one tall 2-column list, never
+  months across the row. Month range comes from the data, not from
+  the app. The demo uses 1–120.
 - Factor cells: format `0.0000`.
 - Column widths: all 10.0.
 
@@ -46,12 +51,15 @@ Header rows 1–9, row 10 headers. Follows the reference file.
 - Column widths: A = 4.0, B onward = 8.5.
 - BFCF formulas use plain refs, as in the reference file: `C11 =ROUND(BFCFAEQ(...,C10,B11,...),4)`.
 
-## Layout parity (v0.1.1)
+## Layout parity (v0.1.1, v0.2.1)
 
-v0.1.1 reproduces the reference file's layout, checked by `scripts/verify_xlsx.py` (merges, freeze panes, widths, BFCF columns) and by unit tests on the sheet XML. Two deliberate differences from the reference file:
+v0.1.1 reproduces the reference file's layout, checked by `scripts/verify_xlsx.py` (merges, freeze panes, widths, BFCF columns) and by unit tests on the sheet XML. v0.2.1 completes it: months fill down each column (v0.2.1 ran them across the row), header fonts match per row, thin borders on row 10 and all table cells, row heights match, and the BFCF A11 merge uses the template's split at row 70.
 
-- The reference file merges the A11 label in two chunks (A11:A70, A71:A111). Ours merges it in one (A11:A{last row}). Same layout for any grid size.
-- The reference file has no row-7 form-pair suffix. v0.1.0 added `(SLA to JS50)` to row 7; v0.1.1 drops it, matching the reference file. The form pair already shows in the tab name and the title.
+- **Table shape:** ERF/LRF/OTHER months fill down each column (see above). BFCF is an age grid: participant ages across row 10, beneficiary ages down column B.
+- **Cell styles (from the reference file):** row 1 Calibri 14 bold, rows 2–3 Calibri 12 bold, row 5 Calibri 12 bold, rows 6–7 Calibri 11. Months tabs wrap rows 5–7 at the top (heights 28/18/18); BFCF tabs centre them (heights 18/16/16). Row heights: 1=20, 2=16, 3=16. Row 10 headers, C9, and row-10 part ages are Calibri 11 bold, centred, thin borders. Months and beneficiary-age cells are Calibri 11, centred, thin borders. Factor cells are the same with format `0.0000`. The BFCF A11 label is Calibri 11 bold, centred at the top, rotated 90, thin borders. Rows 4 and 8 are empty merged rows, as in the reference file.
+- **BFCF A11 merge split:** the reference file splits the label merge at row 70 (A11:A70, A71:A111). Grids ending at or before row 70 get one merge; larger grids get the split at row 70.
+- **Row 6:** the reference file reads `Basis: <rule>`. The writer adds the `Basis: ` prefix unless the scraped basis already carries it.
+- **Remaining differences (style diff, v0.2.1):** none on fonts, borders, merges, freeze panes, widths, print settings, or row heights. The only openpyxl-level differences are the interior cells of merged ranges (e.g. H9, A16), which the reference file stores with partial borders and ours omits — Excel draws a merged area's border from its top-left cell, so the printed look is the same. Values and formulas differ only where the data differs (different plan, different era, different sexes and assumptions).
 
 ## Formulas
 

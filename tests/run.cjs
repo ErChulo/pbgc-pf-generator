@@ -1,5 +1,5 @@
 "use strict";
-/* PF Generator v0.2.0 — test runner.
+/* PF Generator v0.2.1 — test runner.
    Loads the single <script> block of pf-generator.html into a Node vm
    (no DOM, no localStorage — the pure logic only) and checks schema
    validation, flexible import, partial merge, formula builders, and
@@ -119,6 +119,26 @@ check("ERF sheet has fitToPage", erfSheet.xml.indexOf('fitToPage="1"') >= 0);
 check("ERF sheet has 120 month cells", (erfSheet.xml.match(/<v>120<\/v>/) || []).length === 1);
 check("ERF sheet has 117 formulas (3 months are table values)", (erfSheet.xml.match(/<f>ROUND\(1-\(/g) || []).length === 117);
 check("ERF sheet merges header rows 1-8", [1,2,3,4,5,6,7,8].every((r) => erfSheet.xml.indexOf('<mergeCell ref="A'+r+':J'+r+'"/>') >= 0));
+check("ERF months fill down each column (C11=25, E11=49, G11=73, I11=97)",
+  erfSheet.xml.indexOf('<c r="C11" s="7"><v>25</v></c>') >= 0 &&
+  erfSheet.xml.indexOf('<c r="E11" s="7"><v>49</v></c>') >= 0 &&
+  erfSheet.xml.indexOf('<c r="G11" s="7"><v>73</v></c>') >= 0 &&
+  erfSheet.xml.indexOf('<c r="I11" s="7"><v>97</v></c>') >= 0);
+check("ERF months end down the last column (A34=24, I34=120)",
+  erfSheet.xml.indexOf('<c r="A34" s="7"><v>24</v></c>') >= 0 &&
+  erfSheet.xml.indexOf('<c r="I34" s="7"><v>120</v></c>') >= 0);
+check("ERF month 60 sits in column E (F22 is its factor cell)", erfSheet.xml.indexOf('<c r="F22"') >= 0);
+check("ERF header row 1 is style 1 (Calibri 14 bold)", erfSheet.xml.indexOf('<c r="A1" t="inlineStr" s="1">') >= 0);
+check("ERF header rows 2-3 are style 2 (Calibri 12 bold)", erfSheet.xml.indexOf('<c r="A2" t="inlineStr" s="2">') >= 0 && erfSheet.xml.indexOf('<c r="A3" t="inlineStr" s="2">') >= 0);
+check("ERF header row 5 is style 3 (Calibri 12 bold, wrap)", erfSheet.xml.indexOf('<c r="A5" t="inlineStr" s="3">') >= 0);
+check("ERF header rows 6-7 are style 4 (Calibri 11, wrap)", erfSheet.xml.indexOf('<c r="A6" t="inlineStr" s="4">') >= 0 && erfSheet.xml.indexOf('<c r="A7" t="inlineStr" s="4">') >= 0);
+check("ERF header rows carry template heights (1=20, 5=28, 6=18)", erfSheet.xml.indexOf('<row r="1" ht="20" customHeight="1">') >= 0 && erfSheet.xml.indexOf('<row r="5" ht="28" customHeight="1">') >= 0 && erfSheet.xml.indexOf('<row r="6" ht="18" customHeight="1">') >= 0);
+check("ERF row-10 headers are style 6 (bold, bordered)", erfSheet.xml.indexOf('<c r="A10" t="inlineStr" s="6">') >= 0 && erfSheet.xml.indexOf('<c r="B10" t="inlineStr" s="6">') >= 0);
+check("ERF months cell is style 7 (bordered)", erfSheet.xml.indexOf('<c r="A11" s="7"><v>1</v></c>') >= 0);
+const stylesXml = PF.pfStylesXml();
+check("styles has 4 fonts incl Calibri 14 and 12 bold", stylesXml.indexOf('<fonts count="4">') >= 0 && stylesXml.indexOf('<sz val="14"/>') >= 0 && stylesXml.indexOf('<sz val="12"/>') >= 0);
+check("styles has a thin-border entry", stylesXml.indexOf('<left style="thin"/><right style="thin"/><top style="thin"/><bottom style="thin"/>') >= 0);
+check("styles has 10 cellXfs incl rotated label", stylesXml.indexOf('<cellXfs count="10">') >= 0 && stylesXml.indexOf('textRotation="90"') >= 0 && stylesXml.indexOf('wrapText="1"') >= 0);
 check("ERF sheet freezes at A11", erfSheet.xml.indexOf('<pane ySplit="10" topLeftCell="A11" activePane="bottomLeft" state="frozen"/>') >= 0);
 check("ERF sheet widths are all 10", (erfSheet.xml.match(/<col width="10" customWidth="1"/g) || []).length === 10);
 const bfSheet = PF.pfSheetForSet(demo.factorSets[2], demo.planMetadata);
@@ -131,6 +151,18 @@ check("BFCF sheet has row 9 label at C9", bfSheet.xml.indexOf("Participant's Age
 check("BFCF sheet has ben-age label at A11", bfSheet.xml.indexOf("Beneficiary's Age Nearest Birthday") >= 0);
 check("BFCF sheet merges header rows 1-8 across B:H", [1,2,3,4,5,6,7,8].every((r) => bfSheet.xml.indexOf('<mergeCell ref="B'+r+':H'+r+'"/>') >= 0));
 check("BFCF sheet merges C9 label and A11 label", bfSheet.xml.indexOf('<mergeCell ref="C9:H9"/>') >= 0 && bfSheet.xml.indexOf('<mergeCell ref="A11:A16"/>') >= 0);
+check("BFCF header row 1 is style 1, row 5 is style 2 (centred, no wrap)", bfSheet.xml.indexOf('<c r="B1" t="inlineStr" s="1">') >= 0 && bfSheet.xml.indexOf('<c r="B5" t="inlineStr" s="2">') >= 0);
+check("BFCF row-9 label and row-10 ages are style 6 (bold, bordered)", bfSheet.xml.indexOf('<c r="C9" t="inlineStr" s="6">') >= 0 && bfSheet.xml.indexOf('<c r="B10" t="inlineStr" s="6">') >= 0 && bfSheet.xml.indexOf('<c r="C10" s="6"><v>55</v></c>') >= 0);
+check("BFCF A11 label is style 9 (bold, bordered, rotated)", bfSheet.xml.indexOf('<c r="A11" t="inlineStr" s="9">') >= 0);
+check("BFCF ben ages are style 7 (bordered)", bfSheet.xml.indexOf('<c r="B11" s="7"><v>0</v></c>') >= 0);
+const fullBf = clone(demo.factorSets[2]);
+fullBf.partAgeMin = 55; fullBf.partAgeMax = 80; fullBf.benAgeMin = 0; fullBf.benAgeMax = 100;
+const fullBfSheet = PF.pfSheetForSet(fullBf, demo.planMetadata);
+check("full BFCF grid is A1:AB111", fullBfSheet.xml.indexOf('<dimension ref="A1:AB111"/>') >= 0);
+check("full BFCF grid splits the A11 merge at row 70, as in the template",
+  fullBfSheet.xml.indexOf('<mergeCell ref="A11:A70"/>') >= 0 &&
+  fullBfSheet.xml.indexOf('<mergeCell ref="A71:A111"/>') >= 0 &&
+  fullBfSheet.xml.indexOf('<mergeCell ref="A11:A111"/>') < 0);
 check("BFCF sheet freezes at C11", bfSheet.xml.indexOf('<pane xSplit="2" ySplit="10" topLeftCell="C11" activePane="bottomRight" state="frozen"/>') >= 0);
 check("BFCF sheet widths are 4 then 8.5", bfSheet.xml.indexOf('<col width="4" customWidth="1" min="1" max="1"/>') >= 0 && (bfSheet.xml.match(/<col width="8.5" customWidth="1"/g) || []).length === 7);
 const wbXml = PF.pfWorkbookXml([
@@ -205,7 +237,7 @@ check("prompt says return only valid JSON", /return \*\*only\*\* valid JSON/i.te
 check("prompt says do not guess", /do not guess/i.test(PF.PF_SCRAPER_PROMPT));
 check("prompt says keep every distinct set", /keep every distinct set/i.test(PF.PF_SCRAPER_PROMPT));
 
-/* --- 8b. v0.2.0: plan-defined BCV arguments, no hardcodes --- */
+/* --- 8b. v0.2.1: plan-defined BCV arguments, no hardcodes --- */
 const erfF = clone(demo.factorSets[1]);
 erfF.id = "ERF-F-2020"; erfF.type = "ERF"; erfF.rule = { kind: "bcv", function: "ERFAEQ" };
 erfF.partSex = "F"; erfF.calcMethod = "QP"; erfF.monthsCertain = 36;
@@ -233,10 +265,10 @@ check("table lookup returns null off the table", PF.pfTableValue(demo.factorSets
 check("source label is Table when a table exists", PF.pfSetSourceLabel(demo.factorSets[0]).indexOf("Table:") === 0);
 check("source label is Formulas when no table exists", PF.pfSetSourceLabel(demo.factorSets[1]) === "Formulas from the rule");
 const erfSheet2 = PF.pfSheetForSet(demo.factorSets[0], demo.planMetadata);
-check("ERF sheet writes table month 1 as a value, not a formula", erfSheet2.xml.indexOf('<c r="B11" s="1"><v>0.9944</v></c>') >= 0);
-check("ERF sheet writes table month 60 as a value", erfSheet2.xml.indexOf('<c r="J22" s="1"><v>0.6667</v></c>') >= 0);
-check("ERF sheet writes table month 120 as a value", erfSheet2.xml.indexOf('<c r="J34" s="1"><v>0.3333</v></c>') >= 0);
-check("ERF sheet still writes formulas off the table (month 2)", erfSheet2.xml.indexOf("ROUND(1-(C11/180),4)") >= 0);
+check("ERF sheet writes table month 1 as a value, not a formula", erfSheet2.xml.indexOf('<c r="B11" s="8"><v>0.9944</v></c>') >= 0);
+check("ERF sheet writes table month 60 as a value (down-column: F22)", erfSheet2.xml.indexOf('<c r="F22" s="8"><v>0.6667</v></c>') >= 0);
+check("ERF sheet writes table month 120 as a value", erfSheet2.xml.indexOf('<c r="J34" s="8"><v>0.3333</v></c>') >= 0);
+check("ERF sheet still writes formulas off the table (month 2 at A12)", erfSheet2.xml.indexOf("ROUND(1-(A12/180),4)") >= 0);
 const statsOut = [];
 PF.pfBuildXlsxBytes(approved, statsOut);
 check("build stats report table vs formula cells per set", statsOut.length === 3 && statsOut[0].tableCells === 3 && statsOut[0].formulaCells === 117 && statsOut[1].tableCells === 0, JSON.stringify(statsOut));

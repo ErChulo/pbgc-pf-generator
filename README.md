@@ -1,13 +1,22 @@
 # PF Generator — Plan Factors
 
-![Tests: 163 passing](https://img.shields.io/badge/tests-163%20passing-brightgreen)
-![Unit tests: 121 passing](https://img.shields.io/badge/unit%20tests-121%20passing-brightgreen)
+![Tests: 182 passing](https://img.shields.io/badge/tests-182%20passing-brightgreen)
+![Unit tests: 140 passing](https://img.shields.io/badge/unit%20tests-140%20passing-brightgreen)
 ![Browser tests: 42 passing](https://img.shields.io/badge/browser%20tests-42%20passing-brightgreen)
-![XLSX checks: 50 passing](https://img.shields.io/badge/xlsx%20checks-50%20passing-brightgreen)
+![XLSX checks: 62 passing](https://img.shields.io/badge/xlsx%20checks-62%20passing-brightgreen)
 ![Network calls: 0](https://img.shields.io/badge/network%20calls-0-brightgreen)
-![Version: v0.2.0](https://img.shields.io/badge/version-v0.2.0-blue)
+![Version: v0.2.1](https://img.shields.io/badge/version-v0.2.1-blue)
 
-Badges show grades measured on v0.2.0. Update badges when tests change.
+Badges show grades measured on v0.2.1. Update badges when tests change.
+
+## v0.2.1 — table shape and cell formatting, as in the example
+
+Months fill down each column, as in the example file: A 1–24,
+C 25–48, E 49–72, G 73–96, I 97–120. Cell formatting matches the
+example too: header fonts per row (14 / 12 / 11), thin borders on
+row 10 and every table cell, template row heights, and the BFCF
+A11 label merge split at row 70. Row 6 reads `Basis: <rule>`, as
+in the example.
 
 ## v0.2.0 — plan-defined arguments
 
@@ -63,14 +72,14 @@ Demo case: synthetic. Riverbend Manufacturing Pension Plan, Plan No. 001, case 9
 | `scripts/build_single_file.py` | Injects the prompt into the HTML; runs safety checks. |
 | `scripts/gen_demo_xlsx.cjs` | Generates the demo .xlsx through the HTML's own code. |
 | `scripts/verify_xlsx.py` | Checks the generated .xlsx with openpyxl + LibreOffice. |
-| `tests/run.cjs` | Unit tests (121). |
+| `tests/run.cjs` | Unit tests (140). |
 | `tests/browser.cjs` | Browser tests (42, jsdom). |
 | `package.json` | Test command (`npm test`), jsdom dev dependency. |
 | `OPEN_ITEMS.md` | Gap list. Read it before next steps. |
 
 ## Design system
 
-PBGC Design System **v1.1.0 DRAFT** (not approved). Tokens from `ErChulo/pbgc-design-system`, commit `84a7149d112ef26fcf1e5656b017b9e54f863cb2` (2026-11-08), blob SHA `49e4c3c9e2a41bbe50bea204ea71a7d427843ac2` (byte-identical). Brand blue #002D72. Helvetica Neue/Arial. WCAG 2.2 AA. Dark theme: toggle in the header. Dark background #000. No logo in v0.2.0 (see OPEN_ITEMS.md). Design-system repo not modified.
+PBGC Design System **v1.1.0 DRAFT** (not approved). Tokens from `ErChulo/pbgc-design-system`, commit `84a7149d112ef26fcf1e5656b017b9e54f863cb2` (2026-11-08), blob SHA `49e4c3c9e2a41bbe50bea204ea71a7d427843ac2` (byte-identical). Brand blue #002D72. Helvetica Neue/Arial. WCAG 2.2 AA. Dark theme: toggle in the header. Dark background #000. No logo in v0.2.1 (see OPEN_ITEMS.md). Design-system repo not modified.
 
 ## Formulas
 
@@ -92,16 +101,16 @@ Every tab: print area = full table, print titles rows 1:10, landscape, fit 1 wid
 ## Tests
 
 ```sh
-npm test                              # 121 unit + 42 browser checks
-python3 scripts/verify_xlsx.py        # demo .xlsx checks (50)
+npm test                              # 140 unit + 42 browser checks
+python3 scripts/verify_xlsx.py        # demo .xlsx checks (62)
 python3 scripts/build_single_file.py  # re-inject prompt, run safety checks
 ```
 
-## Verified — v0.2.0
+## Verified — v0.2.1
 
-- `npm test`: **163 passed, 0 failed** (121 unit + 42 browser).
+- `npm test`: **182 passed, 0 failed** (140 unit + 42 browser).
 - `node --check` on the HTML script: passes.
-- `python3 scripts/verify_xlsx.py`: all 50 checks pass. 3 tabs (ERF-2020, LRF-2020, BFCF-2020 SLA->JS50). Headers filled. Formulas present. Print setup, merged headers, freeze panes, and column widths present on every tab. BFCF headers in column B, as in the reference file. Demo ERF tab: months 1, 60, 120 are table values (0.9944, 0.6667, 0.3333); the rest are formulas. BFCF formula carries the plan sexes "M","F". LibreOffice Calc opens the file and shows the month-1 factor (0.9944).
+- `python3 scripts/verify_xlsx.py`: all 62 checks pass. 3 tabs (ERF-2020, LRF-2020, BFCF-2020 SLA->JS50). Headers filled. Formulas present. Print setup, merged headers, freeze panes, and column widths present on every tab. BFCF headers in column B, as in the reference file. Demo ERF tab: months fill down each column (C11=25, E11=49, G11=73, I11=97); months 1, 60, 120 are table values (0.9944 at B11, 0.6667 at F22, 0.3333 at J34); the rest are formulas. Header fonts match the reference file (A1=14 bold, A5=12 bold), thin borders on row 10 and table cells, row heights match. BFCF formula carries the plan sexes "M","F". LibreOffice Calc opens the file and shows the month-1 factor (0.9944).
 - Grep: 0 `fetch(`, 0 `<script src`, 0 `<link>`, 0 `import(`, no external URLs. Only `http://` strings: OOXML namespace URIs in the .xlsx builder — identifiers, not fetches.
 - Browser test: page loads in jsdom on an opaque origin (file: URL). Demo button loads the demo case, moves to Review. Generate stays locked until all sets are decided; approving a missing set stays locked.
 - Theme toggle: flips data-theme, dark page #000, header stays brand blue, choice persists.

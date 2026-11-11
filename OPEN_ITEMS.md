@@ -1,6 +1,23 @@
-# OPEN ITEMS — PF Generator v0.2.0
+# OPEN ITEMS — PF Generator v0.2.1
 
 The canonical gap list. Read this before proposing next steps.
+
+## Fixed in v0.2.1 (table shape and cell formatting)
+
+Months fill down each column, as in the reference file (v0.2.0 ran
+them across the row). Cell formatting matches the reference file:
+header fonts per row (14 / 12 / 11, Calibri), thin borders on row 10
+and every table cell, template row heights, empty merged rows 4 and
+8 with anchor cells, and the BFCF A11 label merge split at row 70
+(one merge for grids ending at or before row 70). Row 6 reads
+`Basis: <rule>`, as in the reference file. An openpyxl style diff
+of the demo file against the reference file shows no remaining
+differences on fonts, borders, merges, freeze panes, widths, print
+settings, or row heights — only the interior cells of merged ranges
+(e.g. H9, A16), which the reference file stores with partial
+borders and ours omits; Excel draws a merged area's border from its
+top-left cell, so the printed look is the same. See the
+layout-parity section in `docs/PF_NOTES.md`.
 
 ## Fixed in v0.2.0 (plan-defined BCV arguments)
 
@@ -50,7 +67,7 @@ The file shows ROUND to 4 decimals. No written PBGC rounding policy
 was found in the Book of Job yet. If none exists, the file's practice
 is the policy. Search for it.
 
-## 4. No logo in v0.2.0
+## 4. No logo in v0.2.1
 
 The header is text only. The DEL generator embeds the white PBGC logo
 (base64, from the Book of Job "images" folder). PF should reuse that
