@@ -1,6 +1,18 @@
-# OPEN ITEMS — PF Generator v0.1.1
+# OPEN ITEMS — PF Generator v0.2.0
 
 The canonical gap list. Read this before proposing next steps.
+
+## Fixed in v0.2.0 (plan-defined BCV arguments)
+
+Every BCV argument now comes from the plan documents: `partSex`,
+`benSex`, `calcMethod`, `deferralMortality` (no silent default),
+`survivorPct` (explicit, or derived from a JS to-form), `monthsTemp`.
+The scraper prompt asks for each one, plus `ruleText` (the plan's
+own words, quoted) and any printed factor `table` (copied
+semantically; values written as values, formulas for the rest).
+Review shows `ruleText` and the source label per set. The audit log
+counts table vs formula cells per set. See the BCV argument mapping
+in `docs/PF_NOTES.md`.
 
 ## Fixed in v0.1.1 (from the old-attempt review)
 
@@ -20,11 +32,17 @@ Run a full-grid import and check the file size, the write time, and
 that Excel opens it. Stored ZIP (no compression) makes about 1 MB per
 full tab. Compression is a later step, not a fix for v0.1.1.
 
-## 2. BCV function signatures not confirmed against the add-in docs
+## 2. Mortality table code UP84M2 not confirmed in the add-in doc
 
-ERFAEQ / LRFAEQ (9 args) and BFCFAEQ (15 args) come from the
-reference example file only. Confirm them against the BCV add-in
-documentation in the Book of Job before encoding them as final.
+Arg order and codes GM83/GF83/UP84 are confirmed against
+`BCV_ATPBGC_Add-ins.pdf` (Jul 2024). The doc examples
+`ERFAEQ(.06,"M",65,120,0,"GM83","GF83","MP","Y")` and
+`BFCFAEQ("SLA",0,0,0,"JSC",0.5,0,0,65,61,"M","F",0.06,"LS00SU2015","LS00SU2015","MP","N")`
+match our formulas. Still open: "UP84M2" has no hit in the doc
+text; it comes from the reference file only. The doc lists no full
+table-code list — codes live in the ATPBGC database MORTNAME table,
+looked up with MORTCODE/MORTDESC. Confirm UP84M2 is a valid
+MORTNAME code.
 
 ## 3. Rounding policy source not found
 
@@ -32,7 +50,7 @@ The file shows ROUND to 4 decimals. No written PBGC rounding policy
 was found in the Book of Job yet. If none exists, the file's practice
 is the policy. Search for it.
 
-## 4. No logo in v0.1.1
+## 4. No logo in v0.2.0
 
 The header is text only. The DEL generator embeds the white PBGC logo
 (base64, from the Book of Job "images" folder). PF should reuse that

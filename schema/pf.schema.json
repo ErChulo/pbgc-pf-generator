@@ -24,6 +24,18 @@
               "null"
             ]
           },
+          "benSex": {
+            "description": "BFCF only: beneficiary/contingent sex, from the plan documents. Required for a bcv BFCF rule.",
+            "enum": [
+              "M",
+              "F",
+              null
+            ],
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "calcMethod": {
             "description": "E.g. MP.",
             "type": [
@@ -113,6 +125,13 @@
               "null"
             ]
           },
+          "monthsTemp": {
+            "description": "BFCF only: temporary period in months (FromMthsTemp). Null means 0.",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
           "mortality1": {
             "type": [
               "string",
@@ -160,6 +179,18 @@
               "null"
             ]
           },
+          "partSex": {
+            "description": "Participant sex, from the plan documents. Required for a bcv rule.",
+            "enum": [
+              "M",
+              "F",
+              null
+            ],
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "rule": {
             "description": "How the app writes the formula. Null only when status is missing.",
             "properties": {
@@ -203,6 +234,13 @@
             ],
             "additionalProperties": false
           },
+          "ruleText": {
+            "description": "The plan's own words for the rule, quoted short from the document. Required when status is present. The formula is translated from this.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "status": {
             "enum": [
               "present",
@@ -212,6 +250,95 @@
               "conditional"
             ],
             "type": "string"
+          },
+          "survivorPct": {
+            "description": "BFCF only: survivor percent for the to-form (JS50 -> 0.5). Null means derive it from toForm when it is a JS form.",
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "table": {
+            "description": "A factor table printed in the plan documents, copied semantically. Null when no table was found.",
+            "properties": {
+              "kind": {
+                "enum": [
+                  "months",
+                  "grid"
+                ],
+                "type": "string"
+              },
+              "rows": {
+                "items": {
+                  "properties": {
+                    "benAge": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "citation": {
+                      "properties": {
+                        "document": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "page": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "section": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "factor": {
+                      "description": "Factor as printed, e.g. 0.9944.",
+                      "type": "number"
+                    },
+                    "months": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "partAge": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "factor"
+                  ],
+                  "type": "object",
+                  "additionalProperties": false
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "kind",
+              "rows"
+            ],
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": false
           },
           "title": {
             "type": "string"
@@ -281,7 +408,7 @@
     "planMetadata",
     "factorSets"
   ],
-  "title": "PF Generator JSON (draft v0.1.1)",
+  "title": "PF Generator JSON (draft v0.2.0)",
   "type": "object",
   "additionalProperties": false
 }

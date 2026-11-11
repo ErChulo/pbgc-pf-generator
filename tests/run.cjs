@@ -1,5 +1,5 @@
 "use strict";
-/* PF Generator v0.1.1 — test runner.
+/* PF Generator v0.2.0 — test runner.
    Loads the single <script> block of pf-generator.html into a Node vm
    (no DOM, no localStorage — the pure logic only) and checks schema
    validation, flexible import, partial merge, formula builders, and
@@ -50,6 +50,13 @@ check("demo has 1 missing set (disability)", demo.factorSets.filter((s) => s.sta
 check("demo BFCF grid is small (part 55-60, ben 0-5)",
   demo.factorSets.find((s) => s.id === "BFCF-2020").partAgeMax === 60 &&
   demo.factorSets.find((s) => s.id === "BFCF-2020").benAgeMax === 5);
+check("demo ERF carries a printed table (months 1, 60, 120)",
+  demo.factorSets[0].table && demo.factorSets[0].table.kind === "months" && demo.factorSets[0].table.rows.length === 3);
+check("demo ERF table values are the linear-rule values",
+  demo.factorSets[0].table.rows[0].factor === 0.9944 && demo.factorSets[0].table.rows[1].factor === 0.6667 && demo.factorSets[0].table.rows[2].factor === 0.3333);
+check("demo present sets have ruleText (the plan's own words)",
+  demo.factorSets.filter((s) => s.status === "present").every((s) => typeof s.ruleText === "string" && s.ruleText.length > 0));
+check("demo BFCF sexes are M/F from the plan", demo.factorSets[2].partSex === "M" && demo.factorSets[2].benSex === "F");
 
 /* --- 1b. .xlsx filename: <case>PF.xlsx --- */
 check("xlsx filename is <case>PF.xlsx", PF.pfXlsxFileName("98765400") === "98765400PF.xlsx");
@@ -81,7 +88,7 @@ check("validator rejects a bad BFCF age range", PF.validatePfJson(bad7).errors.l
 const bad8 = clone(demo); bad8.factorSets[1].interest = 5;
 check("validator rejects interest as a percent (must be a decimal)", PF.validatePfJson(bad8).errors.length > 0);
 const ext = clone(demo);
-ext.factorSets.push({ id: "OTHER-2020", type: "OTHER", era: "2020", title: "Pre-retirement death factors (2020 Plan)", basis: "death benefit = accrued benefit", normalForm: "SLA", fromForm: null, toForm: null, nra: 65, interest: null, mortality1: null, mortality2: null, calcMethod: null, deferralMortality: null, monthsCertain: null, monthMin: 1, monthMax: 60, partAgeMin: null, partAgeMax: null, benAgeMin: null, benAgeMax: null, rule: { kind: "linear", denominator: 120 }, status: "present", note: null, citation: { document: "D1", section: "8.1", page: "20" } });
+ext.factorSets.push({ id: "OTHER-2020", type: "OTHER", era: "2020", title: "Pre-retirement death factors (2020 Plan)", basis: "death benefit = accrued benefit", normalForm: "SLA", fromForm: null, toForm: null, nra: 65, interest: null, mortality1: null, mortality2: null, calcMethod: null, deferralMortality: null, monthsCertain: null, partSex: null, benSex: null, survivorPct: null, monthsTemp: null, ruleText: "death benefit equals the accrued benefit", table: null, monthMin: 1, monthMax: 60, partAgeMin: null, partAgeMax: null, benAgeMin: null, benAgeMax: null, rule: { kind: "linear", denominator: 120 }, status: "present", note: null, citation: { document: "D1", section: "8.1", page: "20" } });
 check("validator accepts an OTHER factor set", PF.validatePfJson(ext).errors.length === 0, PF.validatePfJson(ext).errors.join("; "));
 
 /* --- 3. Formula builders --- */
@@ -100,7 +107,7 @@ const fl = PF.pfMonthFormula(lrf, "A11", 1);
 check("LRF formula is LRFAEQ", fl.formula === 'ROUND(LRFAEQ(0.05,"M",65,A11,0,"GM83","GF83","MP","Y"),4)', fl.formula);
 check("BCV formula has no cached value", fl.cached === null);
 const bf = PF.pfBfcfFormula(demo.factorSets[2], "C10", "B11");
-check("BFCF formula is BFCFAEQ", bf.formula === 'ROUND(BFCFAEQ("SLA",0,36,0,"JSC",0.5,0,0,C10,B11,"M","M",0.08,"UP84M2","UP84M2","MP","N"),4)', bf.formula);
+check("BFCF formula is BFCFAEQ", bf.formula === 'ROUND(BFCFAEQ("SLA",0,36,0,"JSC",0.5,0,0,C10,B11,"M","F",0.08,"UP84M2","UP84M2","MP","N"),4)', bf.formula);
 check("BFCF formula has no cached value", bf.cached === null);
 
 /* --- 4. Sheet XML --- */
@@ -110,7 +117,7 @@ check("ERF sheet has landscape fit 1x2", erfSheet.xml.indexOf('orientation="land
 check("ERF sheet has margins 0.4/0.4/0.5/0.5", erfSheet.xml.indexOf('left="0.4" right="0.4" top="0.5" bottom="0.5"') >= 0);
 check("ERF sheet has fitToPage", erfSheet.xml.indexOf('fitToPage="1"') >= 0);
 check("ERF sheet has 120 month cells", (erfSheet.xml.match(/<v>120<\/v>/) || []).length === 1);
-check("ERF sheet has 120 formulas", (erfSheet.xml.match(/<f>ROUND\(1-\(/g) || []).length === 120);
+check("ERF sheet has 117 formulas (3 months are table values)", (erfSheet.xml.match(/<f>ROUND\(1-\(/g) || []).length === 117);
 check("ERF sheet merges header rows 1-8", [1,2,3,4,5,6,7,8].every((r) => erfSheet.xml.indexOf('<mergeCell ref="A'+r+':J'+r+'"/>') >= 0));
 check("ERF sheet freezes at A11", erfSheet.xml.indexOf('<pane ySplit="10" topLeftCell="A11" activePane="bottomLeft" state="frozen"/>') >= 0);
 check("ERF sheet widths are all 10", (erfSheet.xml.match(/<col width="10" customWidth="1"/g) || []).length === 10);
@@ -144,7 +151,7 @@ function has(str) { return buf.indexOf(Buffer.from(str, "utf8")) >= 0; }
 check("xlsx contains the plan name", has("Riverbend Manufacturing Pension Plan"));
 check("xlsx contains the case number", has("98765400"));
 check("xlsx contains the DOPT", has("2025-06-30"));
-check("xlsx contains the linear formula", has("ROUND(1-(A11/180),4)"));
+check("xlsx contains the linear formula", has("ROUND(1-(C11/180),4)"));
 check("xlsx contains the LRFAEQ formula", has("LRFAEQ(0.05"));
 check("xlsx contains the BFCFAEQ formula", has("BFCFAEQ("));
 check("xlsx contains the 0.0000 format", has('formatCode="0.0000"'));
@@ -180,6 +187,7 @@ const dis = clone(demo.factorSets[3]);
 dis.status = "present"; dis.basis = "ERFAEQ with interest=8%; mortality=UP84M2/UP84M2";
 dis.interest = 0.08; dis.mortality1 = "UP84M2"; dis.mortality2 = "UP84M2";
 dis.calcMethod = "MP"; dis.deferralMortality = "Y"; dis.monthsCertain = 36;
+dis.partSex = "M"; dis.ruleText = "disability retirement factor by actuarial equivalence";
 dis.rule = { kind: "bcv", function: "ERFAEQ" }; dis.note = null;
 const merged = PF.mergePartialPfJson(cur, { factorSets: [dis] });
 check("partial merge succeeds", merged.ok, merged.errors.join("; "));
@@ -196,6 +204,42 @@ check("prompt names all 4 factor types", ["ERF", "LRF", "BFCF", "OTHER"].every((
 check("prompt says return only valid JSON", /return \*\*only\*\* valid JSON/i.test(PF.PF_SCRAPER_PROMPT));
 check("prompt says do not guess", /do not guess/i.test(PF.PF_SCRAPER_PROMPT));
 check("prompt says keep every distinct set", /keep every distinct set/i.test(PF.PF_SCRAPER_PROMPT));
+
+/* --- 8b. v0.2.0: plan-defined BCV arguments, no hardcodes --- */
+const erfF = clone(demo.factorSets[1]);
+erfF.id = "ERF-F-2020"; erfF.type = "ERF"; erfF.rule = { kind: "bcv", function: "ERFAEQ" };
+erfF.partSex = "F"; erfF.calcMethod = "QP"; erfF.monthsCertain = 36;
+const ff = PF.pfMonthFormula(erfF, "A11", 1);
+check("ERF bcv with partSex F writes F, not M", ff.formula === 'ROUND(ERFAEQ(0.05,"F",65,A11,36,"GM83","GF83","QP","Y"),4)', ff.formula);
+const bf75 = clone(demo.factorSets[2]);
+bf75.toForm = "JS75"; bf75.survivorPct = null; bf75.benSex = "F";
+check("survivorPct derives from JS75 as 0.75", PF.pfSurvivorPctForSet(bf75) === 0.75);
+check("BFCF with JS75 writes 0.75 and JSC", PF.pfBfcfFormula(bf75, "C10", "B11").formula.indexOf('"JSC",0.75') >= 0);
+check("BFCF form code is JSC for JS forms, null otherwise", PF.pfBfcfFormCode("JS50") === "JSC" && PF.pfBfcfFormCode("SLA") === null);
+const noDm = clone(demo); noDm.factorSets[1].deferralMortality = null;
+check("validator rejects a bcv rule with no deferralMortality (no silent Y)", PF.validatePfJson(noDm).errors.some((e) => e.indexOf("deferralMortality") >= 0), PF.validatePfJson(noDm).errors.join("; "));
+const noSex = clone(demo); noSex.factorSets[1].partSex = null;
+check("validator rejects a bcv rule with no partSex", PF.validatePfJson(noSex).errors.some((e) => e.indexOf("partSex") >= 0));
+const noRt = clone(demo); noRt.factorSets[0].ruleText = null;
+check("validator rejects a present set with no ruleText", PF.validatePfJson(noRt).errors.some((e) => e.indexOf("ruleText") >= 0));
+const badTo = clone(demo); badTo.factorSets[2].toForm = "SLA"; badTo.factorSets[2].survivorPct = null;
+check("validator rejects a bcv BFCF set whose toForm is not a JS form", PF.validatePfJson(badTo).errors.some((e) => e.indexOf("toForm") >= 0));
+const badFac = clone(demo); badFac.factorSets[0].table.rows[0].factor = 2.5;
+check("validator rejects a table factor outside 0-2", PF.validatePfJson(badFac).errors.some((e) => e.indexOf("factor") >= 0));
+const badMo = clone(demo); badMo.factorSets[0].table.rows[0].months = 999;
+check("validator rejects a table month outside the set range", PF.validatePfJson(badMo).errors.some((e) => e.indexOf("months") >= 0));
+check("table lookup returns the printed value", PF.pfTableValue(demo.factorSets[0], 60, null, null) === 0.6667);
+check("table lookup returns null off the table", PF.pfTableValue(demo.factorSets[0], 2, null, null) === null);
+check("source label is Table when a table exists", PF.pfSetSourceLabel(demo.factorSets[0]).indexOf("Table:") === 0);
+check("source label is Formulas when no table exists", PF.pfSetSourceLabel(demo.factorSets[1]) === "Formulas from the rule");
+const erfSheet2 = PF.pfSheetForSet(demo.factorSets[0], demo.planMetadata);
+check("ERF sheet writes table month 1 as a value, not a formula", erfSheet2.xml.indexOf('<c r="B11" s="1"><v>0.9944</v></c>') >= 0);
+check("ERF sheet writes table month 60 as a value", erfSheet2.xml.indexOf('<c r="J22" s="1"><v>0.6667</v></c>') >= 0);
+check("ERF sheet writes table month 120 as a value", erfSheet2.xml.indexOf('<c r="J34" s="1"><v>0.3333</v></c>') >= 0);
+check("ERF sheet still writes formulas off the table (month 2)", erfSheet2.xml.indexOf("ROUND(1-(C11/180),4)") >= 0);
+const statsOut = [];
+PF.pfBuildXlsxBytes(approved, statsOut);
+check("build stats report table vs formula cells per set", statsOut.length === 3 && statsOut[0].tableCells === 3 && statsOut[0].formulaCells === 117 && statsOut[1].tableCells === 0, JSON.stringify(statsOut));
 
 /* --- 9. UI import/generate path (minimal DOM stub) --- */
 {
@@ -227,7 +271,7 @@ check("prompt says keep every distinct set", /keep every distinct set/i.test(PF.
 
   // Partial merge through the UI path.
   sb2.pfImportText(JSON.stringify(P2.DEMO_PF_JSON), "test file");
-  const part = { factorSets: [Object.assign(clone(P2.DEMO_PF_JSON.factorSets[3]), { status: "present", basis: "ERFAEQ with interest=8%; mortality=UP84M2/UP84M2", interest: 0.08, mortality1: "UP84M2", mortality2: "UP84M2", calcMethod: "MP", deferralMortality: "Y", monthsCertain: 36, rule: { kind: "bcv", function: "ERFAEQ" }, note: null })] };
+  const part = { factorSets: [Object.assign(clone(P2.DEMO_PF_JSON.factorSets[3]), { status: "present", basis: "ERFAEQ with interest=8%; mortality=UP84M2/UP84M2", interest: 0.08, mortality1: "UP84M2", mortality2: "UP84M2", calcMethod: "MP", deferralMortality: "Y", monthsCertain: 36, partSex: "M", ruleText: "disability retirement factor by actuarial equivalence", rule: { kind: "bcv", function: "ERFAEQ" }, note: null })] };
   sb2.pfImportText(JSON.stringify(part), "partial file");
   check("UI partial import fills the missing set", st().importReport.kind === "partial" && st().importReport.filled === 1 && st().data.factorSets.find((s) => s.id === "ERF-DIS-2020").status === "present");
 
@@ -245,6 +289,7 @@ check("prompt says keep every distinct set", /keep every distinct set/i.test(PF.
   check("generated bytes contain the BFCF formula", gbuf.indexOf(Buffer.from("BFCFAEQ(", "utf8")) >= 0);
   check("generated bytes omit the rejected set", gbuf.indexOf(Buffer.from("Disability", "utf8")) < 0);
   check("audit log has entries", st().audit.length >= 3);
+  check("audit log records per-set table vs formula counts", st().audit.some((a) => a.action === "generate set" && a.detail.indexOf("ERF-2020") === 0 && a.detail.indexOf("table values: 3") >= 0), st().audit.map((a) => a.action + " " + a.detail).join(" | "));
 }
 
 console.log("\n" + pass + " passed, " + fail + " failed");

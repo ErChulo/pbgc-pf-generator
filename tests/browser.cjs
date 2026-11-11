@@ -89,7 +89,7 @@ function ruleHas(rule, prop, value) {
   const { document } = window;
   check('Part 1: page loads on an opaque origin with no script errors', errors.length === 0, errors.join('; '));
   check('Part 1: PF global exists', !!window.PF);
-  check('Part 1: PF version is 0.1.1', window.PF && window.PF.VERSION === '0.1.1');
+  check('Part 1: PF version is 0.2.0', window.PF && window.PF.VERSION === '0.2.0');
 
   // Demo from the PF view: use the public loader (same as the button).
   window.pfLoadDemo();
@@ -97,6 +97,8 @@ function ruleHas(rule, prop, value) {
   check('Part 1: demo step is Review (2)', window.PF.state.step === 2);
   const rev = document.getElementById('review-box');
   check('Part 1: review renders 4 set rows', rev && rev.querySelectorAll('.revrow').length === 4, rev ? String(rev.querySelectorAll('.revrow').length) : 'no review box');
+  check('Part 1: review shows the plan words (ruleText)', rev && rev.textContent.includes('Plan words:'), rev ? rev.textContent.slice(0, 200) : 'no review box');
+  check('Part 1: review shows the source label (Table / Formulas)', rev && rev.textContent.includes('Source: Table:') && rev.textContent.includes('Source: Formulas from the rule'));
 
   // Theme toggle.
   const toggle = document.getElementById('theme-toggle');

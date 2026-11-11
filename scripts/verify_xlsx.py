@@ -48,10 +48,16 @@ def main():
     check("ERF header: basis", "1/15" in (erf["A6"].value or ""))
     check("ERF header: normal form", erf["A7"].value == "Normal single form: SLA", repr(erf["A7"].value))
     check("ERF row 10 headers", erf["A10"].value == "Months" and erf["B10"].value == "Factor")
-    check("ERF B11 formula is plain ROUND", erf["B11"].value == "=ROUND(1-(A11/180),4)", repr(erf["B11"].value))
+    check("ERF B11 is a table value, not a formula (month 1 = 0.9944)",
+          erf["B11"].value == 0.9944 and not isinstance(erf["B11"].value, str), repr(erf["B11"].value))
     check("ERF B11 format is 0.0000", erf["B11"].number_format == "0.0000", erf["B11"].number_format)
+    check("ERF J22 is a table value (month 60 = 0.6667)",
+          erf["J22"].value == 0.6667 and not isinstance(erf["J22"].value, str), repr(erf["J22"].value))
+    check("ERF D11 is still a formula (month 2, off the table)",
+          erf["D11"].value == "=ROUND(1-(C11/180),4)", repr(erf["D11"].value))
     check("ERF last month is 120", erf["I34"].value == 120, repr(erf["I34"].value))
-    check("ERF J34 formula references I34", erf["J34"].value == "=ROUND(1-(I34/180),4)", repr(erf["J34"].value))
+    check("ERF J34 is a table value (month 120 = 0.3333)",
+          erf["J34"].value == 0.3333 and not isinstance(erf["J34"].value, str), repr(erf["J34"].value))
     check("ERF print area is full table", erf.print_area == "'ERF-2020'!$A$1:$J$34", erf.print_area)
     check("ERF print titles rows 1:10", str(erf.print_title_rows) == "$1:$10", str(erf.print_title_rows))
     check("ERF landscape", erf.page_setup.orientation == "landscape")
@@ -79,8 +85,8 @@ def main():
           f"C10={bf['C10'].value} H10={bf['H10'].value}")
     check("BFCF beneficiary ages in col B", bf["B11"].value == 0 and bf["B16"].value == 5,
           f"B11={bf['B11'].value} B16={bf['B16'].value}")
-    check("BFCF C11 formula is BFCFAEQ",
-          bf["C11"].value == '=ROUND(BFCFAEQ("SLA",0,36,0,"JSC",0.5,0,0,C10,B11,"M","M",0.08,"UP84M2","UP84M2","MP","N"),4)',
+    check("BFCF C11 formula is BFCFAEQ with the plan sexes M/F",
+          bf["C11"].value == '=ROUND(BFCFAEQ("SLA",0,36,0,"JSC",0.5,0,0,C10,B11,"M","F",0.08,"UP84M2","UP84M2","MP","N"),4)',
           repr(bf["C11"].value))
     check("BFCF C11 format is 0.0000", bf["C11"].number_format == "0.0000")
     check("BFCF print area is full grid", bf.print_area == "'BFCF-2020 SLA->JS50'!$A$1:$H$16", bf.print_area)
@@ -124,7 +130,7 @@ def main():
               conv.stderr.strip()[:200])
         if pdf.exists():
             txt = subprocess.run(["pdftotext", str(pdf), "-"], capture_output=True, text=True)
-            check("Calc computed the plain ERF formula (0.9944)",
+            check("Calc shows the ERF month-1 factor (0.9944)",
                   txt.returncode == 0 and "0.9944" in txt.stdout, txt.stderr.strip()[:100])
     else:
         print("  skip  LibreOffice not present, PDF check skipped")

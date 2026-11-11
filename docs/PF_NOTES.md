@@ -1,4 +1,4 @@
-# PF Notes — PF Generator v0.1.1
+# PF Notes — PF Generator v0.2.0
 
 ## What PF is
 
@@ -55,13 +55,69 @@ v0.1.1 reproduces the reference file's layout, checked by `scripts/verify_xlsx.p
 
 ## Formulas
 
-The app writes them. Excel computes them.
+The app writes them. Excel computes them. Every BCV argument comes
+from the plan documents as the plan defines it. Nothing is assumed.
+
+Each present set carries `ruleText` — the plan's own words for the
+rule, quoted short, with a citation. The formula is translated from
+it. The review screen shows it under the set.
+
+### BCV argument mapping (JSON field → function argument)
+
+| JSON field | ERFAEQ / LRFAEQ argument | BFCFAEQ argument |
+| --- | --- | --- |
+| `interest` | XBRD (rate as a decimal) | interest |
+| `partSex` | sex ("M" or "F") | partSex |
+| `nra` | theNRA | — |
+| months cell / age cells | EarlyMonths / Latemonths | partAge, benAge |
+| `monthsCertain` | TheCPeriod (null means 0) | FromMthsCert (null means 0) |
+| `monthsTemp` | — | FromMthsTemp (null means 0) |
+| `mortality1`, `mortality2` | TheMNameHandle, TheFNameHandle | mort1, mort2 |
+| `calcMethod` | CalcMethod (`MP`, `QP`, `SP`, …) | calcMethod |
+| `deferralMortality` | DeferralMort | deferralMort |
+| `benSex` | — | benSex |
+| `fromForm` | — | FromBftForm |
+| `survivorPct` | — | ToSurvPct |
+| `toForm` | — | ToBftForm, derived (see below) |
 
 - **linear:** `=ROUND(1-(months/denominator),4)`. Example: 1/15 per year early = 1/180 per month.
 - **stepped:** `=ROUND(1-(1/D1)*MIN(m,N)-(1/D2)*MAX(MIN(m-N,CAP),0),4)`. First rate for N months, then second rate.
-- **bcv ERF:** `=ROUND(ERFAEQ(interest,"M",nra,months,certain,"mort1","mort2","MP","Y"),4)`.
-- **bcv LRF:** `=ROUND(LRFAEQ(interest,"M",nra,months,certain,"mort1","mort2","MP","Y"),4)`.
-- **bcv BFCF:** `=ROUND(BFCFAEQ("from",0,certain,0,"JSC",0.5,0,0,partAge,benAge,"M","M",interest,"mort1","mort2","MP","N"),4)`.
+- **bcv ERF:** `=ROUND(ERFAEQ(interest,partSex,nra,months,certain,"mort1","mort2",calcMethod,deferralMortality),4)`.
+- **bcv LRF:** `=ROUND(LRFAEQ(interest,partSex,nra,months,certain,"mort1","mort2",calcMethod,deferralMortality),4)`.
+- **bcv BFCF:** `=ROUND(BFCFAEQ("from",0,certain,temp,"JSC",survivorPct,0,0,partAge,benAge,partSex,benSex,interest,"mort1","mort2",calcMethod,deferralMortality),4)`.
+
+Derived, not scraped:
+
+- **ToBftForm "JSC":** the BCV add-in code for a joint-and-survivor
+  to-form. Derived from `toForm` when it is a JS form (JS50, JS75,
+  JS100). A to-form that is not a JS form fails validation for a
+  bcv BFCF rule. The code is never guessed.
+- **survivorPct:** explicit value wins. When null and `toForm` is
+  a JS form, it derives from the name (JS50 → 0.5, JS75 → 0.75,
+  JS100 → 1). The derivation is noted in the audit log. When
+  neither, validation fails.
+
+Missing arguments fail validation. A bcv rule with no `partSex`,
+no `calcMethod`, or no `deferralMortality` is refused. There is no
+silent default: `deferralMortality` is never assumed to be "Y",
+`calcMethod` is never assumed to be "MP", sexes are never assumed
+to be "M". Any argument not in the documents leaves the set
+`missing` or `ambiguous`, never defaulted.
+
+### Factor tables printed in the documents
+
+When a plan document prints a factor table, the scraper copies it
+semantically into `table` (kind `months` or `grid`, one row per
+printed row: month or age pair plus the factor as printed, with a
+citation). The writer writes those values as values (format
+`0.0000`) for exactly the months/ages the table covers, and
+formulas for the rest of the range. The review screen shows the
+source per set ("Table: N values from the document table, rest
+formulas" or "Formulas from the rule"). The audit log records, per
+set, how many cells came from the table and how many from formulas.
+Table factors must be numbers 0–2, and table months/ages must lie
+inside the set's ranges; anything else fails validation. Rows are
+never reordered, interpolated, or filled in from the formula.
 
 BCV add-in functions: ERFAEQ, LRFAEQ, BFCFAEQ. They run only in Excel with the ATPBGC add-in. The workbook sets `fullCalcOnLoad`, so Excel computes on open. Plain formulas carry a cached value. BCV cells carry none.
 

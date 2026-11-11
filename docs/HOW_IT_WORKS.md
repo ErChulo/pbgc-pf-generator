@@ -18,6 +18,9 @@ ASD STE 100. One idea per line. User action, then app behavior.
 - You: feed the prompt and the plan documents to an LLM. Copilot in the office, any LLM at home.
 - LLM: returns JSON. It only proposes.
 - LLM: finds every distinct factor set. Each era. Each type. Each form pair. No merging. No dropping.
+- LLM: quotes the plan's rule sentence into `ruleText`, then states the matching `rule`. Words first, formula second.
+- LLM: copies every BCV argument from the plan's definition: interest, mortality tables, calc method, deferral mortality, months certain, sexes, survivor percent, temporary months. Nothing assumed.
+- LLM: copies any factor table the documents print, row by row, as printed. No reordering. No interpolating. No filling in from the formula.
 
 ## 3. Upload the JSON
 
@@ -32,6 +35,7 @@ ASD STE 100. One idea per line. User action, then app behavior.
 - You: approve, reject, or edit each factor set.
 - You: edit the header (plan name, plan number, case number, DOPT).
 - You: edit a set title in place.
+- You: read the plan's words (`ruleText`) under each set, and the source: table values or formulas.
 - Missing sets: approve is refused. Reject them, or fill them first.
 - Rejected sets stay out of the workbook.
 
@@ -39,9 +43,9 @@ ASD STE 100. One idea per line. User action, then app behavior.
 
 - You: click "Generate the workbook".
 - App: locked until the header is filled and each set has a decision.
-- App: writes one tab per approved set. Formulas, not values.
+- App: writes one tab per approved set. Formulas, except values the document table prints.
 - App: sets print area, print titles, landscape, fit, margins on each tab.
-- App: writes the audit log.
+- App: writes the audit log, per set: table values and formulas counted.
 
 ## 6. Download
 

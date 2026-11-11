@@ -1,4 +1,4 @@
-# Design System — PF Generator v0.1.1
+# Design System — PF Generator v0.2.0
 
 Source: ErChulo/pbgc-design-system, `tokens/tokens.json` (single
 source of truth). Fetched 2026-11-11.
@@ -41,14 +41,14 @@ source of truth). Fetched 2026-11-11.
 
 ## Header
 
-- Slim blue header, compact title. No logo in v0.1.1 (see
+- Slim blue header, compact title. No logo in v0.2.0 (see
   OPEN_ITEMS.md). The DEL generator embeds the white PBGC logo; PF
   will reuse that approach when the logo is added.
 - Nav: links, not buttons. Three links: PF generator, Welcome, Help.
   Hash routing (`#pf`, `#welcome`, `#help`). Skip link first.
   Disclosure menu with Escape + focus return at the 640px breakpoint.
 
-## What v0.1.1 does not use
+## What v0.2.0 does not use
 
 - No Match ranking view (PF has no ranking step; DEL has one).
 - No logo image yet. Text header only.
