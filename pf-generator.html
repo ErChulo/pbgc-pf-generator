@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PF Generator v0.1.0 — Plan Factors</title>
+<style>
+/* PBGC Design System v1.1.0 DRAFT (tokens/tokens.json, commit 84a7149d, 2026-11-08). NOT approved. Dark theme: toggle in header; page background #000 (user override of provisional night-0 #0B1B36); provisional, COLA approval pending. No logo in v0.1.0 (see OPEN_ITEMS.md). */
+:root{
+  --blue:#002D72; --red:#E4002B; --med-blue:#004B8D;
+  --ink:#1A1A1A; --gray-1:#58585B; --gray-2:#D2D2D2; --gray-3:#E0E0E0; --gray-4:#F2F2F2;
+  --error:#B3001B; --error-tint:#FDECEF; --warning:#8A5700; --warning-tint:#FFF4D6;
+  --success:#008065; --success-tint:#E6F2EF; --info-tint:#EAF0F8; --white:#FFFFFF;
+  --bg:#FFFFFF; --surface:#FFFFFF; --focus:#004B8D;
+  --font:"Helvetica Neue",Arial,sans-serif; --mono:Consolas,"Courier New",monospace;
+  --radius:4px;
+}
+/* Dark theme (provisional, COLA approval pending). Page background #000 is a user override of the provisional night-0 #0B1B36. Header stays brand blue #002D72. */
+:root[data-theme="dark"]{
+  --bg:#000000; --surface:#12294D; --focus:#FFFFFF;
+  --ink:#F2F2F2; --gray-1:#D2D2D2; --gray-2:#1B3866; --gray-3:#1B3866; --gray-4:#12294D;
+  --error:#FFB3BD; --error-tint:#12294D; --warning:#FFD27A; --warning-tint:#12294D;
+  --success:#B8D3A7; --success-tint:#12294D; --info-tint:#12294D; --med-blue:#BEC6DF;
+}
+:root[data-theme="dark"] body{background:#000000}
+:root[data-theme="dark"] .card{background:var(--surface)}
+:root[data-theme="dark"] input,:root[data-theme="dark"] select,:root[data-theme="dark"] textarea{background:var(--bg);border-color:#8B9FC7}
+:root[data-theme="dark"] .views{border-bottom-color:#1B3866}
+:root[data-theme="dark"] .nav-link{color:#BEC6DF}
+:root[data-theme="dark"] .nav-link[aria-current="page"]{border-bottom-color:#BEC6DF}
+:root[data-theme="dark"] .menu-toggle{color:#BEC6DF}
+:root[data-theme="dark"] button.primary{background:#BEC6DF;border-color:#BEC6DF;color:#002D72}
+:root[data-theme="dark"] button.primary:hover{background:#FFFFFF;border-color:#FFFFFF;color:#002D72}
+:root[data-theme="dark"] button.secondary{background:#0B1B36;border-color:#BEC6DF;color:#BEC6DF}
+:root[data-theme="dark"] button.secondary:hover{background:#12294D}
+:root[data-theme="dark"] button.danger{background:#FFB3BD;border-color:#FFB3BD;color:#4D000B}
+:root[data-theme="dark"] button.danger:hover{background:#FFFFFF;border-color:#FFFFFF;color:#4D000B}
+:root[data-theme="dark"] .stepper li.current{border-color:#BEC6DF}
+*{box-sizing:border-box}
+body{font-family:var(--font);color:var(--ink);background:var(--bg);margin:0;line-height:1.5;font-size:1rem}
+.wrap{max-width:1400px;margin:0 auto;padding:0 1rem}
+h1{font-size:2.25rem;line-height:1.25;margin:0}
+h2{font-size:1.75rem;line-height:1.25;margin:0 0 .5rem}
+h3{font-size:1.375rem;line-height:1.25;margin:1rem 0 .5rem}
+p{margin:.5rem 0;max-width:60ch}
+.small{font-size:.875rem;color:var(--gray-1)}
+/* Skip link: first in the body, hidden until focused. */
+.skip-link{position:absolute;left:1rem;top:-4rem;background:var(--white);color:var(--blue);padding:.5rem 1rem;border:2px solid var(--blue);border-radius:var(--radius);z-index:100;font-weight:700}
+.skip-link:focus{top:.5rem}
+.topbar{background:var(--blue);color:var(--white);padding:.5rem 0}
+.topbar h1{color:var(--white);font-size:1.25rem;line-height:1.25}
+.topbar .tag{color:var(--white);margin:0;font-size:.875rem}
+.topbar-row{display:flex;align-items:center;gap:1rem}
+.topbar-title{flex:1;min-width:0}
+.theme-toggle{flex:none;background:transparent;color:var(--white);border:2px solid var(--white)}
+.theme-toggle:hover{background:rgba(255,255,255,.15)}
+/* Nav: links, not buttons. Bar sits under the blue header. */
+.views{background:var(--bg);border-bottom:1px solid var(--gray-2)}
+.views-row{display:flex;align-items:center}
+.views-list{list-style:none;display:flex;gap:0;margin:0;padding:0}
+.views-list li{display:flex}
+.nav-link{display:flex;align-items:center;min-height:44px;padding:.5rem .75rem;color:var(--blue);text-decoration:none}
+.nav-link:hover,.nav-link:focus-visible{text-decoration:underline}
+.nav-link[aria-current="page"]{font-weight:700;border-bottom:3px solid var(--blue)}
+.menu-toggle{display:none}
+@media (max-width:640px){
+  .topbar .tag{display:none}
+  .topbar-row{gap:.5rem}
+  .theme-toggle-label{display:none}
+  .menu-toggle{display:inline-flex;align-items:center;min-height:44px;background:transparent;border:0;color:var(--blue);font-weight:700;padding:.5rem .75rem .5rem 0;cursor:pointer}
+  .views-row{flex-wrap:wrap}
+  .views-list{display:none;flex-direction:column;width:100%}
+  .views.open .views-list{display:flex}
+  .views-list li{display:block}
+  .nav-link{display:block}
+}
+button{font-family:var(--font);font-size:1rem;min-height:44px;padding:.5rem 1rem;border-radius:var(--radius);cursor:pointer}
+button.primary{background:var(--blue);color:var(--white);border:2px solid var(--blue)}
+button.primary:hover{background:var(--med-blue);border-color:var(--med-blue)}
+button.secondary{background:var(--white);color:var(--blue);border:2px solid var(--blue)}
+button.secondary:hover{background:var(--gray-4)}
+button.danger{background:var(--error);color:var(--white);border:2px solid var(--error)}
+button:disabled{opacity:.5;cursor:not-allowed}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+input,select,textarea{font-family:var(--font);font-size:1rem;color:var(--ink);background:var(--bg);border:1px solid var(--gray-1);border-radius:var(--radius);padding:.5rem;width:100%;margin:.25rem 0 .75rem}
+label{display:block;font-weight:700;margin-top:.5rem}
+label .small{font-weight:400}
+.card{border:1px solid var(--gray-2);border-radius:var(--radius);padding:1rem;margin:1rem 0;background:var(--surface)}
+.stepper{list-style:none;display:flex;gap:.5rem;padding:0;margin:1rem 0;flex-wrap:wrap}
+.stepper li{flex:1;min-width:140px;border:1px solid var(--gray-2);border-radius:var(--radius);padding:.5rem;cursor:pointer}
+.stepper li.current{border:2px solid var(--blue)}
+.stepper li.done{border-color:var(--success);background:var(--success-tint)}
+.stepper li.locked{opacity:.6;cursor:not-allowed}
+.stepper .n{font-weight:700}
+.alert{border:1px solid var(--error);background:var(--error-tint);border-radius:var(--radius);padding:.75rem;margin:.75rem 0}
+.warn{border:1px solid var(--warning);background:var(--warning-tint);border-radius:var(--radius);padding:.75rem;margin:.75rem 0}
+.info{border:1px solid var(--med-blue);background:var(--info-tint);border-radius:var(--radius);padding:.75rem;margin:.75rem 0}
+.ok{border:1px solid var(--success);background:var(--success-tint);border-radius:var(--radius);padding:.75rem;margin:.75rem 0}
+.badge{display:inline-block;border-radius:999px;padding:.1rem .6rem;font-size:.875rem;font-weight:700;white-space:nowrap}
+.badge.present{background:var(--success-tint);color:var(--success)}
+.badge.conditional{background:var(--warning-tint);color:var(--warning)}
+.badge.notApplicable{background:var(--gray-4);color:var(--gray-1)}
+.badge.missing{background:var(--error-tint);color:var(--error)}
+.badge.ambiguous{background:var(--warning-tint);color:var(--warning)}
+.badge.approved{background:var(--success-tint);color:var(--success)}
+.badge.rejected{background:var(--error-tint);color:var(--error)}
+.badge.edited{background:var(--info-tint);color:var(--med-blue)}
+table{border-collapse:collapse;width:100%;margin:.75rem 0}
+th,td{border:1px solid var(--gray-2);padding:.5rem;text-align:left;vertical-align:top;font-size:.875rem}
+th{background:var(--gray-4);font-weight:700}
+tr:nth-child(even) td{background:var(--gray-4)}
+.revrow{border:1px solid var(--gray-2);border-radius:var(--radius);padding:.75rem;margin:.75rem 0}
+.revrow .rowhead{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+.revrow .field{font-family:var(--mono);font-weight:700}
+.revrow .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.5rem 1rem;margin-top:.5rem}
+.revrow .actions{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem}
+textarea{font-family:var(--mono);font-size:.875rem}
+footer{margin:2rem 0 1rem;border-top:1px solid var(--gray-2);padding-top:1rem}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+<header class="topbar"><div class="wrap topbar-row"><div class="topbar-title"><h1>PF Generator</h1><p class="tag">Plan Factors · v0.1.0</p></div><button type="button" id="theme-toggle" class="theme-toggle" data-action="theme" aria-label="Switch to dark theme" aria-pressed="false"><span class="theme-toggle-icon" aria-hidden="true">☾</span> <span class="theme-toggle-label">Dark</span></button></div></header>
+<nav id="views-nav" class="views" aria-label="Views">
+  <div class="wrap views-row">
+    <button type="button" id="menu-toggle" class="menu-toggle" aria-expanded="false" aria-controls="views-list">Menu</button>
+    <ul id="views-list" class="views-list">
+      <li><a id="nav-pf" class="nav-link" href="#pf" data-view="pf" aria-current="page">PF generator</a></li>
+      <li><a id="nav-welcome" class="nav-link" href="#welcome" data-view="welcome">Welcome</a></li>
+      <li><a id="nav-help" class="nav-link" href="#help" data-view="help">Help</a></li>
+    </ul>
+  </div>
+</nav>
+<main class="wrap" id="main">
+<div id="view-pf">
+  <ol id="stepper" class="stepper" aria-label="Steps"></ol>
+  <section id="step-0" class="step card"><div id="prompt-card"></div></section>
+  <section id="step-1" class="step card"><div id="upload-box"></div></section>
+  <section id="step-2" class="step card"><div id="review-box"></div></section>
+  <section id="step-3" class="step card"><div id="generate-box"></div></section>
+  <section id="step-4" class="step card"><div id="download-box"></div></section>
+</div>
+<div id="view-welcome" hidden>
+  <section id="welcome" class="card">
+    <h2>Welcome</h2>
+    <p>This app writes the PF — the plan factors workbook — from plan documents. It does not read the documents itself.</p>
+    <p><strong>How it works, in 5 steps:</strong> download the scraper prompt · feed the prompt and the documents to an LLM · upload the JSON the LLM returns · review each factor set · generate the Excel workbook.</p>
+    <p class="small">The LLM proposes. The app checks. You decide. Nothing leaves this page — there is no server.</p>
+    <p><button type="button" class="primary" data-action="demo">Try the demo</button></p>
+  </section>
+</div>
+<div id="view-help" hidden>
+  <section id="help" class="card">
+    <h2>Help</h2>
+    <h3>What is a PF?</h3>
+    <p>One Excel workbook. One tab per set of factors the plan uses: early retirement factors, late retirement factors, benefit form conversion factors, and any other factors for benefits. Each tab is set to print.</p>
+    <h3>What does the LLM do?</h3>
+    <p>It reads the plan documents and finds every distinct factor set — each era, each type, each form pair — with the rule, the numbers, and a citation. It returns JSON. It never writes the workbook.</p>
+    <h3>What does the app write in the cells?</h3>
+    <p>Formulas, not values. Plain Excel formulas where the rule is arithmetic. BCV add-in formulas (ERFAEQ, LRFAEQ, BFCFAEQ) where the rule is actuarial equivalence. They compute in Excel with the ATPBGC add-in. All factors round to 4 decimals.</p>
+    <h3>What if a factor set is missing?</h3>
+    <p>Reject it in review and it stays out of the workbook. The workbook holds only sets you approved.</p>
+  </section>
+</div>
+</main>
+<footer class="wrap"><p class="small">PF Generator v0.1.0. Single file. No server. No data leaves this page. PBGC Design System v1.1.0 DRAFT.</p></footer>
+<script>
+"use strict";
+/* PF Generator v0.1.0 — plan factors workbook.
+   Single HTML file. No server, no fetch, no CDN.
+   Loop: LLM proposes JSON. App checks. You decide. App writes .xlsx. */
+var PF_VERSION="0.1.0";
+/* PROMPT-START */
+var PF_SCRAPER_PROMPT = "# PF scraper prompt \u2014 plan factors\n\nYou read plan documents. You return **only** valid JSON. No other text.\n\n## What to find\n\nEvery distinct set of factors the plan uses to work out benefits. One set per\nera, per type, per form pair. A plan with 5 eras has 5 ERF sets, not 1.\n\nTypes to look for:\n\n- **ERF** \u2014 early retirement factors. Each era. Disability ERF too, if any.\n- **LRF** \u2014 late retirement factors. Each era.\n- **BFCF** \u2014 benefit form conversion factors. Each era, each form pair\n  (for example SLA to JS50, 3CC to JS50).\n- **OTHER** \u2014 any other factor the plan uses for benefits: pre-retirement\n  death, optional forms past JS50, cash balance, anything else. Name it.\n\n## What to record per set\n\n- `id`: short, unique. Example: `ERF-2020`, `BFCF-2020`.\n- `type`: `ERF`, `LRF`, `BFCF`, or `OTHER`.\n- `era`: plan year or era. Example: `2020`.\n- `title`: short title. Example: `Early Retirement Factors from NRA of 65 (2020 Plan)`.\n- `basis`: the rule in words, with the numbers. Example:\n  `reduction = 1/15 per year early (linear in months)`.\n- `normalForm`: `SLA` or `3CC`.\n- `fromForm`, `toForm`: BFCF only. Example: `SLA`, `JS50`.\n- `nra`: normal retirement age. Example: `65`.\n- `interest`: annual rate as a decimal. Example: `0.08` for 8%.\n- `mortality1`, `mortality2`: table names. Example: `UP84M2`.\n- `calcMethod`: example: `MP`.\n- `deferralMortality`: `Y` or `N`.\n- `monthsCertain`: number, or `0`.\n- `monthMin`, `monthMax`: ERF, LRF, OTHER only. The range the documents\n  imply. Do not assume 1 to 120. Use what the documents say.\n- `partAgeMin`, `partAgeMax`, `benAgeMin`, `benAgeMax`: BFCF only. The\n  age ranges the documents imply. Do not assume 55 to 80 or 0 to 100.\n- `rule`: how the factor is worked out. One of:\n  - `{\"kind\": \"linear\", \"denominator\": 180}` \u2014 factor = 1 - months / 180.\n  - `{\"kind\": \"stepped\", \"firstMonths\": 60, \"firstDenominator\": 180, \"secondDenominator\": 360}` \u2014 first rate, then second rate.\n  - `{\"kind\": \"bcv\", \"function\": \"ERFAEQ\"}` \u2014 actuarial equivalence.\n    Use `LRFAEQ` for late factors, `BFCFAEQ` for conversion factors.\n- `status`: `present`, `notApplicable`, `missing`, `ambiguous`, or\n  `conditional`. `missing` means the documents do not have it.\n  `ambiguous` means the documents disagree. Say why in `note`.\n- `note`: short note. Needed for `ambiguous` and `conditional`.\n- `citation`: `{\"document\": \"D1\", \"section\": \"2.1\", \"page\": \"3\"}`.\n  Every value needs a citation. Use the short code. Full document\n  name once per set, never in a cell.\n\n## Header\n\n- `planName`: full plan name.\n- `planNumber`: plan number as text.\n- `caseNumber`: case number as text. Keep leading zeros.\n- `dopt`: date of plan termination, ISO form `YYYY-MM-DD`.\n\n## Rules\n\n- Return **only** valid JSON. No markdown. No comment text.\n- Do not guess. If a value is not in the documents, set `status`\n  to `missing` and leave the value null.\n- If two documents disagree, set `status` to `ambiguous`. Do not pick one.\n- If a set does not apply to this plan, set `status` to `notApplicable`.\n- Values short. Smallest string that keeps the meaning.\n- Keep every distinct set. Do not merge eras. Do not drop a set\n  because it looks like another one.\n- The plan name, case number, and DOPT are in the header. Do not\n  repeat them in each set.\n\n## Shape\n\n```json\n{\n  \"planMetadata\": {\n    \"planName\": \"Riverbend Manufacturing Pension Plan\",\n    \"planNumber\": \"001\",\n    \"caseNumber\": \"98765400\",\n    \"dopt\": \"2025-06-30\"\n  },\n  \"factorSets\": [\n    {\n      \"id\": \"ERF-2020\",\n      \"type\": \"ERF\",\n      \"era\": \"2020\",\n      \"title\": \"Early Retirement Factors from NRA of 65 (2020 Plan)\",\n      \"basis\": \"reduction = 1/15 per year early (linear in months)\",\n      \"normalForm\": \"SLA\",\n      \"fromForm\": null,\n      \"toForm\": null,\n      \"nra\": 65,\n      \"interest\": null,\n      \"mortality1\": null,\n      \"mortality2\": null,\n      \"calcMethod\": null,\n      \"deferralMortality\": null,\n      \"monthsCertain\": null,\n      \"monthMin\": 1,\n      \"monthMax\": 120,\n      \"partAgeMin\": null,\n      \"partAgeMax\": null,\n      \"benAgeMin\": null,\n      \"benAgeMax\": null,\n      \"rule\": {\"kind\": \"linear\", \"denominator\": 180},\n      \"status\": \"present\",\n      \"note\": null,\n      \"citation\": {\"document\": \"D1\", \"section\": \"2.1\", \"page\": \"3\"}\n    }\n  ]\n}\n```\n";
+/* PROMPT-END */
+var PF_TYPES=["ERF","LRF","BFCF","OTHER"];
+var PF_STATUSES=["present","notApplicable","missing","ambiguous","conditional"];
+var PF_RULE_KINDS=["linear","stepped","bcv"];
+var PF_BCV_FUNCTIONS=["ERFAEQ","LRFAEQ","BFCFAEQ"];
+
+/* ---- safe storage: localStorage can throw on access alone
+   (opaque origin, blocked storage). Never let that kill the script. ---- */
+function pfSafeStorage(){
+  try{ return (typeof localStorage!=="undefined")?localStorage:null; }
+  catch(e){ return null; }
+}
+var PF_THEME_KEY="pf-theme";
+function pfLoadTheme(){
+  var s=pfSafeStorage();
+  try{ return s?s.getItem(PF_THEME_KEY):null; }catch(e){ return null; }
+}
+function pfSaveTheme(theme){
+  var s=pfSafeStorage();
+  try{ if(s) s.setItem(PF_THEME_KEY,theme); }catch(e){}
+}
+function pfSyncThemeButton(){
+  if(typeof document==="undefined") return;
+  var b=document.getElementById("theme-toggle");
+  if(!b) return;
+  var dark=pfState.theme==="dark";
+  var ic=b.querySelector(".theme-toggle-icon");
+  var lb=b.querySelector(".theme-toggle-label");
+  if(ic) ic.textContent=dark?"\u2600":"\u263E";
+  if(lb) lb.textContent=dark?"Light":"Dark";
+  b.setAttribute("aria-label",dark?"Switch to light theme":"Switch to dark theme");
+  b.setAttribute("aria-pressed",dark?"true":"false");
+}
+function pfApplyTheme(theme){
+  var t=(theme==="dark")?"dark":"light";
+  pfState.theme=t;
+  if(typeof document!=="undefined"&&document.documentElement){
+    if(t==="dark") document.documentElement.setAttribute("data-theme","dark");
+    else document.documentElement.removeAttribute("data-theme");
+  }
+  pfSyncThemeButton();
+  return t;
+}
+function pfToggleTheme(){
+  var next=(pfState.theme==="dark")?"light":"dark";
+  pfApplyTheme(next);
+  pfSaveTheme(next);
+  return next;
+}
+
+/* ---- small utils ---- */
+function pfClone(o){ return JSON.parse(JSON.stringify(o)); }
+function pfIsInt(v){ return typeof v==="number"&&isFinite(v)&&Math.floor(v)===v; }
+function pfIsIsoDate(s){ return typeof s==="string"&&/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(s); }
+function pfRound4(v){ return Math.round(v*10000)/10000; }
+function pfFmt4(v){ return pfRound4(v).toFixed(4); }
+function pfEscXml(s){
+  return String(s===null||s===undefined?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function pfEscHtml(s){
+  return String(s===null||s===undefined?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function pfColLetter(n){
+  var s="";
+  while(n>0){ var m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26); }
+  return s;
+}
+function pfNum(v){
+  if(typeof v==="number") return v;
+  if(typeof v==="string"&&v.trim()!==""&&isFinite(Number(v))) return Number(v);
+  return null;
+}
+
+/* ---- demo data: synthetic only. Same invented plan as R5 / DEL. ---- */
+var PF_DEMO_JSON={
+  planMetadata:{planName:"Riverbend Manufacturing Pension Plan",planNumber:"001",caseNumber:"98765400",dopt:"2025-06-30"},
+  factorSets:[
+    {id:"ERF-2020",type:"ERF",era:"2020",title:"Early Retirement Factors from NRA of 65 (2020 Plan)",basis:"reduction = 1/15 per year early (linear in months)",normalForm:"SLA",fromForm:null,toForm:null,nra:65,interest:null,mortality1:null,mortality2:null,calcMethod:null,deferralMortality:null,monthsCertain:null,monthMin:1,monthMax:120,partAgeMin:null,partAgeMax:null,benAgeMin:null,benAgeMax:null,rule:{kind:"linear",denominator:180},status:"present",note:null,citation:{document:"D1",section:"2.1",page:"3"}},
+    {id:"LRF-2020",type:"LRF",era:"2020",title:"Late Retirement Factors from NRA of 65 (2020 Plan)",basis:"LRFAEQ with interest=5%; mortality=GM83/GF83; calc method=MP; deferral mortality=Y; months certain=0",normalForm:"3CC",fromForm:null,toForm:null,nra:65,interest:0.05,mortality1:"GM83",mortality2:"GF83",calcMethod:"MP",deferralMortality:"Y",monthsCertain:0,monthMin:1,monthMax:120,partAgeMin:null,partAgeMax:null,benAgeMin:null,benAgeMax:null,rule:{kind:"bcv",function:"LRFAEQ"},status:"present",note:null,citation:{document:"D1",section:"4.2",page:"7"}},
+    {id:"BFCF-2020",type:"BFCF",era:"2020",title:"Benefit Form Conversion Factors (2020 Plan)",basis:"BFCFAEQ with interest=8%; mortality=UP84M2/UP84M2; calc method=MP; deferral mortality=N; months certain=36",normalForm:"SLA",fromForm:"SLA",toForm:"JS50",nra:65,interest:0.08,mortality1:"UP84M2",mortality2:"UP84M2",calcMethod:"MP",deferralMortality:"N",monthsCertain:36,monthMin:null,monthMax:null,partAgeMin:55,partAgeMax:60,benAgeMin:0,benAgeMax:5,rule:{kind:"bcv",function:"BFCFAEQ"},status:"present",note:null,citation:{document:"D1",section:"6.1",page:"11"}},
+    {id:"ERF-DIS-2020",type:"ERF",era:"2020",title:"Early Retirement Factors — Disability (2020 Plan)",basis:"",normalForm:"3CC",fromForm:null,toForm:null,nra:65,interest:null,mortality1:null,mortality2:null,calcMethod:null,deferralMortality:null,monthsCertain:null,monthMin:1,monthMax:120,partAgeMin:null,partAgeMax:null,benAgeMin:null,benAgeMax:null,rule:null,status:"missing",note:"Disability factors not found in the documents given",citation:null}
+  ]
+};
+
+/* ---- tab name: <type>-<era>[ <from>-><to>], max 31 chars ---- */
+function pfTabName(set){
+  var name=set.type+"-"+set.era;
+  if(set.type==="BFCF"&&set.fromForm&&set.toForm) name+=" "+set.fromForm+"->"+set.toForm;
+  name=name.replace(/[\/\\?*\[\]:]/g,"-");
+  if(name.length>31) name=name.slice(0,31);
+  return name;
+}
+function pfXlsxFileName(caseNumber){
+  var c=(caseNumber===null||caseNumber===undefined)?"":String(caseNumber);
+  return c?c+"PF.xlsx":"PF.xlsx";
+}
+
+/* ---- validator ---- */
+function pfValidatePfJson(d){
+  var errors=[];
+  function err(m){ errors.push(m); }
+  if(!d||typeof d!=="object") return {errors:["not an object"]};
+  var m=d.planMetadata;
+  if(!m||typeof m!=="object") err("planMetadata missing");
+  else{
+    if(!m.planName||typeof m.planName!=="string") err("planMetadata.planName missing");
+    if(!m.planNumber||typeof m.planNumber!=="string") err("planMetadata.planNumber missing");
+    if(!m.caseNumber||typeof m.caseNumber!=="string") err("planMetadata.caseNumber missing (text, leading zeros kept)");
+    if(!pfIsIsoDate(m.dopt)) err("planMetadata.dopt must be ISO date YYYY-MM-DD");
+  }
+  var sets=d.factorSets;
+  if(!Array.isArray(sets)||sets.length<1){ err("factorSets must be a non-empty array"); return {errors:errors}; }
+  var seen={};
+  sets.forEach(function(s,i){
+    var tag="factorSets["+i+"]";
+    if(!s||typeof s!=="object"){ err(tag+" not an object"); return; }
+    if(!s.id||typeof s.id!=="string") err(tag+".id missing");
+    else if(seen[s.id]) err("duplicate factor set id: "+s.id); else seen[s.id]=1;
+    if(PF_TYPES.indexOf(s.type)<0) err(tag+".type must be ERF, LRF, BFCF or OTHER");
+    if(!s.era||typeof s.era!=="string") err(tag+".era missing");
+    if(!s.title||typeof s.title!=="string") err(tag+".title missing");
+    if(PF_STATUSES.indexOf(s.status)<0) err(tag+".status is not a known status");
+    if(s.status==="conditional"&&!s.note) err(tag+".status conditional needs a note");
+    if(s.status==="ambiguous"&&!s.note) err(tag+".status ambiguous needs a note");
+    if(s.status==="present"){
+      if(!s.basis) err(tag+".basis missing for a present set");
+      if(!s.normalForm) err(tag+".normalForm missing for a present set");
+      if(!s.rule||typeof s.rule!=="object") err(tag+".rule missing for a present set");
+    }
+    if(s.type==="BFCF"){
+      if(!pfIsInt(s.partAgeMin)||!pfIsInt(s.partAgeMax)||s.partAgeMax<s.partAgeMin) err(tag+".partAgeMin/partAgeMax bad");
+      if(!pfIsInt(s.benAgeMin)||!pfIsInt(s.benAgeMax)||s.benAgeMax<s.benAgeMin) err(tag+".benAgeMin/benAgeMax bad");
+      if(s.partAgeMax-s.partAgeMin>100||s.benAgeMax-s.benAgeMin>150) err(tag+".age range too wide");
+      if(s.status==="present"&&(!s.fromForm||!s.toForm)) err(tag+".fromForm/toForm missing for a present BFCF set");
+    }else{
+      if(s.monthMin!==null&&s.monthMin!==undefined||s.monthMax!==null&&s.monthMax!==undefined){
+        if(!pfIsInt(s.monthMin)||!pfIsInt(s.monthMax)||s.monthMax<s.monthMin) err(tag+".monthMin/monthMax bad");
+        if(pfIsInt(s.monthMin)&&pfIsInt(s.monthMax)&&s.monthMax-s.monthMin>599) err(tag+".month range too wide");
+      }
+    }
+    if(s.rule&&typeof s.rule==="object"){
+      if(PF_RULE_KINDS.indexOf(s.rule.kind)<0) err(tag+".rule.kind must be linear, stepped or bcv");
+      else if(s.rule.kind==="linear"&&!(pfNum(s.rule.denominator)>0)) err(tag+".rule.denominator must be a positive number");
+      else if(s.rule.kind==="stepped"&&(!(pfIsInt(s.rule.firstMonths)||pfNum(s.rule.firstMonths)>0)||!(pfNum(s.rule.firstDenominator)>0)||!(pfNum(s.rule.secondDenominator)>0))) err(tag+".rule.stepped needs firstMonths, firstDenominator, secondDenominator");
+      else if(s.rule.kind==="bcv"&&PF_BCV_FUNCTIONS.indexOf(s.rule.function)<0) err(tag+".rule.function must be ERFAEQ, LRFAEQ or BFCFAEQ");
+      if(s.rule.kind==="bcv"){
+        if(pfNum(s.interest)===null||pfNum(s.interest)<0||pfNum(s.interest)>1) err(tag+".interest must be a decimal 0 to 1 for a bcv rule");
+        if(!s.mortality1||!s.mortality2) err(tag+".mortality1/mortality2 missing for a bcv rule");
+        if(!pfIsInt(s.nra)) err(tag+".nra missing for a bcv rule");
+      }
+    }
+  });
+  return {errors:errors};
+}
+function pfIsPfJson(o){
+  return !!o&&typeof o==="object"&&!!o.planMetadata&&Array.isArray(o.factorSets);
+}
+function pfIsPartialPfJson(o){
+  if(!o||typeof o!=="object"||o.planMetadata||!Array.isArray(o.factorSets)||o.factorSets.length<1) return false;
+  /* Partial = ONLY a factorSets array. A flat object that also carries
+     header keys is a flex import, not a partial. */
+  return Object.keys(o).every(function(k){ return pfFlexNormKey(k)==="factorsets"; });
+}
+
+/* ---- flexible import: full PF JSON, flat JSON, or partial ---- */
+var PF_HEADER_KEYS={
+  "planname":"planName","plan":"planName","plan name":"planName",
+  "plannumber":"planNumber","plan number":"planNumber","plan no":"planNumber","pn":"planNumber",
+  "casenumber":"caseNumber","case number":"caseNumber","case":"caseNumber",
+  "dopt":"dopt","date of plan termination":"dopt","dateofplantermination":"dopt"
+};
+function pfFlexNormKey(k){ return String(k).trim().toLowerCase().replace(/[^a-z0-9]/g,""); }
+function pfImportFlexPfJson(obj,opts){
+  opts=opts||{};
+  var out={kind:"error",errors:[],mapped:[],unmapped:[],conflicts:[],data:null};
+  if(!obj||typeof obj!=="object"){ out.errors.push("not an object"); return out; }
+  if(pfIsPfJson(obj)){
+    var v=pfValidatePfJson(obj);
+    if(v.errors.length){ out.errors=v.errors; return out; }
+    out.kind="pf"; out.data=pfClone(obj); out.mapped=["planMetadata","factorSets"];
+    return out;
+  }
+  if(pfIsPartialPfJson(obj)){
+    out.kind="partial"; out.data=pfClone(obj); out.mapped=["factorSets"];
+    return out;
+  }
+  /* Flat JSON: header synonyms + factorSets array. */
+  var data={planMetadata:{planName:"",planNumber:"",caseNumber:"",dopt:""},factorSets:[]};
+  var seenHeader={}, seenSets={};
+  var keys=Object.keys(obj);
+  keys.forEach(function(k){
+    var nk=pfFlexNormKey(k), val=obj[k];
+    if(PF_HEADER_KEYS[nk]){
+      var field=PF_HEADER_KEYS[nk];
+      var vs=(val===null||val===undefined)?"":String(val);
+      if(seenHeader[field]&&seenHeader[field]!==vs){
+        out.conflicts.push("header "+field+": two values given");
+        data.planMetadata[field]="";
+      }else if(!seenHeader[field]){
+        seenHeader[field]=vs;
+        if(field==="dopt"&&vs&&!pfIsIsoDate(vs)){
+          /* US form MM/DD/YYYY, as written in the office. */
+          var dm=vs.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+          if(dm) vs=dm[3]+"-"+dm[1].padStart(2,"0")+"-"+dm[2].padStart(2,"0");
+          else{
+            var dt=new Date(vs);
+            if(!isNaN(dt)) vs=dt.toISOString().slice(0,10);
+          }
+        }
+        data.planMetadata[field]=vs;
+        out.mapped.push(k);
+      }
+      return;
+    }
+    if(nk==="factorsets"||nk==="factors"||nk==="sets"){
+      if(Array.isArray(val)){
+        val.forEach(function(s){
+          if(s&&s.id){ if(seenSets[s.id]) out.conflicts.push("factor set "+s.id+": two values given"); else{ seenSets[s.id]=1; data.factorSets.push(pfClone(s)); out.mapped.push(k+":"+s.id); } }
+          else out.unmapped.push(k+" (set without id)");
+        });
+      }else out.unmapped.push(k);
+      return;
+    }
+    out.unmapped.push(k);
+  });
+  if(data.factorSets.length===0&&!data.planMetadata.planName&&!data.planMetadata.caseNumber){
+    out.errors.push("no header fields and no factor sets found");
+    return out;
+  }
+  out.kind="flex"; out.data=data;
+  return out;
+}
+
+/* ---- partial merge: fills only sets that are missing, never overwrites ---- */
+function pfMergePartialPfJson(current,partial){
+  var out={ok:false,errors:[],filled:[],ignored:[],report:[],data:null};
+  if(!pfIsPartialPfJson(partial)){ out.errors.push("not a partial PF payload (needs factorSets, no planMetadata)"); return out; }
+  var data=pfClone(current);
+  var byId={};
+  data.factorSets.forEach(function(s){ byId[s.id]=s; });
+  partial.factorSets.forEach(function(s){
+    if(!s||!s.id){ out.report.push("set without id ignored"); out.ignored.push("(no id)"); return; }
+    var cur=byId[s.id];
+    if(!cur){ out.report.push("unknown set "+s.id+" ignored"); out.ignored.push(s.id); return; }
+    if(cur.status!=="missing"){ out.report.push("set "+s.id+" already filled, ignored"); out.ignored.push(s.id); return; }
+    var probe=pfClone(data);
+    probe.factorSets=probe.factorSets.map(function(x){ return x.id===s.id?pfClone(s):x; });
+    var v=pfValidatePfJson(probe);
+    if(v.errors.length){ out.errors.push("set "+s.id+": "+v.errors.join("; ")); return; }
+    data.factorSets=data.factorSets.map(function(x){ return x.id===s.id?pfClone(s):x; });
+    byId[s.id]=data.factorSets.filter(function(x){ return x.id===s.id; })[0];
+    out.filled.push(s.id);
+    out.report.push("set "+s.id+" filled");
+  });
+  out.ok=out.errors.length===0;
+  out.data=data;
+  return out;
+}
+
+/* ---- formulas: the app writes them, Excel computes them.
+   Plain rules get a cached value (JS computes the same arithmetic).
+   BCV add-in formulas get no cached value: Excel computes on open
+   (workbook sets fullCalcOnLoad). ---- */
+function pfLinearValue(m,den){ return pfRound4(1-m/den); }
+function pfSteppedValue(m,rule,monthMax){
+  var n=rule.firstMonths, cap=monthMax-n;
+  return pfRound4(1-(1/rule.firstDenominator)*Math.min(m,n)-(1/rule.secondDenominator)*Math.max(Math.min(m-n,cap),0));
+}
+function pfMonthFormula(set,mRef,m){
+  var r=set.rule;
+  if(!r) return null;
+  if(r.kind==="linear") return {formula:"ROUND(1-("+mRef+"/"+r.denominator+"),4)",cached:pfFmt4(pfLinearValue(m,r.denominator))};
+  if(r.kind==="stepped"){
+    var cap=(set.monthMax||120)-r.firstMonths;
+    return {formula:"ROUND(1-(1/"+r.firstDenominator+")*MIN("+mRef+","+r.firstMonths+")-(1/"+r.secondDenominator+")*MAX(MIN("+mRef+"-"+r.firstMonths+","+cap+"),0),4)",cached:pfFmt4(pfSteppedValue(m,r,set.monthMax||120))};
+  }
+  if(r.kind==="bcv"){
+    var fn=r.function, it=pfNum(set.interest), nra=set.nra, cert=(set.monthsCertain===null||set.monthsCertain===undefined)?0:set.monthsCertain;
+    var dm=set.deferralMortality||"Y";
+    if(fn==="ERFAEQ") return {formula:'ROUND(ERFAEQ('+it+',"M",'+nra+','+mRef+','+cert+',"'+set.mortality1+'","'+set.mortality2+'","MP","'+dm+'"),4)',cached:null};
+    if(fn==="LRFAEQ") return {formula:'ROUND(LRFAEQ('+it+',"M",'+nra+','+mRef+','+cert+',"'+set.mortality1+'","'+set.mortality2+'","MP","'+dm+'"),4)',cached:null};
+  }
+  return null;
+}
+function pfBfcfFormula(set,partRef,benRef){
+  var it=pfNum(set.interest), cert=(set.monthsCertain===null||set.monthsCertain===undefined)?0:set.monthsCertain;
+  return {formula:'ROUND(BFCFAEQ("'+set.fromForm+'",0,'+cert+',0,"JSC",0.5,0,0,'+partRef+','+benRef+',"M","M",'+it+',"'+set.mortality1+'","'+set.mortality2+'","MP","N"),4)',cached:null};
+}
+
+/* ---- .xlsx (OOXML) builder: direct XML + stored ZIP ----
+   Layout follows the reference file: header rows 1-9, row 10 headers,
+   print area = full table, print titles rows 1:10, landscape,
+   fit 1 x 2, margins 0.4 / 0.4 / 0.5 / 0.5. */
+var PF_XLSX_NS="http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+var PF_CRC_TABLE=(function(){var t=[],c,i,k;for(i=0;i<256;i++){c=i;for(k=0;k<8;k++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);t[i]=c>>>0;}return t;})();
+function pfCrc32(bytes){var c=0xFFFFFFFF,i;for(i=0;i<bytes.length;i++)c=PF_CRC_TABLE[(c^bytes[i])&0xFF]^(c>>>8);return (c^0xFFFFFFFF)>>>0;}
+function pfU16(n){return [n&0xFF,(n>>8)&0xFF];}
+function pfU32(n){return [n&0xFF,(n>>8)&0xFF,(n>>16)&0xFF,(n>>24)&0xFF];}
+function pfPushBytes(out,arr){
+  var CH=8192,i;
+  for(i=0;i<arr.length;i+=CH) out.push.apply(out,Array.prototype.slice.call(arr,i,i+CH));
+}
+function pfBuildZip(files){
+  var out=[],central=[],offset=0,now=new Date();
+  var dosTime=((now.getHours()<<11)|(now.getMinutes()<<5)|(now.getSeconds()>>1))&0xFFFF;
+  var dosDate=(((now.getFullYear()-1980)<<9)|((now.getMonth()+1)<<5)|now.getDate())&0xFFFF;
+  files.forEach(function(f){
+    var name=new TextEncoder().encode(f.name), data=(typeof f.data==="string")?new TextEncoder().encode(f.data):f.data, crc=pfCrc32(data);
+    out.push.apply(out,[0x50,0x4B,0x03,0x04].concat(pfU16(20),pfU16(0),pfU16(0),pfU16(dosTime),pfU16(dosDate),pfU32(crc),pfU32(data.length),pfU32(data.length),pfU16(name.length),pfU16(0)));
+    pfPushBytes(out,name); pfPushBytes(out,data);
+    central.push({name:name,crc:crc,size:data.length,offset:offset});
+    offset+=30+name.length+data.length;
+  });
+  var cdStart=offset;
+  central.forEach(function(c){
+    out.push.apply(out,[0x50,0x4B,0x01,0x02].concat(pfU16(20),pfU16(20),pfU16(0),pfU16(0),pfU16(dosTime),pfU16(dosDate),pfU32(c.crc),pfU32(c.size),pfU32(c.size),pfU16(c.name.length),pfU16(0),pfU16(0),pfU16(0),pfU16(0),pfU32(0),pfU32(c.offset)));
+    pfPushBytes(out,c.name);
+    offset+=46+c.name.length;
+  });
+  var cdSize=offset-cdStart;
+  out.push.apply(out,[0x50,0x4B,0x05,0x06].concat(pfU16(0),pfU16(0),pfU16(central.length),pfU16(central.length),pfU32(cdSize),pfU32(cdStart),pfU16(0)));
+  return new Uint8Array(out);
+}
+function pfCellStr(ref,text,style){
+  return '<c r="'+ref+'" t="inlineStr"'+(style?' s="'+style+'"':"")+'><is><t xml:space="preserve">'+pfEscXml(text)+"</t></is></c>";
+}
+function pfCellNum(ref,v,style){
+  return '<c r="'+ref+'"'+(style?' s="'+style+'"':"")+"><v>"+v+"</v></c>";
+}
+function pfCellFormula(ref,f,cached,style){
+  var s='<c r="'+ref+'"'+(style?' s="'+style+'"':"")+"><f>"+pfEscXml(f)+"</f>";
+  if(cached!==null&&cached!==undefined) s+="<v>"+cached+"</v>";
+  return s+"</c>";
+}
+function pfRowXml(r,cells){ return '<row r="'+r+'">'+cells.join("")+"</row>"; }
+function pfSheetPrintXml(){
+  return '<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/>'+
+    '<pageSetup paperSize="1" orientation="landscape" fitToWidth="1" fitToHeight="2"/>';
+}
+function pfSheetXml(dim,rows,colsXml){
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'+
+    '<worksheet xmlns="'+PF_XLSX_NS+'" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'+
+    '<dimension ref="'+dim+'"/>'+
+    '<sheetViews><sheetView workbookViewId="0"/></sheetViews>'+
+    '<sheetFormatPr defaultRowHeight="15"/>'+
+    '<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>'+
+    (colsXml||"")+
+    "<sheetData>"+rows.join("")+"</sheetData>"+
+    pfSheetPrintXml()+
+    "</worksheet>";
+}
+function pfHeaderRows(meta,set){
+  var rows=[];
+  rows.push(pfRowXml(1,[pfCellStr("A1",meta.planName,2)]));
+  rows.push(pfRowXml(2,[pfCellStr("A2","Case Number: "+meta.caseNumber)]));
+  rows.push(pfRowXml(3,[pfCellStr("A3","DOPT: "+meta.dopt)]));
+  rows.push(pfRowXml(5,[pfCellStr("A5",set.title,2)]));
+  rows.push(pfRowXml(6,[pfCellStr("A6",set.basis||"")]));
+  var nf="Normal single form: "+(set.normalForm||"");
+  if(set.type==="BFCF"&&set.fromForm&&set.toForm) nf+=" ("+set.fromForm+" to "+set.toForm+")";
+  rows.push(pfRowXml(7,[pfCellStr("A7",nf)]));
+  return rows;
+}
+/* Months/Factor table: ERF, LRF, OTHER. 5 pairs across A-J. */
+function pfMonthsSheetXml(set,meta){
+  var mMin=set.monthMin, mMax=set.monthMax;
+  var months=[]; var m;
+  for(m=mMin;m<=mMax;m++) months.push(m);
+  var rows=pfHeaderRows(meta,set);
+  var head=[];
+  for(var p=0;p<5;p++){ head.push(pfCellStr(pfColLetter(2*p+1)+"10","Months",2)); head.push(pfCellStr(pfColLetter(2*p+2)+"10","Factor",2)); }
+  rows.push(pfRowXml(10,head));
+  var nRows=Math.ceil(months.length/5);
+  var bodyRows=[];
+  for(var ri=0;ri<nRows;ri++){
+    var cells=[];
+    for(var pi=0;pi<5;pi++){
+      var idx=ri*5+pi;
+      if(idx>=months.length){ cells.push(pfCellStr(pfColLetter(2*pi+1)+(11+ri),"")); cells.push(pfCellStr(pfColLetter(2*pi+2)+(11+ri),"")); continue; }
+      var mo2=months[idx], r2=11+ri;
+      var mRef=pfColLetter(2*pi+1)+r2, fRef=pfColLetter(2*pi+2)+r2;
+      cells.push(pfCellNum(mRef,mo2));
+      var fo=pfMonthFormula(set,mRef,mo2);
+      if(fo) cells.push(pfCellFormula(fRef,fo.formula,fo.cached,1));
+      else cells.push(pfCellStr(fRef,""));
+    }
+    bodyRows.push(pfRowXml(11+ri,cells));
+  }
+  var allRows=rows.concat(bodyRows);
+  var lastRow=10+nRows;
+  var cols='<cols><col min="1" max="1" width="10"/><col min="2" max="2" width="12"/><col min="3" max="3" width="10"/><col min="4" max="4" width="12"/><col min="5" max="5" width="10"/><col min="6" max="6" width="12"/><col min="7" max="7" width="10"/><col min="8" max="8" width="12"/><col min="9" max="9" width="10"/><col min="10" max="10" width="12"/></cols>';
+  return {xml:pfSheetXml("A1:J"+lastRow,allRows,cols),lastRow:lastRow,lastCol:"J"};
+}
+/* BFCF age grid: participant ages across row 10, beneficiary ages down col A. */
+function pfBfcfSheetXml(set,meta){
+  var parts=[], bens=[], p, b;
+  for(p=set.partAgeMin;p<=set.partAgeMax;p++) parts.push(p);
+  for(b=set.benAgeMin;b<=set.benAgeMax;b++) bens.push(b);
+  var rows=pfHeaderRows(meta,set);
+  var head=[pfCellStr("A10","Age",2),pfCellStr("B10","Part. age",2)];
+  parts.forEach(function(pa,i){ head.push(pfCellNum(pfColLetter(3+i)+"10",pa,2)); });
+  rows.push(pfRowXml(10,head));
+  bens.forEach(function(be,i){
+    var r=11+i;
+    var cells=[pfCellNum("A"+r,be),pfCellNum("B"+r,be)];
+    parts.forEach(function(pa,j){
+      var col=pfColLetter(3+j);
+      var fo=pfBfcfFormula(set,col+"$10","$A"+r);
+      cells.push(pfCellFormula(col+r,fo.formula,fo.cached,1));
+    });
+    rows.push(pfRowXml(r,cells));
+  });
+  var lastCol=pfColLetter(2+parts.length), lastRow=10+bens.length;
+  var cols='<cols><col min="1" max="1" width="8"/><col min="2" max="2" width="10"/>';
+  for(var k=3;k<=2+parts.length;k++) cols+='<col min="'+k+'" max="'+k+'" width="12"/>';
+  cols+="</cols>";
+  return {xml:pfSheetXml("A1:"+lastCol+lastRow,rows,cols),lastRow:lastRow,lastCol:lastCol};
+}
+function pfSheetForSet(set,meta){
+  if(set.type==="BFCF") return pfBfcfSheetXml(set,meta);
+  return pfMonthsSheetXml(set,meta);
+}
+function pfStylesXml(){
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<styleSheet xmlns="'+PF_XLSX_NS+'"><numFmts count="1"><numFmt numFmtId="164" formatCode="0.0000"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><sz val="11"/><name val="Calibri"/><b/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="3"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+}
+function pfWorkbookXml(sheets){
+  var sXml=sheets.map(function(s,i){
+    return '<sheet name="'+pfEscXml(s.name)+'" sheetId="'+(i+1)+'" r:id="rId'+(i+1)+'"/>';
+  }).join("");
+  var dn=sheets.map(function(s,i){
+    var q="'"+s.name.replace(/'/g,"''")+"'";
+    return '<definedName name="_xlnm.Print_Area" localSheetId="'+i+'">'+q+'!$A$1:$'+s.lastCol+'$'+s.lastRow+'</definedName>'+
+      '<definedName name="_xlnm.Print_Titles" localSheetId="'+i+'">'+q+'!$1:$10</definedName>';
+  }).join("");
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="'+PF_XLSX_NS+'" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'+sXml+'</sheets><definedNames>'+dn+'</definedNames><calcPr fullCalcOnLoad="1"/></workbook>';
+}
+/* Build the .xlsx bytes for the given data. Only sets with status
+   present or conditional are written. Missing / rejected sets are out. */
+function pfBuildXlsxBytes(data){
+  var meta=data.planMetadata;
+  var sets=(data.factorSets||[]).filter(function(s){ return s.status==="present"||s.status==="conditional"; });
+  if(sets.length<1) throw new Error("no factor sets to write");
+  var sheets=sets.map(function(s){ var sh=pfSheetForSet(s,meta); return {name:pfTabName(s),lastRow:sh.lastRow,lastCol:sh.lastCol,xml:sh.xml}; });
+  var rels=sheets.map(function(s,i){ return '<Relationship Id="rId'+(i+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>'; }).join("")+
+    '<Relationship Id="rId'+(sheets.length+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>';
+  var overrides=sheets.map(function(s,i){ return '<Override PartName="/xl/worksheets/sheet'+(i+1)+'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'; }).join("");
+  var files=[
+    {name:"[Content_Types].xml",data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'+overrides+'<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'},
+    {name:"_rels/.rels",data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>'},
+    {name:"xl/workbook.xml",data:pfWorkbookXml(sheets)},
+    {name:"xl/_rels/workbook.xml.rels",data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+rels+'</Relationships>'},
+    {name:"xl/styles.xml",data:pfStylesXml()}
+  ];
+  sheets.forEach(function(s,i){ files.push({name:"xl/worksheets/sheet"+(i+1)+".xml",data:s.xml}); });
+  return pfBuildZip(files);
+}
+
+/* ---- state ---- */
+var PF_VIEW_HASH={pf:"#pf",welcome:"#welcome",help:"#help"};
+var pfState={
+  theme:"light", view:"pf", step:0,
+  data:null, decisions:{}, importReport:null,
+  generated:null, audit:[], auditText:""
+};
+function pfAudit(action,detail){
+  var e={time:new Date().toISOString(),action:action,detail:detail||""};
+  pfState.audit.push(e);
+  pfState.auditText=pfState.audit.map(function(a){ return a.time+" "+a.action+(a.detail?" — "+a.detail:""); }).join("\n");
+  return e;
+}
+function pfSetDecidedCount(){
+  if(!pfState.data) return 0;
+  return pfState.data.factorSets.filter(function(s){ return pfState.decisions[s.id]; }).length;
+}
+function pfCanGenerate(){
+  if(!pfState.data) return {ok:false,why:"No JSON loaded yet."};
+  var m=pfState.data.planMetadata;
+  if(!m.planName||!m.caseNumber||!m.dopt) return {ok:false,why:"Header is not filled: plan name, case number, DOPT."};
+  var undecided=pfState.data.factorSets.filter(function(s){ return !pfState.decisions[s.id]; });
+  if(undecided.length) return {ok:false,why:undecided.length+" factor set(s) still undecided."};
+  var bad=pfState.data.factorSets.filter(function(s){
+    return pfState.decisions[s.id]==="approved"&&!(s.status==="present"||s.status==="conditional");
+  });
+  if(bad.length) return {ok:false,why:"Approved set "+bad[0].id+" has status "+bad[0].status+": approve only present sets, or reject it."};
+  var none=pfState.data.factorSets.filter(function(s){ return pfState.decisions[s.id]==="approved"; });
+  if(!none.length) return {ok:false,why:"No set approved. Approve at least one set."};
+  return {ok:true,why:""};
+}
+function pfApprovedData(){
+  var d=pfClone(pfState.data);
+  d.factorSets=d.factorSets.filter(function(s){ return pfState.decisions[s.id]==="approved"; });
+  return d;
+}
+
+/* ---- import / generate (UI path, also used by tests) ---- */
+function pfImportText(text,label){
+  var report={kind:"error",report:[]};
+  var obj;
+  try{ obj=JSON.parse(text); }
+  catch(e){ report.report.push("Not valid JSON: "+e.message); pfState.importReport=report; pfState.data=null; pfState.step=1; pfAudit("import failed",label||""); return report; }
+  var res=pfImportFlexPfJson(obj,{sourceType:"JSON payload",sourceLabel:label||""});
+  if(res.kind==="error"){
+    report.report=res.errors; pfState.importReport=report; pfState.data=null; pfAudit("import failed",label||"");
+  }else if(res.kind==="partial"){
+    if(!pfState.data){ report.kind="error"; report.report.push("Partial JSON needs a full JSON loaded first."); pfState.importReport=report; return report; }
+    var merged=pfMergePartialPfJson(pfState.data,res.data);
+    if(!merged.ok){ report.report=merged.errors; pfState.importReport=report; return report; }
+    pfState.data=merged.data;
+    report.kind="partial"; report.filled=merged.filled.length; report.report=merged.report;
+    pfState.importReport=report; pfState.step=2;
+    pfAudit("partial import",merged.filled.join(", "));
+  }else{
+    pfState.data=res.data; pfState.decisions={}; pfState.generated=null;
+    report.kind=res.kind; report.mapped=res.mapped; report.unmapped=res.unmapped; report.conflicts=res.conflicts;
+    report.report=[];
+    if(res.unmapped.length) report.report.push("Unmapped keys (kept, not dropped): "+res.unmapped.join(", "));
+    if(res.conflicts.length) report.report.push("Conflicts (kept neither value): "+res.conflicts.join("; "));
+    pfState.importReport=report; pfState.step=2;
+    pfAudit("import",label||"");
+  }
+  if(typeof document!=="undefined") pfRender();
+  return report;
+}
+function pfLoadDemo(){
+  pfState.data=pfClone(PF_DEMO_JSON);
+  pfState.decisions={}; pfState.generated=null;
+  pfState.importReport={kind:"demo",report:["Demo case loaded: synthetic Riverbend plan."]};
+  pfState.step=2;
+  pfAudit("demo loaded","");
+  pfShowView("pf");
+}
+function pfGenerate(){
+  var gate=pfCanGenerate();
+  if(!gate.ok){ pfState.generated=null; if(typeof document!=="undefined") pfRender(); return {ok:false,why:gate.why}; }
+  var d=pfApprovedData();
+  var bytes;
+  try{ bytes=pfBuildXlsxBytes(d); }
+  catch(e){ return {ok:false,why:e.message}; }
+  pfState.generated={name:pfXlsxFileName(d.planMetadata.caseNumber),bytes:bytes,tabs:d.factorSets.length};
+  pfState.step=4;
+  pfAudit("generate",pfState.generated.name+" ("+d.factorSets.length+" tabs)");
+  if(typeof document!=="undefined") pfRender();
+  return {ok:true,name:pfState.generated.name};
+}
+function pfDownload(bytes,name,mime){
+  if(typeof document==="undefined"||typeof Blob==="undefined") return false;
+  try{
+    var blob=new Blob([bytes],{type:mime||"application/octet-stream"});
+    var url=(typeof URL!=="undefined"&&URL.createObjectURL)?URL.createObjectURL(blob):null;
+    if(!url) return false;
+    var a=document.createElement("a");
+    a.href=url; a.download=name;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ try{ URL.revokeObjectURL(url); }catch(e){} },1000);
+    return true;
+  }catch(e){ return false; }
+}
+function pfDownloadPrompt(){
+  return pfDownload(new TextEncoder().encode(PF_SCRAPER_PROMPT),"pf-scraper-prompt.md","text/markdown");
+}
+function pfDownloadAudit(){
+  var text=pfState.auditText||"(no entries)";
+  return pfDownload(new TextEncoder().encode(text),"pf-audit-log.txt","text/plain");
+}
+
+/* ---- render ---- */
+function pfEl(id){ if(typeof document==="undefined") return null; return document.getElementById(id); }
+function pfStepTitle(i){ return ["1 · Prompt","2 · Upload JSON","3 · Review","4 · Generate","5 · Download"][i]; }
+function pfRender(){
+  if(typeof document==="undefined") return;
+  var navs={pf:pfEl("nav-pf"),welcome:pfEl("nav-welcome"),help:pfEl("nav-help")};
+  Object.keys(navs).forEach(function(k){
+    var el=navs[k]; if(!el) return;
+    if(k===pfState.view) el.setAttribute("aria-current","page"); else el.removeAttribute("aria-current");
+  });
+  ["pf","welcome","help"].forEach(function(v){
+    var el=pfEl("view-"+v); if(el) el.hidden=(pfState.view!==v);
+  });
+  var st=pfEl("stepper");
+  if(st){
+    st.innerHTML=[0,1,2,3,4].map(function(i){
+      var cls=pfState.step===i?"current":(pfState.step>i?"done":(pfState.data||i===0?"":"locked"));
+      return '<li class="'+cls+'" data-action="step" data-step="'+i+'"><span class="n">'+(i+1)+'</span> '+pfStepTitle(i)+"</li>";
+    }).join("");
+  }
+  pfRenderPrompt(); pfRenderUpload(); pfRenderReview(); pfRenderGenerate(); pfRenderDownload();
+  pfSyncThemeButton();
+}
+function pfRenderPrompt(){
+  var el=pfEl("prompt-card"); if(!el) return;
+  el.innerHTML="<h2>Step 1 — Download the scraper prompt</h2>"+
+    "<p>Feed the prompt and the plan documents to an LLM. Copilot in the office, any LLM at home. The LLM returns JSON. It only proposes.</p>"+
+    '<p><button type="button" class="primary" data-action="prompt">Download the scraper prompt</button></p>'+
+    '<p class="small">The prompt asks for every distinct factor set: each era, each type, each form pair. Citation per value. No guessing.</p>';
+}
+function pfRenderUpload(){
+  var el=pfEl("upload-box"); if(!el) return;
+  var rep=pfState.importReport;
+  var msg="";
+  if(rep){
+    if(rep.kind==="error") msg='<div class="alert">'+pfEscHtml(rep.report.join("; "))+"</div>";
+    else msg='<div class="ok">'+pfEscHtml(rep.kind==="demo"?"Demo loaded.":rep.kind==="partial"?"Partial import: "+(rep.filled||0)+" set(s) filled.":rep.kind==="flex"?"Flat JSON imported.":"Full PF JSON imported.")+(rep.report&&rep.report.length?" "+pfEscHtml(rep.report.join(" ")):"")+"</div>";
+  }
+  el.innerHTML="<h2>Step 2 — Upload the JSON</h2>"+msg+
+    '<p><label for="pf-file">JSON file from the LLM</label><input type="file" id="pf-file" accept=".json,application/json"></p>'+
+    '<p><label for="pf-paste">Or paste the JSON</label><textarea id="pf-paste" rows="4" placeholder="{&quot;planMetadata&quot;: …}"></textarea></p>'+
+    '<p><button type="button" class="primary" data-action="upload-paste">Upload pasted JSON</button> '+
+    '<button type="button" class="secondary" data-action="demo">Try the demo</button></p>'+
+    '<p class="small">Partial JSON fills only missing sets. It never overwrites a value. Unknown keys are listed, never dropped.</p>';
+}
+function pfRenderReview(){
+  var el=pfEl("review-box"); if(!el) return;
+  if(!pfState.data){ el.innerHTML="<h2>Step 3 — Review</h2><p>Load JSON first.</p>"; return; }
+  var m=pfState.data.planMetadata;
+  var head='<h2>Step 3 — Review</h2>'+
+    '<p><label>Plan name <span class="small">(edit if wrong)</span><input type="text" data-meta="planName" value="'+pfEscHtml(m.planName)+'"></label></p>'+
+    '<div class="grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.5rem 1rem">'+
+    '<p><label>Plan number<input type="text" data-meta="planNumber" value="'+pfEscHtml(m.planNumber)+'"></label></p>'+
+    '<p><label>Case number<input type="text" data-meta="caseNumber" value="'+pfEscHtml(m.caseNumber)+'"></label></p>'+
+    '<p><label>DOPT<input type="text" data-meta="dopt" value="'+pfEscHtml(m.dopt)+'"></label></p></div>'+
+    "<p>"+pfSetDecidedCount()+" of "+pfState.data.factorSets.length+" sets decided.</p>";
+  var rows=pfState.data.factorSets.map(function(s){
+    var dec=pfState.decisions[s.id]||"";
+    var badge=dec?'<span class="badge '+dec+'">'+(dec==="approved"?"Approved":dec==="rejected"?"Rejected":"Edited")+"</span>":'<span class="badge missing">Undecided</span>';
+    var cit=s.citation?pfEscHtml(s.citation.document+(s.citation.section?" §"+s.citation.section:"")+(s.citation.page?" p"+s.citation.page:"")):"—";
+    var range=s.type==="BFCF"?("part "+s.partAgeMin+"–"+s.partAgeMax+" · ben "+s.benAgeMin+"–"+s.benAgeMax):(s.monthMin+"–"+s.monthMax+" mo");
+    return '<div class="revrow"><div class="rowhead"><span class="field">'+pfEscHtml(s.id)+'</span><span class="badge '+s.status+'">'+s.status+"</span>"+badge+"</div>"+
+      "<p><strong>"+pfEscHtml(s.title)+"</strong></p>"+
+      '<div class="grid"><div><span class="small">Tab</span><br>'+pfEscHtml(pfTabName(s))+'</div><div><span class="small">Range</span><br>'+pfEscHtml(range)+'</div><div><span class="small">Basis</span><br>'+pfEscHtml(s.basis||"—")+'</div><div><span class="small">Citation</span><br>'+cit+"</div></div>"+
+      (s.note?'<p class="small">Note: '+pfEscHtml(s.note)+"</p>":"")+
+      '<p><label>Title <input type="text" data-set-title="'+pfEscHtml(s.id)+'" value="'+pfEscHtml(s.title)+'"></label></p>'+
+      '<div class="actions"><button type="button" class="primary" data-action="approve" data-id="'+pfEscHtml(s.id)+'">Approve</button>'+
+      '<button type="button" class="secondary" data-action="edit" data-id="'+pfEscHtml(s.id)+'">Edit title</button>'+
+      '<button type="button" class="danger" data-action="reject" data-id="'+pfEscHtml(s.id)+'">Reject</button></div></div>';
+  }).join("");
+  el.innerHTML=head+rows;
+}
+function pfRenderGenerate(){
+  var el=pfEl("generate-box"); if(!el) return;
+  var gate=pfCanGenerate();
+  el.innerHTML="<h2>Step 4 — Generate</h2>"+
+    (gate.ok?'<p class="ok">Ready. The workbook will hold the approved sets only.</p>':'<p class="warn">'+pfEscHtml(gate.why)+"</p>")+
+    '<p><button type="button" class="primary" data-action="generate" '+(gate.ok?"":"disabled")+">Generate the workbook</button></p>"+
+    '<p class="small">The app writes formulas, not values. BCV formulas compute in Excel with the ATPBGC add-in. All factors round to 4 decimals.</p>';
+}
+function pfRenderDownload(){
+  var el=pfEl("download-box"); if(!el) return;
+  var g=pfState.generated;
+  if(!g){ el.innerHTML="<h2>Step 5 — Download</h2><p>Generate first.</p>"; return; }
+  el.innerHTML="<h2>Step 5 — Download</h2>"+
+    '<p class="ok">Workbook ready: <strong>'+pfEscHtml(g.name)+"</strong> ("+g.tabs+" tabs).</p>"+
+    '<p><button type="button" class="primary" data-action="download">Download '+pfEscHtml(g.name)+'</button> '+
+    '<button type="button" class="secondary" data-action="audit">Download audit log</button></p>';
+}
+
+/* ---- actions ---- */
+function pfHandleAction(action,t){
+  if(action==="theme"){ pfToggleTheme(); return; }
+  if(action==="demo"){ pfLoadDemo(); return; }
+  if(action==="prompt"){ pfDownloadPrompt(); return; }
+  if(action==="audit"){ pfDownloadAudit(); return; }
+  if(action==="step"){
+    var i=parseInt(t.getAttribute("data-step"),10);
+    if(!isNaN(i)&&(pfState.data||i===0)) { pfState.step=i; pfRender(); }
+    return;
+  }
+  if(action==="upload-paste"){
+    var ta=pfEl("pf-paste");
+    if(ta) pfImportText(ta.value,"pasted JSON");
+    return;
+  }
+  if(action==="approve"||action==="reject"||action==="edit"){
+    var id=t.getAttribute("data-id");
+    if(!id) return;
+    if(action==="edit"){
+      var inp=document.querySelector('[data-set-title="'+id+'"]');
+      var set=pfState.data.factorSets.filter(function(s){ return s.id===id; })[0];
+      if(inp&&set){ set.title=inp.value; pfAudit("edit title",id); }
+      pfState.decisions[id]="edited";
+    }else{
+      pfState.decisions[id]=action==="approve"?"approved":"rejected";
+      pfAudit(action,id);
+    }
+    pfRender();
+    return;
+  }
+  if(action==="generate"){ pfGenerate(); return; }
+  if(action==="download"){
+    var g=pfState.generated;
+    if(g){ pfDownload(g.bytes,g.name,"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"); pfAudit("download",g.name); }
+    return;
+  }
+}
+function pfShowView(view){
+  var v=(view&&PF_VIEW_HASH[view])?view:"pf";
+  pfState.view=v;
+  if(typeof location!=="undefined"){
+    var h=PF_VIEW_HASH[v];
+    if(location.hash!==h){ try{ location.hash=h; }catch(e){} }
+  }
+  pfRender();
+}
+function pfCloseMenu(focusToggle){
+  if(typeof document==="undefined") return;
+  var nav=document.getElementById("views-nav");
+  if(nav) nav.classList.remove("open");
+  var b=document.getElementById("menu-toggle");
+  if(b) b.setAttribute("aria-expanded","false");
+  if(focusToggle&&b&&b.focus) b.focus();
+}
+function pfInit(){
+  if(typeof document==="undefined") return;
+  document.addEventListener("click",function(ev){
+    var t=ev.target&&ev.target.closest?ev.target.closest("[data-action]"):null;
+    if(t) pfHandleAction(t.getAttribute("data-action"),t);
+  });
+  document.addEventListener("input",function(ev){
+    var t=ev.target;
+    if(t&&t.getAttribute&&t.getAttribute("data-meta")&&pfState.data){
+      pfState.data.planMetadata[t.getAttribute("data-meta")]=t.value;
+      pfRenderGenerate();
+    }
+  });
+  document.addEventListener("change",function(ev){
+    var t=ev.target;
+    if(t&&t.id==="pf-file"&&t.files&&t.files[0]&&typeof FileReader!=="undefined"){
+      var r=new FileReader();
+      r.onload=function(){ pfImportText(String(r.result||""),t.files[0].name); };
+      r.readAsText(t.files[0]);
+    }
+  });
+  var navLinks=document.querySelectorAll("#views-list a[data-view]");
+  function pfNavClick(ev){
+    if(ev&&ev.preventDefault) ev.preventDefault();
+    pfShowView(this.getAttribute("data-view"));
+    pfCloseMenu(false);
+  }
+  for(var li=0;li<navLinks.length;li++) navLinks[li].addEventListener("click",pfNavClick);
+  var menuBtn=document.getElementById("menu-toggle");
+  if(menuBtn) menuBtn.addEventListener("click",function(){
+    var nav=document.getElementById("views-nav");
+    if(!nav) return;
+    var open=nav.classList.toggle("open");
+    menuBtn.setAttribute("aria-expanded",open?"true":"false");
+  });
+  document.addEventListener("keydown",function(ev){
+    if(!ev||ev.key!=="Escape") return;
+    var nav=document.getElementById("views-nav");
+    if(nav&&nav.classList.contains("open")) pfCloseMenu(true);
+  });
+  if(typeof window!=="undefined"&&window.addEventListener){
+    window.addEventListener("hashchange",function(){
+      if(typeof location!=="undefined") pfShowView(location.hash.replace(/^#/,""));
+    });
+  }
+  if(typeof location!=="undefined"){
+    var hv=location.hash.replace(/^#/,"");
+    pfState.view=PF_VIEW_HASH[hv]?hv:"pf";
+  }
+  pfApplyTheme(pfLoadTheme()==="dark"?"dark":"light");
+  pfRender();
+}
+if(typeof document!=="undefined"){
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",pfInit);
+  else pfInit();
+}
+/* ---- public surface for tests and reuse ---- */
+globalThis.PF={
+  VERSION:PF_VERSION,
+  validatePfJson:pfValidatePfJson,
+  importFlexPfJson:pfImportFlexPfJson,
+  mergePartialPfJson:pfMergePartialPfJson,
+  pfIsPfJson:pfIsPfJson,
+  pfIsPartialPfJson:pfIsPartialPfJson,
+  pfTabName:pfTabName,
+  pfXlsxFileName:pfXlsxFileName,
+  pfMonthFormula:pfMonthFormula,
+  pfBfcfFormula:pfBfcfFormula,
+  pfBuildXlsxBytes:pfBuildXlsxBytes,
+  pfSheetForSet:pfSheetForSet,
+  pfWorkbookXml:pfWorkbookXml,
+  pfToggleTheme:pfToggleTheme,
+  pfApplyTheme:pfApplyTheme,
+  pfCanGenerate:pfCanGenerate,
+  DEMO_PF_JSON:PF_DEMO_JSON,
+  PF_TYPES:PF_TYPES,
+  PF_STATUSES:PF_STATUSES,
+  PF_SCRAPER_PROMPT:PF_SCRAPER_PROMPT,
+  state:pfState
+};
+globalThis.pfImportText=pfImportText;
+globalThis.pfGenerate=pfGenerate;
+globalThis.pfLoadDemo=pfLoadDemo;
+globalThis.pfShowView=pfShowView;
+</script>
+</body>
+</html>
