@@ -153,7 +153,7 @@ it. The review screen shows it under the set.
 - **stepped:** `=ROUND(1-(1/D1)*MIN(m,N)-(1/D2)*MAX(MIN(m-N,CAP),0),4)`. First rate for N months, then second rate.
 - **bcv ERF:** `=ROUND(ERFAEQ(interest,partSex,nra,months,certain,"mort1","mort2",calcMethod,deferralMortality),4)`.
 - **bcv LRF:** `=ROUND(LRFAEQ(interest,partSex,nra,months,certain,"mort1","mort2",calcMethod,deferralMortality),4)`.
-- **bcv BFCF:** `=ROUND(BFCFAEQ("fromCode",fromSpc,certain,temp,"toCode",survivorPct,toCertain,0,partAge,benAge,partSex,benSex,interest,"mort1","mort2",calcMethod,intMethod),4)`. `fromCode` / `toCode` are the BCV codes for the plan forms (see "Plan form names map to BCV codes" above), not the plan names. `toCertain` comes from the to-form name (`nCC`/`nCO` → `n*12`, else 0). `intMethod` is the interest method: `N` for a fixed rate, `O` for the lump sum rate structure, `L` for 417(e) segment rates, `L` with a stability period (`LPQ`, …) or a lookback (`LPQ1`–`LPQ5`), or O/N with a stability period (only with LS06SUYYYY/LS12SUYYYY mortality). `LPBGC` is not available in BFCFAEQ. BFCFAEQ has **no** deferral-mortality parameter — v0.3.0 wrote `deferralMortality` in that slot by mistake; v0.4.0 writes `intMethod` there and refuses a non-null `deferralMortality` on a BFCF set.
+- **bcv BFCF:** `=ROUND(BFCFAEQ("fromCode",fromSpc,certain,temp,"toCode",survivorPct,toCertain,0,partAge,benAge,partSex,benSex,interest,"mort1","mort2",calcMethod,intMethod),4)`. `fromCode` / `toCode` are the BCV codes for the plan forms (see "Plan form names map to BCV codes" above), not the plan names. `toCertain` comes from the to-form name (`nCC` → `n*12`, else 0). `intMethod` is the interest method: `N` for a fixed rate, `O` for the lump sum rate structure, `L` for 417(e) segment rates, `L` with a stability period (`LPQ`, …) or a lookback (`LPQ1`–`LPQ5`), or O/N with a stability period (only with LS06SUYYYY/LS12SUYYYY mortality). `LPBGC` is not available in BFCFAEQ. BFCFAEQ has **no** deferral-mortality parameter — v0.3.0 wrote `deferralMortality` in that slot by mistake; v0.4.0 writes `intMethod` there and refuses a non-null `deferralMortality` on a BFCF set.
 
 Derived, not scraped:
 
@@ -199,14 +199,16 @@ The plan form name is not a BCV argument. The app maps it:
 | --- | --- | --- | --- |
 | `SLA` | `SLA` | 0 | 0 |
 | `nCC` (`3CC`, `5CC`, ...) | `SLA` | 0 | `n*12` |
-| `nCO` (`3CO`, `5CO`, ...) | `CTN` | 0 | `n*12` |
 | `JSnn` (`JS50`, `JS75`, `JS100`) | `JSC` | `nn/100` | 0 |
 
-The `nCO` row is the other kind of "certain": a pure term that
-**stops** after n months (no life part). `nCC` always means certain
-**and continues** (for life). The name `nCO` is a Muse decision,
-parallel to `nCC`, for the user to correct if the documents write
-it another way. `CTN` with months 0 is refused by the add-in.
+The other kind of "certain" is a pure term that **stops** after
+n months (no life part): the add-in code for it is `CTN`, and
+`CTN` with months 0 is refused by the add-in. But no plan-form
+name for it is known — `nCO` was invented in v0.4.0 and withdrawn
+in v0.4.1 (user correction: stick to PBGC rules, do not invent).
+Until the plan documents give a name, a certain-only form is
+refused: record it as written, mark the set `ambiguous`. `nCC`
+always means certain **and continues** (for life).
 
 ### V1 uses digits, not these codes
 
@@ -231,7 +233,7 @@ survivor percent must match the form name (`JS50` → 0.5).
 `monthsCertain` is the months certain in the form the formula
 converts from (BFCF) or in the normal single form (ERF/LRF,
 `TheCPeriod`). When it is not stated, a certain form name supplies
-it (`3CC` → 36, `3CO` → 36). A stated value that disagrees with
+it (`3CC` → 36). A stated value that disagrees with
 the form name is a conflict and fails validation. The reference
 file's pattern: `SLA` → 0 (`LRF-1978`), `3CC` → 36
 (`ERF-Disability`, `LRF-1982`, `LRF-2011`).

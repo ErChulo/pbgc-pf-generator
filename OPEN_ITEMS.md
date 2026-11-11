@@ -1,8 +1,12 @@
-# OPEN ITEMS — PF Generator v0.4.0
+# OPEN ITEMS — PF Generator v0.4.1
 
 The canonical gap list. Read this before proposing next steps.
 
-## Fixed in v0.4.0 (all open issues closed)
+## Fixed in v0.4.0 (all open issues closed at the time)
+
+> **Withdrawn in v0.4.1:** the certain-only fix below (`nCO`)
+> was invented, not a PBGC rule. The user corrected it. Item 10
+> is open again. Everything else in v0.4.0 stands.
 
 - **BFCFAEQ Method is the interest method, not deferral mortality.**
   A real bug, found while closing item 9: the app wrote
@@ -22,11 +26,10 @@ The canonical gap list. Read this before proposing next steps.
   writes it in the `Method` slot, and refuses a non-null
   `deferralMortality` on a BFCF set. ERF/LRF keep `deferralMortality`
   `Y`/`N` and carry no `intMethod` (fixed-rate plans only).
-- **Certain-only forms.** New plan-form name `nCO` (e.g. `3CO`),
-  mapped to BCV code `CTN` with `n*12` months certain. Months
-  certain derives from a `nCO` name, and conflicts fail validation.
-  The name is a Muse decision (parallel to `nCC`), for the user to
-  correct if the documents write it another way.
+- **Certain-only forms.** WITHDRAWN in v0.4.1. The plan-form name
+  `nCO` (e.g. `3CO`) was invented in v0.4.0 — no PBGC source names
+  it. The user corrected it: do not invent, stick to PBGC rules.
+  The mapping is removed; the app refuses such a form. See item 10.
 - **Logo.** White PBGC logo in the header (same file as DEL,
   Book of Job "images" folder; local copy in `assets/logos/`),
   52px desktop / 44px under 640px, both themes.
@@ -223,7 +226,14 @@ Fixed: `intMethod` per BFCF set, validated, written in the slot.
 NPVF2's `deferralAssump` N/P/B is a different parameter (the
 valuation function, not BFCFAEQ) and does not apply here.
 
-## 10. No plan-form name for pure certain-only (CTN) — fixed in v0.4.0
+## 10. No plan-form name for pure certain-only (CTN) — OPEN
 
-Name decided: `nCO` (e.g. `3CO`) maps to `CTN` with `n*12` months
-certain. See "Fixed in v0.4.0" above.
+No plan-form name is known. The add-in code is `CTN` (add-in doc
+p.38, "Suggested Input": n-year Certain → code `CTN`, mths n),
+and `CTN` with months 0 is refused by the add-in. But no short
+name like `nCC` exists in any PBGC source. v0.4.0 invented `nCO`
+(`3CO`); the user corrected it and it was withdrawn in v0.4.1.
+The app refuses a certain-only form: the LLM records the form as
+written, says so in `note`, and marks the set `ambiguous`.
+The name must come from the plan documents, when a plan with
+such a form comes up.

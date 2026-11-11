@@ -39,15 +39,17 @@ after DOPT cannot apply — say so in `note`.
 ## Plan form names
 
 Record form names exactly as the documents write them: `SLA`,
-`3CC`, `5CC`, `3CO`, `JS50`, `JS75`, `JS100`. Do not translate them into
+`3CC`, `5CC`, `JS50`, `JS75`, `JS100`. Do not translate them into
 BCV codes yourself — the app maps each name to its BCV function
 code (a 3-year certain-and-life form writes as `SLA` with 36 months
-certain; a 3-year certain-only form writes as `CTN` with 36 months
-certain — payments stop after the term). A form name the documents
-do not give is null, never guessed. If a form name is not `SLA`, a
-certain-and-continuous form (`3CC`, `5CC`, ...), a certain-only
-form (`3CO`, `5CO`, ...), or a joint-and-survivor form (`JS50`, ...),
-say so in `note` and mark the set `ambiguous`.
+certain). A form name the documents do not give is null, never
+guessed. If a form name is not `SLA`, a certain-and-continuous form
+(`3CC`, `5CC`, ...), or a joint-and-survivor form (`JS50`, ...), say
+so in `note` and mark the set `ambiguous`. A pure certain-only form
+(payments stop after the term) has no known plan-form name: the
+add-in code for it is `CTN`, but the app knows no short name for it,
+so record the form as written, say so in `note`, and mark the set
+`ambiguous`. Never invent a short name for it.
 
 ## PBGC honors only normal single form to normal married form
 
@@ -136,9 +138,9 @@ Rules for the table:
 - `title`: short title. Example: `Early Retirement Factors from NRA of 65 (2020 Plan)`.
 - `basis`: the rule in words, with the numbers. Example:
   `reduction = 1/15 per year early (linear in months)`.
-- `normalForm`: `SLA`, a certain-and-continuous form (`3CC`,
-  `5CC`, ...), or a certain-only form (`3CO`, `5CO`, ...).
-  Copy it as written.
+- `normalForm`: `SLA` or a certain-and-continuous form (`3CC`,
+  `5CC`, ...). Copy it as written. A pure certain-only form has no
+  known short name — see "Plan form names" above.
 - `effectiveFrom`, `effectiveTo`: ISO dates `YYYY-MM-DD`, or null.
   See "Effective dates" above.
 - `mortalityConfirmed`: `true` only when you checked the mortality
@@ -224,7 +226,7 @@ Rules for the table:
 
 ```json
 {
-  "schemaVersion": "0.4.0",
+  "schemaVersion": "0.4.1",
   "planMetadata": {
     "planName": "Riverbend Manufacturing Pension Plan",
     "planNumber": "001",

@@ -21,7 +21,7 @@ ASD STE 100. One idea per line. User action, then app behavior.
 - LLM: finds every distinct factor set. Each era. Each type. Each form pair. No merging. No dropping.
 - LLM: reads each document on its own first (plan, restatement, amendments), then combines. An amendment that changes a rule starts a new era.
 - LLM: records when each rule applies (`effectiveFrom` / `effectiveTo`).
-- LLM: records form names as written (`SLA`, `3CC`, `3CO`, `JS50`). The app maps each name to its BCV code.
+- LLM: records form names as written (`SLA`, `3CC`, `JS50`). The app maps each name to its BCV code.
 - LLM: quotes the plan's rule sentence into `ruleText`, then states the matching `rule`. Words first, formula second.
 - LLM: copies every BCV argument from the plan's definition: interest, mortality tables, calc method, interest method (BFCF) or deferral mortality (ERF/LRF), months certain, sexes, survivor percent, temporary months. Nothing assumed.
 - LLM: copies any factor table the documents print, row by row, as printed. No reordering. No interpolating. No filling in from the formula.

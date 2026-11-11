@@ -175,7 +175,7 @@
       "id": "BFCF-2020-JS75",
       "type": "BFCF",
       "era": "2020",
-      "title": "Benefit Form Conversion Factors — JS75 (2020 Plan)",
+      "title": "Benefit Form Conversion Factors \u2014 JS75 (2020 Plan)",
       "basis": "BFCFAEQ with interest=8%; mortality=UP84M2/UP84M2; calc method=MP; interest method=N; months certain=36",
       "normalForm": "SLA",
       "fromForm": "SLA",
@@ -220,7 +220,7 @@
       "id": "ERF-DIS-2020",
       "type": "ERF",
       "era": "2020",
-      "title": "Early Retirement Factors — Disability (2020 Plan)",
+      "title": "Early Retirement Factors \u2014 Disability (2020 Plan)",
       "basis": "",
       "normalForm": "3CC",
       "fromForm": null,
@@ -259,7 +259,7 @@
       "id": "BFCF-2020-JS100",
       "type": "BFCF",
       "era": "2020",
-      "title": "Benefit Form Conversion Factors — JS100 (2020 Plan)",
+      "title": "Benefit Form Conversion Factors \u2014 JS100 (2020 Plan)",
       "basis": "BFCFAEQ with interest=8%; mortality=UP84M2/UP84M2; calc method=MP; interest method=N; months certain=36",
       "normalForm": "SLA",
       "fromForm": "SLA",
@@ -301,5 +301,5 @@
       "mortalityConfirmed": false
     }
   ],
-  "schemaVersion": "0.4.0"
+  "schemaVersion": "0.4.1"
 }

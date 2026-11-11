@@ -93,7 +93,7 @@ function ruleHas(rule, prop, value) {
   const { document } = window;
   check('Part 1: page loads on an opaque origin with no script errors', errors.length === 0, errors.join('; '));
   check('Part 1: PF global exists', !!window.PF);
-  check('Part 1: PF version is 0.4.0', window.PF && window.PF.VERSION === '0.4.0');
+  check('Part 1: PF version is 0.4.1', window.PF && window.PF.VERSION === '0.4.1');
 
   // Demo from the PF view: use the public loader (same as the button).
   window.pfLoadDemo();
@@ -106,7 +106,7 @@ function ruleHas(rule, prop, value) {
   check('Part 1: review says the user-added JS100 set is included by choice', rev && rev.textContent.includes('included by your choice'));
   check('Part 1: review shows the formula preview', rev && rev.textContent.includes('Formula: =ROUND(BFCFAEQ'));
   check('Part 1: review shows the effective dates', rev && rev.textContent.includes('Effective'));
-  check('Part 1: review shows the version and progress', rev && rev.textContent.includes('PF Generator v0.4.0') && rev.textContent.includes('Step 3 of 5'));
+  check('Part 1: review shows the version and progress', rev && rev.textContent.includes('PF Generator v0.4.1') && rev.textContent.includes('Step 3 of 5'));
   check('Part 1: review flags the missing set', rev && rev.textContent.includes('Needs attention') && rev.textContent.includes('ERF-DIS-2020 (missing'));
   // Edit panel: open it, save a bad value (refused), save a good one.
   document.querySelector('#review-box [data-action="edit"][data-id="ERF-2020"]').click();
@@ -262,7 +262,7 @@ function ruleHas(rule, prop, value) {
   check('Part 7: removing the pair takes it back out', window.PF.state.data.additionalConversions.length === 1 && !window.PF.state.data.additionalConversions.some((s) => s.id === 'BFCF-2020-3CC-JS75'));
   check('Part 7: audit log records the removal', window.PF.state.audit.some((a) => a.action === 'additional conversion removed' && a.detail === 'BFCF-2020-3CC-JS75'));
 
-  // Part 8 (v0.4.0): logo, per-type prompts, intMethod, printed table, print preview.
+  // Part 8 (v0.4.1): logo, per-type prompts, intMethod, printed table, print preview.
   window.pfLoadDemo();
   const logo = document.querySelector('header .brand-logo');
   check('Part 8: white PBGC logo sits in the header', !!logo && logo.getAttribute('src').startsWith('data:image/png;base64,') && logo.getAttribute('alt').includes('Pension Benefit Guaranty Corporation'));

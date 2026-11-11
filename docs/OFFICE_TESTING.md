@@ -1,4 +1,4 @@
-# Office testing — PF Generator v0.4.0
+# Office testing — PF Generator v0.4.1
 
 How to test the app in the PBGC office. No server. No install. No
 administrator rights. Double-click one file.
@@ -19,7 +19,7 @@ administrator rights. Double-click one file.
 
 Double-click `pf-generator.html`. It opens in the browser, straight
 from disk. No server, no data leaves the page. The header shows
-v0.4.0.
+v0.4.1.
 
 ## 2. Try the demo
 
@@ -67,7 +67,7 @@ Reject the missing disability set. Generate unlocks. Download
 - ERF B11 is 0.9944 (a table value). B12 is a formula.
 - Print: each tab prints landscape, fit 1 wide × 2 tall, titles
   rows 1:10.
-- File → Properties shows "PF Generator v0.4.0".
+- File → Properties shows "PF Generator v0.4.1".
 
 ## 6. Check the sample reproduces
 
@@ -102,5 +102,6 @@ values in Review with Edit instead of editing the JSON.
 - `npm test`: 330 passed (243 unit + 87 browser).
 - `python3 scripts/verify_xlsx.py`: 88 checks pass, including the
   full grid and a LibreOffice PDF conversion.
-- See `docs/RELEASE_NOTES_0.4.0.md` for what changed. No open
-  issues remain.
+- See `docs/RELEASE_NOTES_0.4.1.md` for what changed. One open
+  issue remains: item 10 (no plan-form name for a certain-only
+  form).

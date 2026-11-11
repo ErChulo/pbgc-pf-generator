@@ -1,5 +1,11 @@
 # Release notes — PF Generator v0.4.0
 
+> **Withdrawn in v0.4.1:** the certain-only section below
+> (`nCO` / `3CO`) was invented, not a PBGC rule. The user corrected
+> it. The name and mapping are removed; item 10 is open again.
+> Everything else in v0.4.0 stands.
+
+
 All open issues closed. No open issues remain.
 
 ## The interest-method fix (a real bug)
