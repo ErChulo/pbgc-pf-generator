@@ -85,7 +85,7 @@ def main():
 
     if version:
         html = re.sub(r"PF Generator v[0-9.]+", f"PF Generator v{version}", html, count=1)
-        html = html.replace('var PF_VERSION="0.1.0";', f'var PF_VERSION="{version}";')
+        html = re.sub(r'var PF_VERSION="[0-9.]+";', f'var PF_VERSION="{version}";', html)
 
     HTML.write_text(html, encoding="utf-8")
     print(f"build ok: prompt {len(prompt)} chars injected, 0 fetch, 0 external URLs")

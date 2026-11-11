@@ -1,6 +1,15 @@
-# OPEN ITEMS — PF Generator v0.1.0
+# OPEN ITEMS — PF Generator v0.1.1
 
 The canonical gap list. Read this before proposing next steps.
+
+## Fixed in v0.1.1 (from the old-attempt review)
+
+Merged header cells, freeze panes, exact column widths, and the BFCF
+column shift (headers in column B, row-9 label, B10 "Age", A11 label).
+Layout-parity checks added to `scripts/verify_xlsx.py` and the unit
+tests. Schema tightened (`additionalProperties: false` on the fixed
+objects). See `docs/OLD_ATTEMPT_COMPARISON.md` and the layout-parity
+section in `docs/PF_NOTES.md`.
 
 ## 1. Full BFCF grid not yet generated end to end
 
@@ -9,7 +18,7 @@ grid (26 x 101 = 2,626 formulas per tab) has not been run through the
 app yet. The builder writes grids of any size from imported JSON.
 Run a full-grid import and check the file size, the write time, and
 that Excel opens it. Stored ZIP (no compression) makes about 1 MB per
-full tab. Compression is a later step, not a fix for v0.1.0.
+full tab. Compression is a later step, not a fix for v0.1.1.
 
 ## 2. BCV function signatures not confirmed against the add-in docs
 
@@ -23,7 +32,7 @@ The file shows ROUND to 4 decimals. No written PBGC rounding policy
 was found in the Book of Job yet. If none exists, the file's practice
 is the policy. Search for it.
 
-## 4. No logo in v0.1.0
+## 4. No logo in v0.1.1
 
 The header is text only. The DEL generator embeds the white PBGC logo
 (base64, from the Book of Job "images" folder). PF should reuse that

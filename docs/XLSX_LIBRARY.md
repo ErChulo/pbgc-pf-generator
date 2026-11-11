@@ -1,4 +1,4 @@
-# XLSX library — PF Generator v0.1.0
+# XLSX library — PF Generator v0.1.1
 
 ## Decision
 
@@ -27,7 +27,7 @@ The prototype wrote a 2-tab `.xlsx`:
 - Tab 1, ERF style: Months/Factor table, 12 months, formula
   `=ROUND(1-(A11/180),4)`, format `0.0000`.
 - Tab 2, BFCF style: small age grid, formula
-  `=ROUND(BFCFAEQ("SLA",0,36,0,"JSC",0.5,0,0,C$10,$A11,"M","M",0.08,"UP84M2","UP84M2","MP","N"),4)`.
+  `=ROUND(BFCFAEQ("SLA",0,36,0,"JSC",0.5,0,0,C10,B11,"M","M",0.08,"UP84M2","UP84M2","MP","N"),4)`.
 
 Checks run on the prototype file:
 
@@ -62,8 +62,8 @@ One ZIP part per file. Parts:
 ## Limits
 
 - Stored ZIP, no compression. A full BFCF grid (26 x 101 formulas)
-  makes a large file, about 1 MB per tab. Acceptable for v0.1.0.
-  Compression is a later step, not a fix for v0.1.0.
+  makes a large file, about 1 MB per tab. Acceptable for v0.1.1.
+  Compression is a later step, not a fix for v0.1.1.
 - Cached values exist only for plain formulas. BCV cells have no
   cached value. A reader without the add-in shows 0 until Excel
   computes. That is the same rule as the R5 rates round-trip.

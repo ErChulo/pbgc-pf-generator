@@ -1,5 +1,5 @@
 "use strict";
-/* PF Generator v0.1.0 — test runner.
+/* PF Generator v0.1.1 — test runner.
    Loads the single <script> block of pf-generator.html into a Node vm
    (no DOM, no localStorage — the pure logic only) and checks schema
    validation, flexible import, partial merge, formula builders, and
@@ -99,8 +99,8 @@ const lrf = demo.factorSets[1];
 const fl = PF.pfMonthFormula(lrf, "A11", 1);
 check("LRF formula is LRFAEQ", fl.formula === 'ROUND(LRFAEQ(0.05,"M",65,A11,0,"GM83","GF83","MP","Y"),4)', fl.formula);
 check("BCV formula has no cached value", fl.cached === null);
-const bf = PF.pfBfcfFormula(demo.factorSets[2], "C$10", "$A11");
-check("BFCF formula is BFCFAEQ", bf.formula === 'ROUND(BFCFAEQ("SLA",0,36,0,"JSC",0.5,0,0,C$10,$A11,"M","M",0.08,"UP84M2","UP84M2","MP","N"),4)', bf.formula);
+const bf = PF.pfBfcfFormula(demo.factorSets[2], "C10", "B11");
+check("BFCF formula is BFCFAEQ", bf.formula === 'ROUND(BFCFAEQ("SLA",0,36,0,"JSC",0.5,0,0,C10,B11,"M","M",0.08,"UP84M2","UP84M2","MP","N"),4)', bf.formula);
 check("BFCF formula has no cached value", bf.cached === null);
 
 /* --- 4. Sheet XML --- */
@@ -111,11 +111,21 @@ check("ERF sheet has margins 0.4/0.4/0.5/0.5", erfSheet.xml.indexOf('left="0.4" 
 check("ERF sheet has fitToPage", erfSheet.xml.indexOf('fitToPage="1"') >= 0);
 check("ERF sheet has 120 month cells", (erfSheet.xml.match(/<v>120<\/v>/) || []).length === 1);
 check("ERF sheet has 120 formulas", (erfSheet.xml.match(/<f>ROUND\(1-\(/g) || []).length === 120);
+check("ERF sheet merges header rows 1-8", [1,2,3,4,5,6,7,8].every((r) => erfSheet.xml.indexOf('<mergeCell ref="A'+r+':J'+r+'"/>') >= 0));
+check("ERF sheet freezes at A11", erfSheet.xml.indexOf('<pane ySplit="10" topLeftCell="A11" activePane="bottomLeft" state="frozen"/>') >= 0);
+check("ERF sheet widths are all 10", (erfSheet.xml.match(/<col width="10" customWidth="1"/g) || []).length === 10);
 const bfSheet = PF.pfSheetForSet(demo.factorSets[2], demo.planMetadata);
 check("BFCF sheet dimension is A1:H16", bfSheet.xml.indexOf('<dimension ref="A1:H16"/>') >= 0);
 check("BFCF sheet has 36 formulas (6 part x 6 ben)", (bfSheet.xml.match(/<f>ROUND\(BFCFAEQ/g) || []).length === 36);
-check("BFCF sheet references part age row 10", bfSheet.xml.indexOf("C$10") >= 0);
-check("BFCF sheet references ben age col A", bfSheet.xml.indexOf("$A11") >= 0);
+check("BFCF sheet references part age row 10", bfSheet.xml.indexOf("C10") >= 0);
+check("BFCF sheet references ben age col B", bfSheet.xml.indexOf("B11") >= 0);
+check("BFCF header sits in column B", bfSheet.xml.indexOf('r="B1"') >= 0 && bfSheet.xml.indexOf('r="B5"') >= 0 && bfSheet.xml.indexOf('r="A5"') < 0);
+check("BFCF sheet has row 9 label at C9", bfSheet.xml.indexOf("Participant's Age Nearest Birthday") >= 0 && bfSheet.xml.indexOf('r="C9"') >= 0);
+check("BFCF sheet has ben-age label at A11", bfSheet.xml.indexOf("Beneficiary's Age Nearest Birthday") >= 0);
+check("BFCF sheet merges header rows 1-8 across B:H", [1,2,3,4,5,6,7,8].every((r) => bfSheet.xml.indexOf('<mergeCell ref="B'+r+':H'+r+'"/>') >= 0));
+check("BFCF sheet merges C9 label and A11 label", bfSheet.xml.indexOf('<mergeCell ref="C9:H9"/>') >= 0 && bfSheet.xml.indexOf('<mergeCell ref="A11:A16"/>') >= 0);
+check("BFCF sheet freezes at C11", bfSheet.xml.indexOf('<pane xSplit="2" ySplit="10" topLeftCell="C11" activePane="bottomRight" state="frozen"/>') >= 0);
+check("BFCF sheet widths are 4 then 8.5", bfSheet.xml.indexOf('<col width="4" customWidth="1" min="1" max="1"/>') >= 0 && (bfSheet.xml.match(/<col width="8.5" customWidth="1"/g) || []).length === 7);
 const wbXml = PF.pfWorkbookXml([
   { name: "ERF-2020", lastRow: 34, lastCol: "J" },
   { name: "BFCF-2020 SLA->JS50", lastRow: 16, lastCol: "H" },

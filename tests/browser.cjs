@@ -89,7 +89,7 @@ function ruleHas(rule, prop, value) {
   const { document } = window;
   check('Part 1: page loads on an opaque origin with no script errors', errors.length === 0, errors.join('; '));
   check('Part 1: PF global exists', !!window.PF);
-  check('Part 1: PF version is 0.1.0', window.PF && window.PF.VERSION === '0.1.0');
+  check('Part 1: PF version is 0.1.1', window.PF && window.PF.VERSION === '0.1.1');
 
   // Demo from the PF view: use the public loader (same as the button).
   window.pfLoadDemo();

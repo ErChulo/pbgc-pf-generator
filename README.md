@@ -1,13 +1,13 @@
 # PF Generator — Plan Factors
 
-![Tests: 127 passing](https://img.shields.io/badge/tests-127%20passing-brightgreen)
-![Unit tests: 87 passing](https://img.shields.io/badge/unit%20tests-87%20passing-brightgreen)
+![Tests: 137 passing](https://img.shields.io/badge/tests-137%20passing-brightgreen)
+![Unit tests: 97 passing](https://img.shields.io/badge/unit%20tests-97%20passing-brightgreen)
 ![Browser tests: 40 passing](https://img.shields.io/badge/browser%20tests-40%20passing-brightgreen)
-![XLSX checks: 34 passing](https://img.shields.io/badge/xlsx%20checks-34%20passing-brightgreen)
+![XLSX checks: 48 passing](https://img.shields.io/badge/xlsx%20checks-48%20passing-brightgreen)
 ![Network calls: 0](https://img.shields.io/badge/network%20calls-0-brightgreen)
-![Version: v0.1.0](https://img.shields.io/badge/version-v0.1.0-blue)
+![Version: v0.1.1](https://img.shields.io/badge/version-v0.1.1-blue)
 
-Badges show grades measured on v0.1.0. Update badges when tests change.
+Badges show grades measured on v0.1.1. Update badges when tests change.
 
 ## Purpose
 
@@ -52,14 +52,14 @@ Demo case: synthetic. Riverbend Manufacturing Pension Plan, Plan No. 001, case 9
 | `scripts/build_single_file.py` | Injects the prompt into the HTML; runs safety checks. |
 | `scripts/gen_demo_xlsx.cjs` | Generates the demo .xlsx through the HTML's own code. |
 | `scripts/verify_xlsx.py` | Checks the generated .xlsx with openpyxl + LibreOffice. |
-| `tests/run.cjs` | Unit tests (87). |
+| `tests/run.cjs` | Unit tests (97). |
 | `tests/browser.cjs` | Browser tests (40, jsdom). |
 | `package.json` | Test command (`npm test`), jsdom dev dependency. |
 | `OPEN_ITEMS.md` | Gap list. Read it before next steps. |
 
 ## Design system
 
-PBGC Design System **v1.1.0 DRAFT** (not approved). Tokens from `ErChulo/pbgc-design-system`, commit `84a7149d112ef26fcf1e5656b017b9e54f863cb2` (2026-11-08), blob SHA `49e4c3c9e2a41bbe50bea204ea71a7d427843ac2` (byte-identical). Brand blue #002D72. Helvetica Neue/Arial. WCAG 2.2 AA. Dark theme: toggle in the header. Dark background #000. No logo in v0.1.0 (see OPEN_ITEMS.md). Design-system repo not modified.
+PBGC Design System **v1.1.0 DRAFT** (not approved). Tokens from `ErChulo/pbgc-design-system`, commit `84a7149d112ef26fcf1e5656b017b9e54f863cb2` (2026-11-08), blob SHA `49e4c3c9e2a41bbe50bea204ea71a7d427843ac2` (byte-identical). Brand blue #002D72. Helvetica Neue/Arial. WCAG 2.2 AA. Dark theme: toggle in the header. Dark background #000. No logo in v0.1.1 (see OPEN_ITEMS.md). Design-system repo not modified.
 
 ## Formulas
 
@@ -76,16 +76,16 @@ Every tab: print area = full table, print titles rows 1:10, landscape, fit 1 wid
 ## Tests
 
 ```sh
-npm test                              # 87 unit + 40 browser checks
-python3 scripts/verify_xlsx.py        # demo .xlsx checks (34)
+npm test                              # 97 unit + 40 browser checks
+python3 scripts/verify_xlsx.py        # demo .xlsx checks (48)
 python3 scripts/build_single_file.py  # re-inject prompt, run safety checks
 ```
 
-## Verified — v0.1.0
+## Verified — v0.1.1
 
-- `npm test`: **127 passed, 0 failed** (87 unit + 40 browser).
+- `npm test`: **137 passed, 0 failed** (97 unit + 40 browser).
 - `node --check` on the HTML script: passes.
-- `python3 scripts/verify_xlsx.py`: all 34 checks pass. 3 tabs (ERF-2020, LRF-2020, BFCF-2020 SLA->JS50). Headers filled. Formulas present. Print setup present on every tab. LibreOffice Calc opens the file and computes the plain formulas (month 1 = 0.9944).
+- `python3 scripts/verify_xlsx.py`: all 48 checks pass. 3 tabs (ERF-2020, LRF-2020, BFCF-2020 SLA->JS50). Headers filled. Formulas present. Print setup, merged headers, freeze panes, and column widths present on every tab. BFCF headers in column B, as in the reference file. LibreOffice Calc opens the file and computes the plain formulas (month 1 = 0.9944).
 - Grep: 0 `fetch(`, 0 `<script src`, 0 `<link>`, 0 `import(`, no external URLs. Only `http://` strings: OOXML namespace URIs in the .xlsx builder — identifiers, not fetches.
 - Browser test: page loads in jsdom on an opaque origin (file: URL). Demo button loads the demo case, moves to Review. Generate stays locked until all sets are decided; approving a missing set stays locked.
 - Theme toggle: flips data-theme, dark page #000, header stays brand blue, choice persists.

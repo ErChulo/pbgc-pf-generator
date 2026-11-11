@@ -1,1 +1,287 @@
-{"$id":"https://example.invalid/pbgc-pf-generator/pf.schema.json","$schema":"http://json-schema.org/draft-07/schema#","description":"Factor sets for one plan. The app writes one .xlsx tab per set. Synthetic data only.","properties":{"factorSets":{"items":{"properties":{"basis":{"description":"Rule in words, e.g. reduction = 1/15 per year early.","type":"string"},"benAgeMax":{"description":"BFCF only: last beneficiary age.","type":["integer","null"]},"benAgeMin":{"description":"BFCF only: first beneficiary age.","type":["integer","null"]},"calcMethod":{"description":"E.g. MP.","type":["string","null"]},"citation":{"properties":{"document":{"type":["string","null"]},"page":{"type":["string","null"]},"section":{"type":["string","null"]}},"type":["object","null"]},"deferralMortality":{"enum":["Y","N",null],"type":["string","null"]},"era":{"description":"Plan year or era, e.g. 2020.","minLength":1,"type":"string"},"fromForm":{"description":"BFCF only: form converted from, e.g. SLA.","type":["string","null"]},"id":{"description":"Unique in the file, e.g. ERF-2020.","minLength":1,"type":"string"},"interest":{"description":"Annual rate as a decimal, e.g. 0.08.","type":["number","null"]},"monthMax":{"description":"Last month. ERF/LRF/OTHER only.","type":["integer","null"]},"monthMin":{"description":"First month. ERF/LRF/OTHER only.","type":["integer","null"]},"monthsCertain":{"type":["integer","null"]},"mortality1":{"type":["string","null"]},"mortality2":{"type":["string","null"]},"normalForm":{"enum":["SLA","3CC",""],"type":"string"},"note":{"type":["string","null"]},"nra":{"description":"Normal retirement age.","type":["integer","null"]},"partAgeMax":{"description":"BFCF only: last participant age.","type":["integer","null"]},"partAgeMin":{"description":"BFCF only: first participant age.","type":["integer","null"]},"rule":{"description":"How the app writes the formula. Null only when status is missing.","properties":{"denominator":{"description":"linear only: months per full year, e.g. 180.","type":"number"},"firstDenominator":{"description":"stepped only.","type":"number"},"firstMonths":{"description":"stepped only.","type":"integer"},"function":{"description":"bcv only.","enum":["ERFAEQ","LRFAEQ","BFCFAEQ"],"type":"string"},"kind":{"enum":["linear","stepped","bcv"],"type":"string"},"secondDenominator":{"description":"stepped only.","type":"number"}},"type":["object","null"]},"status":{"enum":["present","notApplicable","missing","ambiguous","conditional"],"type":"string"},"title":{"type":"string"},"toForm":{"description":"BFCF only: form converted to, e.g. JS50.","type":["string","null"]},"type":{"enum":["ERF","LRF","BFCF","OTHER"],"type":"string"}},"required":["id","type","era","title","status"],"type":"object"},"minItems":1,"type":"array"},"planMetadata":{"properties":{"caseNumber":{"description":"Text. Leading zeros kept.","minLength":1,"type":"string"},"dopt":{"description":"ISO date, e.g. 2025-06-30.","pattern":"^[0-9]{4}-[0-9]{2}-[0-9]{2}$","type":"string"},"planName":{"minLength":1,"type":"string"},"planNumber":{"minLength":1,"type":"string"}},"required":["planName","planNumber","caseNumber","dopt"],"type":"object"}},"required":["planMetadata","factorSets"],"title":"PF Generator JSON (draft v0.1.0)","type":"object"}
+{
+  "$id": "https://example.invalid/pbgc-pf-generator/pf.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Factor sets for one plan. The app writes one .xlsx tab per set. Synthetic data only.",
+  "properties": {
+    "factorSets": {
+      "items": {
+        "properties": {
+          "basis": {
+            "description": "Rule in words, e.g. reduction = 1/15 per year early.",
+            "type": "string"
+          },
+          "benAgeMax": {
+            "description": "BFCF only: last beneficiary age.",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "benAgeMin": {
+            "description": "BFCF only: first beneficiary age.",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "calcMethod": {
+            "description": "E.g. MP.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "citation": {
+            "properties": {
+              "document": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "page": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "section": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": false
+          },
+          "deferralMortality": {
+            "enum": [
+              "Y",
+              "N",
+              null
+            ],
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "era": {
+            "description": "Plan year or era, e.g. 2020.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "fromForm": {
+            "description": "BFCF only: form converted from, e.g. SLA.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "description": "Unique in the file, e.g. ERF-2020.",
+            "minLength": 1,
+            "type": "string"
+          },
+          "interest": {
+            "description": "Annual rate as a decimal, e.g. 0.08.",
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "monthMax": {
+            "description": "Last month. ERF/LRF/OTHER only.",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "monthMin": {
+            "description": "First month. ERF/LRF/OTHER only.",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "monthsCertain": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "mortality1": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "mortality2": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "normalForm": {
+            "enum": [
+              "SLA",
+              "3CC",
+              ""
+            ],
+            "type": "string"
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "nra": {
+            "description": "Normal retirement age.",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "partAgeMax": {
+            "description": "BFCF only: last participant age.",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "partAgeMin": {
+            "description": "BFCF only: first participant age.",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "rule": {
+            "description": "How the app writes the formula. Null only when status is missing.",
+            "properties": {
+              "denominator": {
+                "description": "linear only: months per full year, e.g. 180.",
+                "type": "number"
+              },
+              "firstDenominator": {
+                "description": "stepped only.",
+                "type": "number"
+              },
+              "firstMonths": {
+                "description": "stepped only.",
+                "type": "integer"
+              },
+              "function": {
+                "description": "bcv only.",
+                "enum": [
+                  "ERFAEQ",
+                  "LRFAEQ",
+                  "BFCFAEQ"
+                ],
+                "type": "string"
+              },
+              "kind": {
+                "enum": [
+                  "linear",
+                  "stepped",
+                  "bcv"
+                ],
+                "type": "string"
+              },
+              "secondDenominator": {
+                "description": "stepped only.",
+                "type": "number"
+              }
+            },
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": false
+          },
+          "status": {
+            "enum": [
+              "present",
+              "notApplicable",
+              "missing",
+              "ambiguous",
+              "conditional"
+            ],
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "toForm": {
+            "description": "BFCF only: form converted to, e.g. JS50.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "type": {
+            "enum": [
+              "ERF",
+              "LRF",
+              "BFCF",
+              "OTHER"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "era",
+          "title",
+          "status"
+        ],
+        "type": "object",
+        "additionalProperties": false
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "planMetadata": {
+      "properties": {
+        "caseNumber": {
+          "description": "Text. Leading zeros kept.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "dopt": {
+          "description": "ISO date, e.g. 2025-06-30.",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+          "type": "string"
+        },
+        "planName": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "planNumber": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "planName",
+        "planNumber",
+        "caseNumber",
+        "dopt"
+      ],
+      "type": "object",
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "planMetadata",
+    "factorSets"
+  ],
+  "title": "PF Generator JSON (draft v0.1.1)",
+  "type": "object",
+  "additionalProperties": false
+}

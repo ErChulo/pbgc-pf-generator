@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PF Generator v0.1.0 — Plan Factors</title>
+<title>PF Generator v0.1.1 — Plan Factors</title>
 <style>
-/* PBGC Design System v1.1.0 DRAFT (tokens/tokens.json, commit 84a7149d, 2026-11-08). NOT approved. Dark theme: toggle in header; page background #000 (user override of provisional night-0 #0B1B36); provisional, COLA approval pending. No logo in v0.1.0 (see OPEN_ITEMS.md). */
+/* PBGC Design System v1.1.0 DRAFT (tokens/tokens.json, commit 84a7149d, 2026-11-08). NOT approved. Dark theme: toggle in header; page background #000 (user override of provisional night-0 #0B1B36); provisional, COLA approval pending. No logo in v0.1.1 (see OPEN_ITEMS.md). */
 :root{
   --blue:#002D72; --red:#E4002B; --med-blue:#004B8D;
   --ink:#1A1A1A; --gray-1:#58585B; --gray-2:#D2D2D2; --gray-3:#E0E0E0; --gray-4:#F2F2F2;
@@ -121,7 +121,7 @@ footer{margin:2rem 0 1rem;border-top:1px solid var(--gray-2);padding-top:1rem}
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to main content</a>
-<header class="topbar"><div class="wrap topbar-row"><div class="topbar-title"><h1>PF Generator</h1><p class="tag">Plan Factors · v0.1.0</p></div><button type="button" id="theme-toggle" class="theme-toggle" data-action="theme" aria-label="Switch to dark theme" aria-pressed="false"><span class="theme-toggle-icon" aria-hidden="true">☾</span> <span class="theme-toggle-label">Dark</span></button></div></header>
+<header class="topbar"><div class="wrap topbar-row"><div class="topbar-title"><h1>PF Generator</h1><p class="tag">Plan Factors · v0.1.1</p></div><button type="button" id="theme-toggle" class="theme-toggle" data-action="theme" aria-label="Switch to dark theme" aria-pressed="false"><span class="theme-toggle-icon" aria-hidden="true">☾</span> <span class="theme-toggle-label">Dark</span></button></div></header>
 <nav id="views-nav" class="views" aria-label="Views">
   <div class="wrap views-row">
     <button type="button" id="menu-toggle" class="menu-toggle" aria-expanded="false" aria-controls="views-list">Menu</button>
@@ -164,13 +164,13 @@ footer{margin:2rem 0 1rem;border-top:1px solid var(--gray-2);padding-top:1rem}
   </section>
 </div>
 </main>
-<footer class="wrap"><p class="small">PF Generator v0.1.0. Single file. No server. No data leaves this page. PBGC Design System v1.1.0 DRAFT.</p></footer>
+<footer class="wrap"><p class="small">PF Generator v0.1.1. Single file. No server. No data leaves this page. PBGC Design System v1.1.0 DRAFT.</p></footer>
 <script>
 "use strict";
-/* PF Generator v0.1.0 — plan factors workbook.
+/* PF Generator v0.1.1 — plan factors workbook.
    Single HTML file. No server, no fetch, no CDN.
    Loop: LLM proposes JSON. App checks. You decide. App writes .xlsx. */
-var PF_VERSION="0.1.0";
+var PF_VERSION="0.1.1";
 /* PROMPT-START */
 var PF_SCRAPER_PROMPT = "# PF scraper prompt \u2014 plan factors\n\nYou read plan documents. You return **only** valid JSON. No other text.\n\n## What to find\n\nEvery distinct set of factors the plan uses to work out benefits. One set per\nera, per type, per form pair. A plan with 5 eras has 5 ERF sets, not 1.\n\nTypes to look for:\n\n- **ERF** \u2014 early retirement factors. Each era. Disability ERF too, if any.\n- **LRF** \u2014 late retirement factors. Each era.\n- **BFCF** \u2014 benefit form conversion factors. Each era, each form pair\n  (for example SLA to JS50, 3CC to JS50).\n- **OTHER** \u2014 any other factor the plan uses for benefits: pre-retirement\n  death, optional forms past JS50, cash balance, anything else. Name it.\n\n## What to record per set\n\n- `id`: short, unique. Example: `ERF-2020`, `BFCF-2020`.\n- `type`: `ERF`, `LRF`, `BFCF`, or `OTHER`.\n- `era`: plan year or era. Example: `2020`.\n- `title`: short title. Example: `Early Retirement Factors from NRA of 65 (2020 Plan)`.\n- `basis`: the rule in words, with the numbers. Example:\n  `reduction = 1/15 per year early (linear in months)`.\n- `normalForm`: `SLA` or `3CC`.\n- `fromForm`, `toForm`: BFCF only. Example: `SLA`, `JS50`.\n- `nra`: normal retirement age. Example: `65`.\n- `interest`: annual rate as a decimal. Example: `0.08` for 8%.\n- `mortality1`, `mortality2`: table names. Example: `UP84M2`.\n- `calcMethod`: example: `MP`.\n- `deferralMortality`: `Y` or `N`.\n- `monthsCertain`: number, or `0`.\n- `monthMin`, `monthMax`: ERF, LRF, OTHER only. The range the documents\n  imply. Do not assume 1 to 120. Use what the documents say.\n- `partAgeMin`, `partAgeMax`, `benAgeMin`, `benAgeMax`: BFCF only. The\n  age ranges the documents imply. Do not assume 55 to 80 or 0 to 100.\n- `rule`: how the factor is worked out. One of:\n  - `{\"kind\": \"linear\", \"denominator\": 180}` \u2014 factor = 1 - months / 180.\n  - `{\"kind\": \"stepped\", \"firstMonths\": 60, \"firstDenominator\": 180, \"secondDenominator\": 360}` \u2014 first rate, then second rate.\n  - `{\"kind\": \"bcv\", \"function\": \"ERFAEQ\"}` \u2014 actuarial equivalence.\n    Use `LRFAEQ` for late factors, `BFCFAEQ` for conversion factors.\n- `status`: `present`, `notApplicable`, `missing`, `ambiguous`, or\n  `conditional`. `missing` means the documents do not have it.\n  `ambiguous` means the documents disagree. Say why in `note`.\n- `note`: short note. Needed for `ambiguous` and `conditional`.\n- `citation`: `{\"document\": \"D1\", \"section\": \"2.1\", \"page\": \"3\"}`.\n  Every value needs a citation. Use the short code. Full document\n  name once per set, never in a cell.\n\n## Header\n\n- `planName`: full plan name.\n- `planNumber`: plan number as text.\n- `caseNumber`: case number as text. Keep leading zeros.\n- `dopt`: date of plan termination, ISO form `YYYY-MM-DD`.\n\n## Rules\n\n- Return **only** valid JSON. No markdown. No comment text.\n- Do not guess. If a value is not in the documents, set `status`\n  to `missing` and leave the value null.\n- If two documents disagree, set `status` to `ambiguous`. Do not pick one.\n- If a set does not apply to this plan, set `status` to `notApplicable`.\n- Values short. Smallest string that keeps the meaning.\n- Keep every distinct set. Do not merge eras. Do not drop a set\n  because it looks like another one.\n- The plan name, case number, and DOPT are in the header. Do not\n  repeat them in each set.\n\n## Shape\n\n```json\n{\n  \"planMetadata\": {\n    \"planName\": \"Riverbend Manufacturing Pension Plan\",\n    \"planNumber\": \"001\",\n    \"caseNumber\": \"98765400\",\n    \"dopt\": \"2025-06-30\"\n  },\n  \"factorSets\": [\n    {\n      \"id\": \"ERF-2020\",\n      \"type\": \"ERF\",\n      \"era\": \"2020\",\n      \"title\": \"Early Retirement Factors from NRA of 65 (2020 Plan)\",\n      \"basis\": \"reduction = 1/15 per year early (linear in months)\",\n      \"normalForm\": \"SLA\",\n      \"fromForm\": null,\n      \"toForm\": null,\n      \"nra\": 65,\n      \"interest\": null,\n      \"mortality1\": null,\n      \"mortality2\": null,\n      \"calcMethod\": null,\n      \"deferralMortality\": null,\n      \"monthsCertain\": null,\n      \"monthMin\": 1,\n      \"monthMax\": 120,\n      \"partAgeMin\": null,\n      \"partAgeMax\": null,\n      \"benAgeMin\": null,\n      \"benAgeMax\": null,\n      \"rule\": {\"kind\": \"linear\", \"denominator\": 180},\n      \"status\": \"present\",\n      \"note\": null,\n      \"citation\": {\"document\": \"D1\", \"section\": \"2.1\", \"page\": \"3\"}\n    }\n  ]\n}\n```\n";
 /* PROMPT-END */
@@ -464,8 +464,11 @@ function pfBfcfFormula(set,partRef,benRef){
 
 /* ---- .xlsx (OOXML) builder: direct XML + stored ZIP ----
    Layout follows the reference file: header rows 1-9, row 10 headers,
+   header rows merged across the table, freeze panes (A11 months tabs,
+   C11 BFCF), column widths 10 (months tabs) and 4 / 8.5 (BFCF),
    print area = full table, print titles rows 1:10, landscape,
-   fit 1 x 2, margins 0.4 / 0.4 / 0.5 / 0.5. */
+   fit 1 x 2, margins 0.4 / 0.4 / 0.5 / 0.5. BFCF headers sit in
+   column B, as in the reference file. */
 var PF_XLSX_NS="http://schemas.openxmlformats.org/spreadsheetml/2006/main";
 var PF_CRC_TABLE=(function(){var t=[],c,i,k;for(i=0;i<256;i++){c=i;for(k=0;k<8;k++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);t[i]=c>>>0;}return t;})();
 function pfCrc32(bytes){var c=0xFFFFFFFF,i;for(i=0;i<bytes.length;i++)c=PF_CRC_TABLE[(c^bytes[i])&0xFF]^(c>>>8);return (c^0xFFFFFFFF)>>>0;}
@@ -512,28 +515,45 @@ function pfSheetPrintXml(){
   return '<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/>'+
     '<pageSetup paperSize="1" orientation="landscape" fitToWidth="1" fitToHeight="2"/>';
 }
-function pfSheetXml(dim,rows,colsXml){
+function pfSheetXml(dim,rows,colsXml,layout){
+  var ly=layout||{};
+  var views='<sheetViews><sheetView showGridLines="0" workbookViewId="0">';
+  if(ly.freeze){
+    var f=ly.freeze;
+    views+='<pane'+(f.xSplit?' xSplit="'+f.xSplit+'"':"")+' ySplit="'+f.ySplit+'" topLeftCell="'+f.topLeft+'" activePane="'+f.activePane+'" state="frozen"/>';
+    (f.selections||[f.activePane]).forEach(function(p){
+      views+='<selection pane="'+p+'" activeCell="A1" sqref="A1"/>';
+    });
+  }
+  views+='</sheetView></sheetViews>';
+  var merges="";
+  if(ly.merges&&ly.merges.length){
+    merges='<mergeCells count="'+ly.merges.length+'">'+ly.merges.map(function(r){ return '<mergeCell ref="'+r+'"/>'; }).join("")+'</mergeCells>';
+  }
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'+
     '<worksheet xmlns="'+PF_XLSX_NS+'" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'+
     '<dimension ref="'+dim+'"/>'+
-    '<sheetViews><sheetView workbookViewId="0"/></sheetViews>'+
+    views+
     '<sheetFormatPr defaultRowHeight="15"/>'+
     '<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>'+
     (colsXml||"")+
     "<sheetData>"+rows.join("")+"</sheetData>"+
+    merges+
     pfSheetPrintXml()+
     "</worksheet>";
 }
-function pfHeaderRows(meta,set){
+/* Header rows. base is the header column: "A" for Months/Factor tabs,
+   "B" for BFCF tabs (template layout). Row 7 is the plain normal form;
+   the form pair already shows in the BFCF title. */
+function pfHeaderRows(meta,set,base){
+  var b=base||"A";
   var rows=[];
-  rows.push(pfRowXml(1,[pfCellStr("A1",meta.planName,2)]));
-  rows.push(pfRowXml(2,[pfCellStr("A2","Case Number: "+meta.caseNumber)]));
-  rows.push(pfRowXml(3,[pfCellStr("A3","DOPT: "+meta.dopt)]));
-  rows.push(pfRowXml(5,[pfCellStr("A5",set.title,2)]));
-  rows.push(pfRowXml(6,[pfCellStr("A6",set.basis||"")]));
-  var nf="Normal single form: "+(set.normalForm||"");
-  if(set.type==="BFCF"&&set.fromForm&&set.toForm) nf+=" ("+set.fromForm+" to "+set.toForm+")";
-  rows.push(pfRowXml(7,[pfCellStr("A7",nf)]));
+  rows.push(pfRowXml(1,[pfCellStr(b+"1",meta.planName,2)]));
+  rows.push(pfRowXml(2,[pfCellStr(b+"2","Case Number: "+meta.caseNumber)]));
+  rows.push(pfRowXml(3,[pfCellStr(b+"3","DOPT: "+meta.dopt)]));
+  rows.push(pfRowXml(5,[pfCellStr(b+"5",set.title,2)]));
+  rows.push(pfRowXml(6,[pfCellStr(b+"6",set.basis||"")]));
+  rows.push(pfRowXml(7,[pfCellStr(b+"7","Normal single form: "+(set.normalForm||""))]));
   return rows;
 }
 /* Months/Factor table: ERF, LRF, OTHER. 5 pairs across A-J. */
@@ -563,33 +583,56 @@ function pfMonthsSheetXml(set,meta){
   }
   var allRows=rows.concat(bodyRows);
   var lastRow=10+nRows;
-  var cols='<cols><col min="1" max="1" width="10"/><col min="2" max="2" width="12"/><col min="3" max="3" width="10"/><col min="4" max="4" width="12"/><col min="5" max="5" width="10"/><col min="6" max="6" width="12"/><col min="7" max="7" width="10"/><col min="8" max="8" width="12"/><col min="9" max="9" width="10"/><col min="10" max="10" width="12"/></cols>';
-  return {xml:pfSheetXml("A1:J"+lastRow,allRows,cols),lastRow:lastRow,lastCol:"J"};
+  /* Template layout: every column width 10, header rows 1-8 merged
+     across A:J, freeze panes at A11. */
+  var cols="";
+  for(var ci=1;ci<=10;ci++) cols+='<col width="10" customWidth="1" min="'+ci+'" max="'+ci+'"/>';
+  cols="<cols>"+cols+"</cols>";
+  var merges=[];
+  for(var mr=1;mr<=8;mr++) merges.push("A"+mr+":J"+mr);
+  return {xml:pfSheetXml("A1:J"+lastRow,allRows,cols,{merges:merges,freeze:{ySplit:10,topLeft:"A11",activePane:"bottomLeft"}}),lastRow:lastRow,lastCol:"J"};
 }
-/* BFCF age grid: participant ages across row 10, beneficiary ages down col A. */
+/* BFCF age grid, template layout: headers in column B, row 9 label at
+   C9, B10 "Age", beneficiary ages down column B, participant ages
+   across row 10 from C, A11 holds the beneficiary-age label (merged
+   down the grid). Formulas use plain refs, as in the template:
+   C11 =ROUND(BFCFAEQ(...,C10,B11,...),4). */
 function pfBfcfSheetXml(set,meta){
   var parts=[], bens=[], p, b;
   for(p=set.partAgeMin;p<=set.partAgeMax;p++) parts.push(p);
   for(b=set.benAgeMin;b<=set.benAgeMax;b++) bens.push(b);
-  var rows=pfHeaderRows(meta,set);
-  var head=[pfCellStr("A10","Age",2),pfCellStr("B10","Part. age",2)];
+  var rows=pfHeaderRows(meta,set,"B");
+  var lastCol=pfColLetter(2+parts.length), lastRow=10+bens.length;
+  rows.push(pfRowXml(9,[pfCellStr("C9","Participant's Age Nearest Birthday",2)]));
+  var head=[pfCellStr("B10","Age",2)];
   parts.forEach(function(pa,i){ head.push(pfCellNum(pfColLetter(3+i)+"10",pa,2)); });
   rows.push(pfRowXml(10,head));
   bens.forEach(function(be,i){
     var r=11+i;
-    var cells=[pfCellNum("A"+r,be),pfCellNum("B"+r,be)];
+    var cells=[];
+    if(i===0) cells.push(pfCellStr("A"+r,"Beneficiary's Age Nearest Birthday",2));
+    cells.push(pfCellNum("B"+r,be));
     parts.forEach(function(pa,j){
       var col=pfColLetter(3+j);
-      var fo=pfBfcfFormula(set,col+"$10","$A"+r);
+      var fo=pfBfcfFormula(set,col+"10","B"+r);
       cells.push(pfCellFormula(col+r,fo.formula,fo.cached,1));
     });
     rows.push(pfRowXml(r,cells));
   });
-  var lastCol=pfColLetter(2+parts.length), lastRow=10+bens.length;
-  var cols='<cols><col min="1" max="1" width="8"/><col min="2" max="2" width="10"/>';
-  for(var k=3;k<=2+parts.length;k++) cols+='<col min="'+k+'" max="'+k+'" width="12"/>';
+  /* Template widths: A = 4, B..last = 8.5. Merges: header rows 1-8
+     across B:lastCol, C9 label across, A11 label down the grid.
+     The template splits the A11 merge in two (A11:A70, A71:A111);
+     one merge A11:A{lastRow} is the same layout for any grid size.
+     Freeze panes at C11 (xSplit 2, ySplit 10). */
+  var cols='<cols><col width="4" customWidth="1" min="1" max="1"/>';
+  for(var k=2;k<=2+parts.length;k++) cols+='<col width="8.5" customWidth="1" min="'+k+'" max="'+k+'"/>';
   cols+="</cols>";
-  return {xml:pfSheetXml("A1:"+lastCol+lastRow,rows,cols),lastRow:lastRow,lastCol:lastCol};
+  var merges=[];
+  for(var mr=1;mr<=8;mr++) merges.push("B"+mr+":"+lastCol+mr);
+  merges.push("C9:"+lastCol+"9");
+  merges.push("A11:A"+lastRow);
+  var layout={merges:merges,freeze:{xSplit:2,ySplit:10,topLeft:"C11",activePane:"bottomRight",selections:["topRight","bottomLeft","bottomRight"]}};
+  return {xml:pfSheetXml("A1:"+lastCol+lastRow,rows,cols,layout),lastRow:lastRow,lastCol:lastCol};
 }
 function pfSheetForSet(set,meta){
   if(set.type==="BFCF") return pfBfcfSheetXml(set,meta);
