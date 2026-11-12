@@ -199,16 +199,17 @@ The plan form name is not a BCV argument. The app maps it:
 | --- | --- | --- | --- |
 | `SLA` | `SLA` | 0 | 0 |
 | `nCC` (`3CC`, `5CC`, ...) | `SLA` | 0 | `n*12` |
+| `CTN` | `CTN` | 0 | `monthsCertain` (explicit, over 0) |
 | `JSnn` (`JS50`, `JS75`, `JS100`) | `JSC` | `nn/100` | 0 |
 
 The other kind of "certain" is a pure term that **stops** after
-n months (no life part): the add-in code for it is `CTN`, and
-`CTN` with months 0 is refused by the add-in. But no plan-form
-name for it is known — `nCO` was invented in v0.4.0 and withdrawn
-in v0.4.1 (user correction: stick to PBGC rules, do not invent).
-Until the plan documents give a name, a certain-only form is
-refused: record it as written, mark the set `ambiguous`. `nCC`
-always means certain **and continues** (for life).
+n months (no life part): it writes as `CTN`, the add-in code
+itself (add-in doc p.38). The term is not in the name — it comes
+from `monthsCertain`, which the validator requires over 0
+(`CTN` with months 0 is refused by the add-in). `nCO` was invented
+in v0.4.0 and withdrawn in v0.4.1; `CTN` is the correction (user:
+use CTN). A `CTN` to-form is refused: the app has no field for
+its term. `nCC` always means certain **and continues** (for life).
 
 ### V1 uses digits, not these codes
 
@@ -233,9 +234,10 @@ survivor percent must match the form name (`JS50` → 0.5).
 `monthsCertain` is the months certain in the form the formula
 converts from (BFCF) or in the normal single form (ERF/LRF,
 `TheCPeriod`). When it is not stated, a certain form name supplies
-it (`3CC` → 36). A stated value that disagrees with
-the form name is a conflict and fails validation. The reference
-file's pattern: `SLA` → 0 (`LRF-1978`), `3CC` → 36
+it (`3CC` → 36). For `CTN` the name carries no term, so
+`monthsCertain` must state it (over 0). A stated value that
+disagrees with the form name is a conflict and fails validation.
+The reference file's pattern: `SLA` → 0 (`LRF-1978`), `3CC` → 36
 (`ERF-Disability`, `LRF-1982`, `LRF-2011`).
 
 ### Effective dates and duplicates (v0.3.0)

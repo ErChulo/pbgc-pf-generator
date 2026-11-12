@@ -1,5 +1,5 @@
 "use strict";
-/* PF Generator v0.4.1 — test runner.
+/* PF Generator v0.4.2 — test runner.
    Loads the single <script> block of pf-generator.html into a Node vm
    (no DOM, no localStorage — the pure logic only) and checks schema
    validation, flexible import, partial merge, formula builders, and
@@ -210,7 +210,7 @@ function unzipMembers(b) {
 const members = unzipMembers(bytes);
 const xlsxText = Object.values(members).map((mm) => mm.text).join("\n");
 check("xlsx members are DEFLATE-compressed (method 8)", Object.values(members).every((mm) => mm.method === 8), JSON.stringify(Object.entries(members).map(([k, v]) => k + ":" + v.method)));
-check("xlsx has docProps with the generator version", members["docProps/core.xml"] && members["docProps/core.xml"].text.indexOf("PF Generator v0.4.1") >= 0);
+check("xlsx has docProps with the generator version", members["docProps/core.xml"] && members["docProps/core.xml"].text.indexOf("PF Generator v0.4.2") >= 0);
 check("xlsx members decompress (no corrupt member)", Object.keys(members).length >= 9, String(Object.keys(members).length));
 const buf = Buffer.from(bytes);
 function has(str) { return xlsxText.indexOf(str) >= 0; }
@@ -496,7 +496,7 @@ check("formula preview shows the exact linear formula",
   PF.pfFormulaPreview(demo.factorSets[0]) === "=ROUND(1-(A11/180),4)");
 check("formula preview is null for a set with no rule", PF.pfFormulaPreview(demo.factorSets[4]) === null);
 
-/* --- 8g. v0.4.1: interest method (intMethod), certain-only forms, per-type prompts, preview, grid tables --- */
+/* --- 8g. v0.4.2: interest method (intMethod), certain-only forms, per-type prompts, preview, grid tables --- */
 check("known interest methods: N, O, L, LPQ, LPY3, NPY, OCY",
   PF.pfKnownIntMethod("N") && PF.pfKnownIntMethod("O") && PF.pfKnownIntMethod("L") && PF.pfKnownIntMethod("LPQ") && PF.pfKnownIntMethod("LPY3") && PF.pfKnownIntMethod("NPY") && PF.pfKnownIntMethod("OCY"));
 check("interest method rejects Y (a deferral value, not a method), LPBGC (not in BFCFAEQ), LPQ6, NP",
@@ -530,11 +530,24 @@ check("BFCF formula writes the interest method, not deferral mortality",
   PF.pfBfcfFormula(lpqSet.factorSets[2], "C10", "B11").formula);
 check("demo BFCF sets carry intMethod N and no deferralMortality",
   demo.factorSets[2].intMethod === "N" && demo.factorSets[2].deferralMortality === null && demo.factorSets[3].intMethod === "N" && demo.additionalConversions[0].intMethod === "N");
-check("form map: 3CO has no BCV code (invented name, refused — see open item 10)",
-  PF.pfPlanFormToBcv("3CO", null) === null);
-const coJson = clone(demo); coJson.factorSets[1].normalForm = "3CO"; coJson.factorSets[1].monthsCertain = null;
-check("validator refuses a 3CO normal form (no BCV code for it)",
-  PF.validatePfJson(coJson).errors.some((e) => e.indexOf("3CO") >= 0), PF.validatePfJson(coJson).errors.join("; "));
+check("form map: CTN is CTN with 0 months certain (term comes from monthsCertain)",
+  JSON.stringify(PF.pfPlanFormToBcv("CTN", null)) === JSON.stringify({ code: "CTN", spc: 0, mths: 0 }));
+const ctnOk = clone(demo); ctnOk.factorSets[1].normalForm = "CTN"; ctnOk.factorSets[1].monthsCertain = 36;
+check("validator accepts a CTN normal form with monthsCertain 36",
+  PF.validatePfJson(ctnOk).errors.length === 0, PF.validatePfJson(ctnOk).errors.join("; "));
+const ctnNoTerm = clone(demo); ctnNoTerm.factorSets[1].normalForm = "CTN"; ctnNoTerm.factorSets[1].monthsCertain = null;
+check("validator refuses a CTN normal form with no monthsCertain (term not in the name)",
+  PF.validatePfJson(ctnNoTerm).errors.some((e) => e.indexOf("monthsCertain") >= 0 && e.indexOf("CTN") >= 0), PF.validatePfJson(ctnNoTerm).errors.join("; "));
+const ctnZero = clone(demo); ctnZero.factorSets[1].normalForm = "CTN"; ctnZero.factorSets[1].monthsCertain = 0;
+check("validator refuses a CTN normal form with monthsCertain 0 (add-in refuses CTN with 0)",
+  PF.validatePfJson(ctnZero).errors.some((e) => e.indexOf("monthsCertain") >= 0 && e.indexOf("CTN") >= 0), PF.validatePfJson(ctnZero).errors.join("; "));
+const ctnBfcf = clone(demo.factorSets[2]); ctnBfcf.fromForm = "CTN"; ctnBfcf.normalForm = "CTN"; ctnBfcf.monthsCertain = 120;
+check("BFCF formula for a CTN from-form writes CTN with 120 months certain",
+  PF.pfBfcfFormula(ctnBfcf, "C10", "B11").formula.indexOf('BFCFAEQ("CTN",0,120,0,"JSC"') >= 0,
+  PF.pfBfcfFormula(ctnBfcf, "C10", "B11").formula);
+const ctnTo = clone(demo); ctnTo.factorSets[2].toForm = "CTN";
+check("validator refuses a CTN to-form (no field holds its term)",
+  PF.validatePfJson(ctnTo).errors.some((e) => e.indexOf("toForm CTN") >= 0), PF.validatePfJson(ctnTo).errors.join("; "));
 const gridParsed = PF.pfParseGridTable("65, 61, 0.8123\n66, 61, 0.8001\n");
 check("grid table parser reads partAge, benAge, factor lines",
   gridParsed && gridParsed.kind === "grid" && gridParsed.rows.length === 2 && gridParsed.rows[0].factor === 0.8123);
@@ -618,7 +631,7 @@ check("print preview says so when nothing is approved", previewNone.indexOf("Not
   check("audit log records the normal married form", st().audit.some((a) => a.action === "normal married form" && a.detail === "JS50"));
   check("generated bytes contain no JS75 tab", gtext.indexOf("JS75") < 0);
   const report = P2.pfAuditReport();
-  check("audit report names the generator and schema versions", report.indexOf("PF Generator audit report — v0.4.1 (schema v0.4.1)") >= 0);
+  check("audit report names the generator and schema versions", report.indexOf("PF Generator audit report — v0.4.2 (schema v0.4.2)") >= 0);
   check("audit report records the input JSON hash", report.indexOf("Input JSON: hash") >= 0);
   check("audit report traces each set (source, dates, rule, formula)", report.indexOf("ERF-2020") >= 0 && report.indexOf("effective 2020-01-01") >= 0 && report.indexOf("formula: =ROUND(1-(A11/180),4)") >= 0);
 }

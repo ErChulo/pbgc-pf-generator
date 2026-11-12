@@ -182,8 +182,8 @@ def main():
     check("compressed workbook is small (under 40 KB for the demo)",
           OUT.stat().st_size < 40000, str(OUT.stat().st_size))
     core = z.read("docProps/core.xml").decode("utf-8")
-    check("document properties name the generator version (v0.4.1)",
-          "PF Generator v0.4.1" in core and "schema v0.4.1" in core, core[:200])
+    check("document properties name the generator version (v0.4.2)",
+          "PF Generator v0.4.2" in core and "schema v0.4.2" in core, core[:200])
     check("document properties carry the case title",
           "98765400 PF" in core, core[:200])
     all_text = b"\n".join(z.read(n) for n in z.namelist()).decode("utf-8", "replace")
@@ -192,7 +192,7 @@ def main():
     if audit_path.exists():
         audit = audit_path.read_text(encoding="utf-8")
         check("audit log is the full report (versions, input hash, per-set trace)",
-              "PF Generator audit report — v0.4.1 (schema v0.4.1)" in audit and
+              "PF Generator audit report — v0.4.2 (schema v0.4.2)" in audit and
               "Input JSON: hash" in audit and "generator version" in audit, audit[:300])
         check("audit log traces each set with source and formula",
               "effective 2020-01-01" in audit and "formula: =ROUND(BFCFAEQ" in audit, audit[:500])

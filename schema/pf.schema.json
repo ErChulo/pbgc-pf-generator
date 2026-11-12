@@ -183,7 +183,7 @@
             ]
           },
           "normalForm": {
-            "description": "Normal single form as the documents write it: SLA or a certain-and-continuous form (3CC, 5CC, ...). The app maps it to its BCV code (nCC -> SLA with n*12 months certain). A pure certain-only form has no known plan-form name; the app refuses it until the documents give a name.",
+            "description": "Normal single form as the documents write it: SLA, a certain-and-continuous form (3CC, 5CC, ...), or CTN (certain-only). The app maps it to its BCV code (nCC -> SLA with n*12 months certain; CTN -> CTN). For CTN, monthsCertain must state the term in months (the add-in refuses CTN with 0 months).",
             "type": "string"
           },
           "note": {
@@ -463,7 +463,7 @@
     "planMetadata",
     "factorSets"
   ],
-  "title": "PF Generator JSON (draft v0.4.1)",
+  "title": "PF Generator JSON (draft v0.4.2)",
   "type": "object",
   "additionalProperties": false
 }

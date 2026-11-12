@@ -1,15 +1,15 @@
 # PF Generator — Plan Factors
 
-![Tests: 327 passing](https://img.shields.io/badge/tests-327%20passing-brightgreen)
-![Unit tests: 240 passing](https://img.shields.io/badge/unit%20tests-240%20passing-brightgreen)
+![Tests: 331 passing](https://img.shields.io/badge/tests-331%20passing-brightgreen)
+![Unit tests: 244 passing](https://img.shields.io/badge/unit%20tests-244%20passing-brightgreen)
 ![Browser tests: 87 passing](https://img.shields.io/badge/browser%20tests-87%20passing-brightgreen)
 ![XLSX checks: 88 passing](https://img.shields.io/badge/xlsx%20checks-88%20passing-brightgreen)
 ![Network calls: 0](https://img.shields.io/badge/network%20calls-0-brightgreen)
-![Version: v0.4.1](https://img.shields.io/badge/version-v0.4.1-blue)
+![Version: v0.4.2](https://img.shields.io/badge/version-v0.4.2-blue)
 
-Badges show grades measured on v0.4.1. Update badges when tests change.
+Badges show grades measured on v0.4.2. Update badges when tests change.
 
-## v0.4.1 — `nCO` withdrawn; all other v0.4.0 fixes stand
+## v0.4.2 — Certain-only forms use `CTN`
 
 - **BFCFAEQ Method was the interest method, not deferral mortality
   — a real bug, fixed.** The app wrote `deferralMortality`
@@ -20,9 +20,11 @@ Badges show grades measured on v0.4.1. Update badges when tests change.
   for fixed-rate plans; `"Y"` would have been invalid. BFCF sets
   now carry `intMethod` (required, validated); ERF/LRF keep
   `deferralMortality` `Y`/`N`.
-- **Certain-only forms.** Withdrawn in v0.4.1: the plan-form name
-  `nCO` (e.g. `3CO`) was invented, not a PBGC rule. No name is known
-  yet, so a certain-only form is refused (open item 10).
+- **Certain-only forms.** `CTN` is the name (user direction). The
+  add-in code itself, per the add-in doc p.38. The term is not in
+  the name: `monthsCertain` states it in months, over 0, enforced
+  by the validator. A `CTN` to-form is refused — no field holds its
+  term. Item 10 closed; no open issues.
 - **Logo.** White PBGC logo in the header (same file as DEL).
 - **Per-type prompts.** Step 1 offers the full prompt plus one
   prompt per factor type (ERF, LRF, BFCF, OTHER).
@@ -163,8 +165,9 @@ Demo case: synthetic. Riverbend Manufacturing Pension Plan, Plan No. 001, case 9
 | `tests/run.cjs` | Unit tests (243). |
 | `tests/browser.cjs` | Browser tests (87, jsdom). |
 | `docs/RELEASE_NOTES_0.4.0.md` | What changed in v0.4.0. One item withdrawn in v0.4.1. |
-| `docs/RELEASE_NOTES_0.4.1.md` | What changed in v0.4.1. |
-| `docs/OFFICE_TESTING.md` | Office test instructions for v0.4.1. |
+| `docs/RELEASE_NOTES_0.4.1.md` | What changed in v0.4.1. One item withdrawn. |
+| `docs/RELEASE_NOTES_0.4.2.md` | What changed in v0.4.2. No open issues. |
+| `docs/OFFICE_TESTING.md` | Office test instructions for v0.4.2. |
 | `samples/riverbend-pf.json` | Sample synthetic input JSON (regenerates the sample workbook). |
 
 Sample workbooks are generated, not stored in the repo (binary):
@@ -197,14 +200,14 @@ Every tab: print area = full table, print titles rows 1:10, landscape, fit 1 wid
 ## Tests
 
 ```sh
-npm test                              # 243 unit + 87 browser checks
+npm test                              # 244 unit + 87 browser checks
 python3 scripts/verify_xlsx.py        # demo + full-grid .xlsx checks (88)
 python3 scripts/build_single_file.py  # re-inject prompt, run safety checks
 ```
 
-## Verified — v0.4.1
+## Verified — v0.4.2
 
-- `npm test`: **327 passed, 0 failed** (240 unit + 87 browser).
+- `npm test`: **331 passed, 0 failed** (244 unit + 87 browser).
 - `node --check` on the HTML script: passes.
 - `python3 scripts/verify_xlsx.py`: all 88 checks pass. 4 tabs (ERF-2020, LRF-2020, BFCF-2020 SLA->JS50, BFCF-2020 SLA->JS100). No JS75 tab: the SLA->JS75 pair is left out by the PBGC rule. The user-added JS100 tab carries the BFCFAEQ formula with survivor percent 1, derived from the to-form. The audit log is the full report (versions, input hash, per-set trace). Headers filled. Formulas present. Print setup, merged headers, freeze panes, and column widths present on every tab. BFCF headers in column B, as in the reference file. Demo ERF tab: months fill down each column (C11=25, E11=49, G11=73, I11=97); months 1, 60, 120 are table values (0.9944 at B11, 0.6667 at F22, 0.3333 at J34); the rest are formulas. Header fonts match the reference file (A1=14 bold, A5=12 bold), thin borders on row 10 and table cells, row heights match. BFCF formula carries the plan sexes "M","F". LRF formula carries months certain 36 (normal form 3CC, as in the reference file's LRF-1982 and LRF-2011). LibreOffice Calc opens the file, converts it to PDF, and shows the month-1 factor (0.9944).
 - Full grid: a 26 × 101 BFCF grid (2,626 formulas, A1:AB111) builds and opens, 29 KB compressed.

@@ -1,4 +1,4 @@
-# OPEN ITEMS — PF Generator v0.4.1
+# OPEN ITEMS — PF Generator v0.4.2
 
 The canonical gap list. Read this before proposing next steps.
 
@@ -7,6 +7,13 @@ The canonical gap list. Read this before proposing next steps.
 > **Withdrawn in v0.4.1:** the certain-only fix below (`nCO`)
 > was invented, not a PBGC rule. The user corrected it. Item 10
 > is open again. Everything else in v0.4.0 stands.
+
+## Fixed in v0.4.2 (no open issues)
+
+- **Certain-only forms: use `CTN`.** The user directed it. `CTN`
+  is the add-in code itself (add-in doc p.38), so it is the name.
+  The term comes from `monthsCertain` (over 0, enforced). A `CTN`
+  to-form is refused — no field holds its term. Item 10 closed.
 
 - **BFCFAEQ Method is the interest method, not deferral mortality.**
   A real bug, found while closing item 9: the app wrote
@@ -226,14 +233,13 @@ Fixed: `intMethod` per BFCF set, validated, written in the slot.
 NPVF2's `deferralAssump` N/P/B is a different parameter (the
 valuation function, not BFCFAEQ) and does not apply here.
 
-## 10. No plan-form name for pure certain-only (CTN) — OPEN
+## 10. No plan-form name for pure certain-only (CTN) — fixed in v0.4.2
 
-No plan-form name is known. The add-in code is `CTN` (add-in doc
-p.38, "Suggested Input": n-year Certain → code `CTN`, mths n),
-and `CTN` with months 0 is refused by the add-in. But no short
-name like `nCC` exists in any PBGC source. v0.4.0 invented `nCO`
-(`3CO`); the user corrected it and it was withdrawn in v0.4.1.
-The app refuses a certain-only form: the LLM records the form as
-written, says so in `note`, and marks the set `ambiguous`.
-The name must come from the plan documents, when a plan with
-such a form comes up.
+Closed by the user: use `CTN`. The add-in code is the name
+(add-in doc p.38, "Suggested Input": n-year Certain → code
+`CTN`, mths n). The term is not in the name: `monthsCertain`
+must state it in months, over 0 (`CTN` with 0 is refused by the
+add-in), and the validator enforces that. v0.4.0 invented `nCO`
+(`3CO`); withdrawn in v0.4.1; `CTN` is the correction.
+One limit stays: a `CTN` to-form is refused — the app has no
+field for its term.

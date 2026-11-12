@@ -42,14 +42,13 @@ Record form names exactly as the documents write them: `SLA`,
 `3CC`, `5CC`, `JS50`, `JS75`, `JS100`. Do not translate them into
 BCV codes yourself — the app maps each name to its BCV function
 code (a 3-year certain-and-life form writes as `SLA` with 36 months
-certain). A form name the documents do not give is null, never
-guessed. If a form name is not `SLA`, a certain-and-continuous form
-(`3CC`, `5CC`, ...), or a joint-and-survivor form (`JS50`, ...), say
-so in `note` and mark the set `ambiguous`. A pure certain-only form
-(payments stop after the term) has no known plan-form name: the
-add-in code for it is `CTN`, but the app knows no short name for it,
-so record the form as written, say so in `note`, and mark the set
-`ambiguous`. Never invent a short name for it.
+certain). A pure certain-only form (payments stop after the term)
+writes as `CTN`. The term is not in the name: record it in
+`monthsCertain`, in months (120 for 10 years). A form name the
+documents do not give is null, never guessed. If a form name is
+not `SLA`, a certain-and-continuous form (`3CC`, `5CC`, ...),
+`CTN`, or a joint-and-survivor form (`JS50`, ...), say so in
+`note` and mark the set `ambiguous`. Never invent a short name.
 
 ## PBGC honors only normal single form to normal married form
 
@@ -138,9 +137,9 @@ Rules for the table:
 - `title`: short title. Example: `Early Retirement Factors from NRA of 65 (2020 Plan)`.
 - `basis`: the rule in words, with the numbers. Example:
   `reduction = 1/15 per year early (linear in months)`.
-- `normalForm`: `SLA` or a certain-and-continuous form (`3CC`,
-  `5CC`, ...). Copy it as written. A pure certain-only form has no
-  known short name — see "Plan form names" above.
+- `normalForm`: `SLA`, a certain-and-continuous form (`3CC`,
+  `5CC`, ...), or `CTN` (certain-only). Copy it as written. For
+  `CTN`, `monthsCertain` must state the term in months.
 - `effectiveFrom`, `effectiveTo`: ISO dates `YYYY-MM-DD`, or null.
   See "Effective dates" above.
 - `mortalityConfirmed`: `true` only when you checked the mortality
@@ -226,7 +225,7 @@ Rules for the table:
 
 ```json
 {
-  "schemaVersion": "0.4.1",
+  "schemaVersion": "0.4.2",
   "planMetadata": {
     "planName": "Riverbend Manufacturing Pension Plan",
     "planNumber": "001",
